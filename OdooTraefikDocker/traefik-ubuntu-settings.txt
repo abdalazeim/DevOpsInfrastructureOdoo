@@ -1,0 +1,112 @@
+إعداد Traefik على Ubuntu باستخدام Docker
+
+1) معلومات الإعداد
+
+-   نظام التشغيل: Ubuntu
+-   طريقة التشغيل: Docker Container
+-   اسم الحاوية: traefik
+-   صورة Docker: traefik:v3.7
+-   شبكة Docker: proxy (شبكة موجودة مسبقاً)
+-   منفذ HTTP: 80
+-   منفذ لوحة التحكم الخارجي: 10090
+-   منفذ لوحة التحكم الداخلي داخل الحاوية: 8080
+-   رابط لوحة التحكم: http://localhost:10090/dashboard/
+
+منافذ الخدمات الموجودة على الخادم: - Odoo 19: http://localhost:10019/ -
+Jenkins: http://localhost:8081/ - Traefik Dashboard:
+http://localhost:10090/dashboard/
+
+ملاحظة: لا يتطلب هذا الإعداد دوميناً أو نطاقات فرعية. الوصول باستخدام
+localhost مناسب من نفس الجهاز فقط.
+
+2) مجلد الإعداد
+
+/opt/traefik
+
+إنشاء المجلد: sudo mkdir -p /opt/traefik cd /opt/traefik
+
+3) ملف docker-compose.yml
+
+المسار: /opt/traefik/docker-compose.yml
+
+المحتوى:
+
+services: traefik: image: traefik:v3.7 container_name: traefik restart:
+unless-stopped
+
+    command:
+      - "--api.dashboard=true"
+      - "--api.insecure=true"
+      - "--providers.docker=true"
+      - "--providers.docker.exposedbydefault=false"
+      - "--entrypoints.web.address=:80"
+      - "--log.level=INFO"
+
+    ports:
+      - "80:80"
+      - "10090:8080"
+
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+
+    networks:
+      - proxy
+
+networks: proxy: external: true name: proxy
+
+4) أوامر تشغيل وإدارة Traefik
+
+الانتقال إلى مجلد Traefik: cd /opt/traefik
+
+فحص ملف Compose: sudo docker compose config
+
+تشغيل الحاوية: sudo docker compose up -d
+
+إيقاف وإعادة إنشاء الحاوية بعد تعديل الإعدادات: sudo docker compose down
+sudo docker compose up -d
+
+عرض الحاويات والمنافذ: sudo docker ps
+
+عرض سجلات Traefik: sudo docker logs -f traefik
+
+إيقاف عرض السجلات: Ctrl + C
+
+5) التحقق من شبكة Docker
+
+عرض الشبكات: sudo docker network ls
+
+إذا لم تكن شبكة proxy موجودة، أنشئها مرة واحدة فقط: sudo docker network
+create proxy
+
+إذا ظهرت رسالة أن الشبكة موجودة مسبقاً، فهذا طبيعي ولا يلزم إنشاؤها مرة
+أخرى.
+
+6) ملاحظات أمنية مهمة
+
+-   إعداد “–api.insecure=true” يتيح لوحة التحكم على المنفذ المنشور 10090
+    دون تسجيل دخول.
+-   لا تفتح المنفذ 10090 على الإنترنت ولا تسمح بالوصول إليه من شبكات غير
+    موثوقة.
+-   هذا الإعداد مناسب للاستخدام المحلي والتجربة. للاستخدام الإنتاجي، عطّل
+    الوصول غير الآمن إلى API واضبط Dashboard عبر Router مع مصادقة وتقييد
+    الوصول.
+-   ربط خدمة Docker مع Traefik يتطلب أن تكون الخدمة على شبكة proxy، وأن
+    تُضاف إليها إعدادات labels المناسبة.
+-   لا تضف كل الحاويات إلى Traefik تلقائياً؛ الإعداد
+    exposedbydefault=false يتطلب تفعيل كل خدمة صراحةً باستخدام
+    traefik.enable=true.
+
+7) تغيير منفذ لوحة التحكم مستقبلاً
+
+افتح الملف: sudo nano /opt/traefik/docker-compose.yml
+
+غيّر المنفذ الخارجي في هذا السطر: - “10090:8080”
+
+مثلاً إلى: - “10091:8080”
+
+اترك المنفذ الداخلي 8080 كما هو، ثم أعد إنشاء الحاوية: cd /opt/traefik
+sudo docker compose down sudo docker compose up -d
+
+بعدها افتح: http://localhost:10091/dashboard/
+
+انتهى.
