@@ -8,6 +8,7 @@ import time
 from datetime import datetime
 from typing import Optional, List
 import json
+import subprocess
 
 from app.models.profile import InfrastructureProfile
 from app.models.operation import OperationRecord, OperationStatus, WorkflowStep
