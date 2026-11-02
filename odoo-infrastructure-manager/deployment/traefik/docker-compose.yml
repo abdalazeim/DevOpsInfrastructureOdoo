@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  traefik:
+    image: traefik:v3.7
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    networks:
+      - proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - ACME_EMAIL=${ACME_EMAIL:-admin@example.com}
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/traefik/acme/acme.json:/etc/traefik/acme/acme.json
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/traefik/logs:/var/log/traefik
+    labels:
+      - "traefik.enable=true"
+      # Dashboard Router
+      - "traefik.http.routers.traefik-dashboard.rule=Host(`${TRAEFIK_DASHBOARD_DOMAIN:-traefik.example.com}`)"
+      - "traefik.http.routers.traefik-dashboard.entrypoints=websecure"
+      - "traefik.http.routers.traefik-dashboard.service=api@internal"
+      - "traefik.http.routers.traefik-dashboard.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.traefik-dashboard.middlewares=auth-admin"
+      # Basic Auth Middleware for dashboard protection
+      - "traefik.http.middlewares.auth-admin.basicauth.users=${TRAEFIK_BASIC_AUTH:-admin:$$apr1$$xyz$$randomhash}"
+      # Global Security Headers
+      - "traefik.http.middlewares.sec-headers.headers.sslredirect=true"
+      - "traefik.http.middlewares.sec-headers.headers.stsSeconds=31536000"
+      - "traefik.http.middlewares.sec-headers.headers.browserXSSFilter=true"
+      - "traefik.http.middlewares.sec-headers.headers.contentTypeNosniff=true"
+
+networks:
+  proxy:
+    external: true

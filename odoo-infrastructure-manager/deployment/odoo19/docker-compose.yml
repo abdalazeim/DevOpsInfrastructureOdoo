@@ -1,0 +1,63 @@
+version: '3.8'
+
+services:
+  odoo19-db:
+    image: postgres:18-alpine
+    container_name: odoo19-db
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=${ODOO19_DB_USER:-odoo}
+      - POSTGRES_PASSWORD=${ODOO19_DB_PASSWORD:-odoo19_secure_pass}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/odoo19/db_data:/var/lib/postgresql/data/pgdata
+    networks:
+      - odoo19_internal
+    # PostgreSQL is NOT exposed to public host interfaces
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${ODOO19_DB_USER:-odoo}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  odoo19:
+    image: odoo:19.0
+    container_name: odoo19
+    restart: unless-stopped
+    depends_on:
+      odoo19-db:
+        condition: service_healthy
+    environment:
+      - HOST=odoo19-db
+      - USER=${ODOO19_DB_USER:-odoo}
+      - PASSWORD=${ODOO19_DB_PASSWORD:-odoo19_secure_pass}
+    volumes:
+      - ./config/odoo.conf:/etc/odoo/odoo.conf:ro
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/odoo19/data:/var/lib/odoo
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/odoo19/addons:/mnt/extra-addons
+    networks:
+      - odoo19_internal
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      # HTTP Web Router
+      - "traefik.http.routers.odoo19-web.rule=Host(`${ODOO19_DOMAIN:-odoo19.example.com}`)"
+      - "traefik.http.routers.odoo19-web.entrypoints=websecure"
+      - "traefik.http.routers.odoo19-web.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.odoo19-web.service=odoo19-svc"
+      - "traefik.http.routers.odoo19-web.middlewares=sec-headers@docker"
+      - "traefik.http.services.odoo19-svc.loadbalancer.server.port=8069"
+      # Longpolling Router for Livechat
+      - "traefik.http.routers.odoo19-chat.rule=Host(`${ODOO19_DOMAIN:-odoo19.example.com}`) && PathPrefix(`/websocket`)"
+      - "traefik.http.routers.odoo19-chat.entrypoints=websecure"
+      - "traefik.http.routers.odoo19-chat.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.odoo19-chat.service=odoo19-chat-svc"
+      - "traefik.http.services.odoo19-chat-svc.loadbalancer.server.port=8072"
+
+networks:
+  odoo19_internal:
+    driver: bridge
+    internal: true
+  proxy:
+    external: true

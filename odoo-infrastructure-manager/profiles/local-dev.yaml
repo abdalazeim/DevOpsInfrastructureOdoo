@@ -1,0 +1,79 @@
+# ==============================================================================
+# Local Development Profile: localhost
+# ==============================================================================
+profile_name: "local-dev"
+description: "Local developer workstation setup without external Let's Encrypt"
+version: "1.0.0"
+
+server:
+  hostname: "localhost"
+  ip_or_host: "127.0.0.1"
+  timezone: "UTC"
+  ssh_user: "dev"
+  ssh_port: 22
+
+paths:
+  project_root: "./"
+  data_root: "./data"
+  backup_root: "./data/backups"
+
+network:
+  proxy_network_name: "proxy"
+  proxy_subnet: "172.28.0.0/16"
+  enable_ipv6: false
+
+traefik:
+  enabled: true
+  image: "traefik:v3.7"
+  dashboard_enabled: true
+  dashboard_domain: "traefik.localhost"
+  acme_email: "dev@localhost"
+  acme_challenge: "http"
+  http_port: 80
+  https_port: 443
+
+odoo17:
+  enabled: true
+  domain: "odoo17.localhost"
+  image: "odoo:17.0"
+  workers: 1
+  memory_limit_soft: "1073741824"
+  memory_limit_hard: "1610612736"
+  database:
+    engine: "postgres:16-alpine"
+    name: "odoo17_dev"
+    user: "odoo"
+    password_env_var: "ODOO17_DB_PASSWORD"
+    admin_password_env_var: "ODOO17_ADMIN_PASSWORD"
+    internal_port: 5432
+    expose_public_port: false
+
+odoo19:
+  enabled: true
+  domain: "odoo19.localhost"
+  image: "odoo:19.0"
+  workers: 1
+  memory_limit_soft: "1073741824"
+  memory_limit_hard: "1610612736"
+  database:
+    engine: "postgres:18-alpine"
+    name: "odoo19_dev"
+    user: "odoo"
+    password_env_var: "ODOO19_DB_PASSWORD"
+    admin_password_env_var: "ODOO19_ADMIN_PASSWORD"
+    internal_port: 5432
+    expose_public_port: false
+
+backup:
+  enabled: false
+  cron_schedule: "0 0 * * *"
+  retention_count: 3
+  include_filestore: false
+  compression: "gzip"
+  verify_checksum: false
+
+security:
+  strict_file_permissions: true
+  acme_mode_600: false
+  isolate_postgres_network: true
+  enforce_https: false

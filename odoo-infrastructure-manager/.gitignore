@@ -1,0 +1,58 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Secret and credentials files
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+acme.json
+
+# Persistent runtime data
+data/
+backups/
+*.sql
+*.sql.gz
+*.tar.gz
+
+# Node / Web dependencies
+node_modules/
+.npm
+dist/
+dist-ssr/
+*.local
+
+# IDE and OS files
+.DS_Store
+.idea/
+.vscode/
+*.swp
+*.swo
