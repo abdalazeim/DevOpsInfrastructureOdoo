@@ -41,7 +41,7 @@ Dependencies point inward toward shared contracts. Core must not import business
 | Monitoring | Targets, samples, rules, alert events and acknowledgement | Infrastructure, Containers, Databases, Notifications | Partial; samples/rules/events exist; scheduling and retention policy pending |
 | Backup | Policies, schedules, artifacts, restore records and verification | Infrastructure, Databases, Containers, Tasks, Notifications | Partial; policy/artifact records exist; execution/scheduling/restore engine pending |
 | Databases | External database instances and safe provider operations | Infrastructure, Security credentials, Backup, Monitoring, Engine | Partial; catalog exists; connection adapters/health pending |
-| Tasks | Shared long-running operation lifecycle, logs, retry/cancel metadata | Accounts, Core audit, Engine | Planned; existing `AutomationRun` remains automation-owned until migration can preserve history |
+| Tasks | Shared long-running operation lifecycle, logs, retry/cancel metadata | Accounts, Core audit, Engine | Partial; UUID task registry, validated status transitions, retry limits, cancellation requests, redacted/bounded logs, audit events and Task Center exist; Celery/Redis dispatch and worker lifecycle pending |
 | Notifications | In-app/email delivery records and preferences | Monitoring, Backup, Automation, Tasks, Security | Scaffold only |
 | Reports | Read models and CSV/PDF export | source module selectors | Scaffold only |
 | Synchronization | Remote inventory/metadata collection state and conflict records | Infrastructure, Engine, Core | Partial; sync primitives exist, remote fleet workflows pending |
@@ -159,6 +159,7 @@ Each gate must be satisfied before destructive actions are enabled. Integrations
 | Server registry and groups | Partial, tested | `ManagedHost`, `ServerGroup`; hardware discovery and server-detail sections remain pending |
 | SSH connection test | Partial, tested with mocked SSH | Needs remote host-key entry in the system user's known-hosts file, active SSH credential, network access and least-privilege remote account |
 | Infrastructure operation execution | Partial | Only the registered, read-only server connection probe is enabled; mutations return unavailable until persistent tasks and worker isolation exist |
+| Task Manager | Partial | UUID task registry, state machine, audit, cancellation and bounded/redacted logs are implemented; task dispatch remains disabled until Celery/Redis worker is configured |
 | Global operational settings | Partial, tested | Four validated defaults stored in `SystemSetting`; configured environment variables override and make fields read-only |
 | Docker | Partial/read-only | Docker SDK read discovery must be explicitly configured; lifecycle writes are not enabled before engine/task gates |
 | Ansible | Partial/approved-template adapter | Semaphore URL/token and reviewed templates required; general inventory/playbook authoring is pending |
