@@ -1,0 +1,319 @@
+InfrastructureManager/
+│
+├── manage.py
+│
+├── config/
+│   ├── __init__.py
+│   ├── urls.py
+│   ├── api_urls.py
+│   ├── wsgi.py
+│   ├── asgi.py
+│   │
+│   ├── settings/
+│   │   ├── __init__.py
+│   │   ├── base.py
+│   │   ├── development.py
+│   │   ├── production.py
+│   │   ├── local.py
+│   │   ├── desktop.py
+│   │   └── test.py
+│   │
+│   └── security/
+│       ├── __init__.py
+│       ├── permissions.py
+│       ├── middleware.py
+│       ├── security_headers.py
+│       └── sudo_policy.py
+│
+├── apps/
+│   │
+│   ├── core/
+│   │   ├── __init__.py
+│   │   ├── models.py
+│   │   ├── exceptions.py
+│   │   ├── constants.py
+│   │   ├── validators.py
+│   │   ├── mixins.py
+│   │   ├── pagination.py
+│   │   ├── middleware.py
+│   │   ├── context_processors.py
+│   │   │
+│   │   ├── services/
+│   │   │   ├── base.py
+│   │   │   ├── audit_service.py
+│   │   │   ├── notification_service.py
+│   │   │   └── health_service.py
+│   │   │
+│   │   ├── utils/
+│   │   │   ├── encryption.py
+│   │   │   ├── dates.py
+│   │   │   ├── formatting.py
+│   │   │   └── system_utils.py
+│   │   │
+│   │   └── management/
+│   │       └── commands/
+│   │
+│   ├── accounts/
+│   │   ├── models.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── forms.py
+│   │   ├── services/
+│   │   ├── permissions/
+│   │   ├── api/
+│   │   ├── templates/
+│   │   └── tests/
+│   │
+│   ├── dashboard/
+│   │   ├── models.py
+│   │   ├── views.py
+│   │   ├── urls.py
+│   │   ├── services/
+│   │   │   ├── overview_service.py
+│   │   │   ├── metrics_service.py
+│   │   │   └── status_service.py
+│   │   ├── widgets/
+│   │   ├── api/
+│   │   └── tests/
+│   │
+│   ├── infrastructure/
+│   │   ├── servers/
+│   │   ├── operating_system/
+│   │   ├── system_services/
+│   │   ├── processes/
+│   │   ├── resources/
+│   │   ├── networking/
+│   │   ├── storage/
+│   │   ├── users/
+│   │   └── firewall/
+│   │
+│   ├── containers/
+│   │   ├── docker/
+│   │   ├── images/
+│   │   ├── volumes/
+│   │   ├── networks/
+│   │   ├── compose/
+│   │   └── registries/
+│   │
+│   ├── automation/
+│   │   ├── engine/
+│   │   ├── playbooks/
+│   │   ├── inventory/
+│   │   ├── roles/
+│   │   ├── jobs/
+│   │   ├── schedules/
+│   │   ├── execution/
+│   │   └── history/
+│   │
+│   ├── monitoring/
+│   │   ├── cpu/
+│   │   ├── memory/
+│   │   ├── disk/
+│   │   ├── network/
+│   │   ├── services/
+│   │   ├── alerts/
+│   │   ├── thresholds/
+│   │   └── history/
+│   │
+│   ├── databases/
+│   │   ├── connections/
+│   │   ├── instances/
+│   │   ├── backups/
+│   │   ├── restores/
+│   │   └── maintenance/
+│   │
+│   ├── backup/
+│   │   ├── models.py
+│   │   ├── services/
+│   │   ├── schedules/
+│   │   ├── storage/
+│   │   ├── policies/
+│   │   ├── restores/
+│   │   └── history/
+│   │
+│   ├── security/
+│   │   ├── ssh_keys/
+│   │   ├── credentials/
+│   │   ├── secrets/
+│   │   ├── access_control/
+│   │   ├── sessions/
+│   │   └── audit/
+│   │
+│   ├── task_manager/
+│   │   ├── models.py
+│   │   ├── services/
+│   │   ├── dispatcher/
+│   │   ├── workers/
+│   │   ├── queue/
+│   │   ├── results/
+│   │   ├── logs/
+│   │   └── schedules/
+│   │
+│   ├── notifications/
+│   │   ├── models.py
+│   │   ├── services/
+│   │   ├── channels/
+│   │   └── templates/
+│   │
+│   ├── reports/
+│   │   ├── services/
+│   │   ├── generators/
+│   │   ├── exports/
+│   │   └── templates/
+│   │
+│   └── synchronization/
+│       ├── models.py
+│       ├── services/
+│       ├── agents/
+│       └── protocols/
+│
+├── infrastructure_engine/
+│   ├── __init__.py
+│   │
+│   ├── interfaces/
+│   │   ├── base_adapter.py
+│   │   ├── execution_interface.py
+│   │   └── monitoring_interface.py
+│   │
+│   ├── adapters/
+│   │   ├── linux/
+│   │   ├── systemd/
+│   │   ├── docker/
+│   │   ├── ansible/
+│   │   ├── ssh/
+│   │   ├── networking/
+│   │   └── databases/
+│   │
+│   ├── executors/
+│   │   ├── command_executor.py
+│   │   ├── playbook_executor.py
+│   │   └── task_executor.py
+│   │
+│   ├── collectors/
+│   │   ├── system_collector.py
+│   │   ├── resource_collector.py
+│   │   └── service_collector.py
+│   │
+│   ├── security/
+│   │   ├── command_validator.py
+│   │   ├── execution_policy.py
+│   │   └── privilege_manager.py
+│   │
+│   └── exceptions.py
+│
+├── templates/
+│   ├── base/
+│   ├── components/
+│   ├── pages/
+│   ├── partials/
+│   ├── dashboard/
+│   ├── infrastructure/
+│   ├── containers/
+│   ├── automation/
+│   ├── monitoring/
+│   ├── backup/
+│   ├── security/
+│   ├── reports/
+│   └── print/
+│
+├── static/
+│   ├── css/
+│   │   ├── core/
+│   │   ├── tokens/
+│   │   ├── components/
+│   │   ├── layout/
+│   │   ├── modules/
+│   │   ├── pages/
+│   │   └── dist/
+│   │
+│   ├── js/
+│   │   ├── core/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── layout/
+│   │   ├── modules/
+│   │   ├── pages/
+│   │   └── dist/
+│   │
+│   ├── images/
+│   ├── icons/
+│   └── vendor/
+│
+├── data/
+│   ├── database/
+│   │   └── infrastructure.sqlite3
+│   ├── credentials/
+│   ├── runtime/
+│   └── cache/
+│
+├── automation_files/
+│   ├── playbooks/
+│   │   ├── system/
+│   │   ├── docker/
+│   │   ├── networking/
+│   │   ├── security/
+│   │   ├── backup/
+│   │   └── maintenance/
+│   │
+│   ├── roles/
+│   ├── inventory/
+│   └── collections/
+│
+├── logs/
+│   ├── application/
+│   ├── execution/
+│   ├── security/
+│   └── audit/
+│
+├── media/
+├── staticfiles/
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   ├── security/
+│   ├── api/
+│   ├── automation/
+│   └── e2e/
+│
+├── scripts/
+│   ├── install.sh
+│   ├── setup_environment.sh
+│   ├── start.sh
+│   ├── stop.sh
+│   ├── restart.sh
+│   ├── health_check.sh
+│   ├── backup.sh
+│   ├── restore.sh
+│   └── maintenance.sh
+│
+├── deployment/
+│   ├── systemd/
+│   ├── nginx/
+│   ├── gunicorn/
+│   ├── docker/
+│   ├── celery/
+│   └── configuration/
+│
+├── docs/
+│   ├── architecture/
+│   ├── modules/
+│   ├── api/
+│   ├── security/
+│   ├── installation/
+│   ├── deployment/
+│   ├── maintenance/
+│   ├── database/
+│   └── TESTING.md
+│
+├── requirements/
+│   ├── base.txt
+│   ├── development.txt
+│   ├── production.txt
+│   └── testing.txt
+│
+├── .env.example
+├── .gitignore
+├── pyproject.toml
+├── README.md
+└── LICENSE
