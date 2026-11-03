@@ -1,0 +1,36 @@
+---
+- name: Set system hostname
+  ansible.builtin.hostname:
+    name: "{{ server_hostname | default('devops-odoo') }}"
+
+- name: Set timezone
+  community.general.timezone:
+    name: "{{ timezone | default('UTC') }}"
+
+- name: Update apt cache and upgrade system packages
+  ansible.builtin.apt:
+    update_cache: yes
+    cache_valid_time: 3600
+
+- name: Install system utility packages
+  ansible.builtin.apt:
+    name: "{{ required_packages }}"
+    state: present
+
+- name: Apply kernel sysctl performance optimizations
+  ansible.posix.sysctl:
+    name: "{{ item.key }}"
+    value: "{{ item.value }}"
+    state: present
+    reload: yes
+  loop: "{{ sysctl_settings | dict2items }}"
+
+- name: Configure basic UFW firewall rules
+  community.general.ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - "22"    # SSH
+    - "80"    # HTTP
+    - "443"   # HTTPS

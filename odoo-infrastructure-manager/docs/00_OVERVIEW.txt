@@ -1,0 +1,29 @@
+# GDS Template API - Overview (General Development System)
+
+Reusable Django Enterprise Starter Template: Core + Accounts + Reusable Services + Optional Business Modules. Designed for any business system with a Django backend API and an Android (Flutter) client, deployed on Render with Neon PostgreSQL.
+
+## Core principle
+Core is fully independent of business domain. Business modules live under apps/modules/ and can be added/removed without touching Core or Accounts.
+
+## Stack
+- Backend: Python 3.12, Django, Django REST Framework, PostgreSQL (Neon).
+- Auth: session-based for web + unified JSON API; JWT-ready for mobile.
+- Frontend (optional): server-rendered Django templates + HTMX/Alpine; or pure API for SPA/mobile.
+- Mobile: Flutter (Android) with offline-first sync.
+- Deploy: Render (web + release migrate), Docker, Nginx, Linux VPS (systemd).
+- DB: Neon PostgreSQL (sslmode=require) or local PostgreSQL 16.
+- Observability: structured logging, security log, health endpoints, Sentry (optional).
+
+## Repository layout
+project/
+  manage.py
+  requirements*.txt, .env.example, .gitignore
+  config/ (urls, api_urls, asgi, wsgi, settings/{base,development,test,production,desktop})
+  apps/{core, accounts, modules/{example, ...}}
+  templates/, static/, media/, tests/, scripts/, deployment/, desktop/, docs/
+
+## Dependency rule (upwards only)
+Core <- Accounts <- Business Modules. Core never imports a business module.
+
+## Reusability
+No business-specific fields in core. New project starts from Core+Accounts+Infra+UI+Tests, then adds modules. Semantic versioning MAJOR.MINOR.PATCH, never tied to a business name.

@@ -1,0 +1,39 @@
+# ==============================================================================
+# Django Enterprise Starter Template - Production Dependencies
+# ==============================================================================
+
+# Framework
+Django>=6.0,<7.0
+
+# REST API Framework
+djangorestframework>=3.17.0
+
+# JWT Authentication for Android/Mobile
+djangorestframework-simplejwt>=5.3.0
+
+# API Documentation (OpenAPI/Swagger)
+drf-spectacular>=0.28.0
+
+# Filtering for API
+django-filter>=24.0
+
+# WSGI Server
+gunicorn>=26.0.0
+
+# Static Files
+whitenoise>=6.12.0
+
+# Configuration
+python-dotenv>=1.0.0
+django-environ>=0.11.0
+dj-database-url>=2.3.0
+
+# Database
+psycopg2-binary>=2.9.0
+
+# CORS
+django-cors-headers>=4.9.0
+
+# Django hard dependencies
+sqlparse>=0.5.0
+tzdata

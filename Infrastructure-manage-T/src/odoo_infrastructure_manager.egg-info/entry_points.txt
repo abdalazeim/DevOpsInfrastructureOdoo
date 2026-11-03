@@ -1,0 +1,2 @@
+[console_scripts]
+odoo-manager = app.main:main

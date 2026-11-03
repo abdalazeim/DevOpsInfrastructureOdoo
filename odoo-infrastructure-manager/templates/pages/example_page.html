@@ -1,0 +1,22 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+
+{% block title %}{{ page_title }} - {{ site_title }}{% endblock %}
+
+{% block app_content %}
+  <div class="page-title-bar">
+    <div class="page-title-bar-inner">
+      <div class="page-title-left">
+        <div class="page-title-text">{{ page_title }}</div>
+        <div class="page-title-subtitle">{{ page_subtitle }}</div>
+      </div>
+      <div class="page-title-actions">{% block page_actions %}{% endblock %}</div>
+    </div>
+  </div>
+
+  {% include "components/breadcrumb.html" %}
+
+  <div class="page-content active">
+    {% block page_content %}{% endblock %}
+  </div>
+{% endblock %}

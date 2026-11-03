@@ -1,0 +1,74 @@
+{% comment %}Top navigation bar (reusable).{% endcomment %}
+<header class="top-navbar">
+  <div class="top-navbar-inner">
+    <div class="top-nav-right">
+      <button class="mobile-menu-btn" onclick="openMobileSidebar()">
+        <i class="fas fa-bars"></i>
+      </button>
+      <div class="top-nav-logo-wrap">
+        <div class="top-nav-logo"><i class="fas fa-layer-group"></i></div>
+        <div class="top-nav-brand">
+          <div class="top-nav-title">{{ site_title }}</div>
+          <div class="top-nav-subtitle">{{ site_subtitle }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="top-nav-center">
+      <div class="top-nav-search">
+        <i class="fas fa-search top-nav-search-icon"></i>
+        <input type="text" class="top-nav-search-input" placeholder="بحث..." id="globalSearchInput" oninput="handleGlobalSearch(this.value)">
+      </div>
+    </div>
+
+    <div class="top-nav-left">
+      <div class="top-nav-datetime" id="topNavDateTime">
+        <i class="fas fa-calendar-alt"></i>
+        <span id="topNavDateText"></span>
+      </div>
+      <div class="top-nav-lang" onclick="toggleLanguage()" title="تغيير اللغة">
+        {% if html_lang == 'ar' %}
+        <span id="langLabel">EN</span>
+        {% else %}
+        <span id="langLabel">عربي</span>
+        {% endif %}
+      </div>
+      <div class="top-nav-notif" onclick="showNotifications()" title="الإشعارات">
+        <i class="fas fa-bell"></i>
+        <span class="top-nav-notif-badge" id="notifBadge">0</span>
+      </div>
+      <div class="top-nav-profile" onclick="toggleProfileDropdown()" title="الملف الشخصي">
+        <div class="top-nav-avatar" id="nav-user-avatar">
+          <span id="nav-user-initials">مد</span>
+        </div>
+        <div class="top-nav-profile-info">
+          <div class="top-nav-profile-name" id="nav-user-name">مدير النظام</div>
+          <div class="top-nav-profile-role" id="nav-user-role">Admin</div>
+        </div>
+        <i class="fas fa-chevron-down top-nav-arrow"></i>
+      </div>
+      <div class="top-nav-dropdown" id="profileDropdown">
+        <div class="top-nav-dropdown-header">
+          <div class="top-nav-dropdown-avatar" id="dropdown-user-avatar">
+            <span id="dropdown-user-initials">مد</span>
+          </div>
+          <div class="top-nav-dropdown-userinfo">
+            <div class="top-nav-dropdown-username" id="dropdown-user-name">مدير النظام</div>
+            <div class="top-nav-dropdown-job" id="dropdown-user-job"></div>
+            <div class="top-nav-dropdown-dept" id="dropdown-user-dept"></div>
+          </div>
+        </div>
+        <div class="top-nav-dropdown-divider"></div>
+        {% for item in profile_menu %}
+        <a class="top-nav-dropdown-item" onclick="{{ item.onclick }}">
+          <i class="{{ item.icon }}"></i> {{ item.label }}
+        </a>
+        {% endfor %}
+        <div class="top-nav-dropdown-divider"></div>
+        <a class="top-nav-dropdown-item text-danger" onclick="logout()">
+          <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
+        </a>
+      </div>
+    </div>
+  </div>
+</header>

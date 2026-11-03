@@ -1,0 +1,10 @@
+{% comment %}Reusable stat/card component.
+Usage:
+  {% include "components/card.html" with card_icon="fa-boxes" card_value="0" card_label="إجمالي الأصناف" card_color="icon-purple" %}
+{% endcomment %}
+<div class="stat-card">
+  <div class="stat-icon {{ card_color|default:'icon-blue' }}"><i class="fas {{ card_icon }}"></i></div>
+  <div class="stat-value" {% if card_id %}id="{{ card_id }}"{% endif %}>{{ card_value|default:"0" }}</div>
+  <div class="stat-label">{{ card_label }}</div>
+  {% if card_change %}<div class="stat-change text-muted">{{ card_change }}</div>{% endif %}
+</div>

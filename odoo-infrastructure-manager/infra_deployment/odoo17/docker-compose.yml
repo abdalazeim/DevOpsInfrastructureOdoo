@@ -1,0 +1,61 @@
+# ==============================================================================
+# Odoo 17 + PostgreSQL 16 - Standalone Compose (minhng92 style)
+#
+# This file is copied by automation/scripts/install-odoo.sh into a dedicated
+# instance directory (default: /opt/odoo-infrastructure/odoo17) together with:
+#   postgresql/  addons/  etc/odoo.conf  entrypoint.sh  .env
+#
+# Layout:
+#   postgresql/  -> /var/lib/postgresql/data
+#   addons/      -> /mnt/extra-addons
+#   etc/         -> /etc/odoo (contains odoo.conf)
+#
+# Direct access (no reverse proxy):
+#   http://localhost:10017  (web)
+#   http://localhost:20017  (live chat / longpolling)
+# ==============================================================================
+name: odoo17
+
+services:
+  db:
+    container_name: odoo17-db
+    image: ${PG_IMAGE:-postgres:16}
+    user: root
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-odoo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./postgresql:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  odoo17:
+    container_name: odoo17
+    image: ${ODOO_IMAGE:-odoo:17}
+    user: root
+    depends_on:
+      - db
+    restart: always
+    tty: true
+    command: ["--config=/etc/odoo/odoo.conf"]
+    environment:
+      - HOST=db
+      - USER=${POSTGRES_USER:-odoo}
+      - PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    ports:
+      - "${ODOO_HTTP_PORT:-10017}:8069"
+      - "${ODOO_CHAT_PORT:-20017}:8072" # live chat
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./addons:/mnt/extra-addons
+      - ./etc:/etc/odoo
+    networks:
+      - internal
+
+networks:
+  internal:
+    name: ${ODOO_NETWORK:-odoo17_internal}
+    driver: bridge

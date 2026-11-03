@@ -1,0 +1,22 @@
+---
+server_hostname: "devops-odoo"
+timezone: "UTC"
+docker_proxy_network: "proxy"
+sysctl_settings:
+  vm.max_map_count: 262144
+  fs.file-max: 2097152
+  net.core.somaxconn: 1024
+
+required_packages:
+  - apt-transport-https
+  - ca-certificates
+  - curl
+  - gnupg
+  - lsb-release
+  - ufw
+  - htop
+  - iotop
+  - tar
+  - gzip
+  - rsync
+  - jq

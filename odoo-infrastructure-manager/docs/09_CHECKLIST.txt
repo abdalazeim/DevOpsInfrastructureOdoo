@@ -1,0 +1,44 @@
+# Checklist (New System)
+
+## Backend
+[ ] Create Django project with split settings (base/dev/test/prod/desktop)
+[ ] Custom user model (accounts)
+[ ] Configure Neon DATABASE_URL (sslmode=require)
+[ ] Core: BaseModel, AuditLog, SystemSettings, exceptions, http utils
+[ ] Accounts: users, roles, groups, permissions registry
+[ ] JWT endpoints for mobile (optional but recommended)
+[ ] CORS + allowed hosts + CSRF trusted origins
+[ ] Health endpoints /health/ and /health/db/
+[ ] OpenAPI schema (drf-spectacular)
+[ ] Copy apps/modules/example to create first business module
+[ ] Register module in INSTALLED_APPS + config/api_urls.py
+[ ] Migrations + seed data
+[ ] Tests (unit/integration/api/e2e) + lint + type checks
+
+## Deploy (Render)
+[ ] render.yaml
+[ ] Procfile (web + release migrate)
+[ ] Env vars set (SECRET_KEY, DEBUG, ALLOWED_HOSTS, CSRF/CORS, DATABASE_URL, secure cookies)
+[ ] Release command migrates
+[ ] collectstatic
+[ ] Health check passes
+[ ] Gunicorn config
+
+## Docker (optional)
+[ ] Dockerfile + docker-compose
+[ ] Entrypoints (wait_for_db, migrate, collectstatic)
+[ ] Nginx config
+
+## Android (Flutter)
+[ ] Base URL config per flavor
+[ ] JWT storage + interceptor (refresh on 401)
+[ ] Offline cache + sync queue
+[ ] Sync endpoints integration (push/pull)
+[ ] Error handling + retry/backoff
+[ ] Build release APK
+
+## Docs
+[ ] README with setup
+[ ] API docs / OpenAPI
+[ ] .env.example
+[ ] Architecture + module docs

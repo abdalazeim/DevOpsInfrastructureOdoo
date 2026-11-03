@@ -1,0 +1,9 @@
+{% comment %}Reusable error state.
+Usage:
+  {% include "components/error_state.html" with error_id="error" error_text="تعذر تحميل البيانات" %}
+{% endcomment %}
+<div id="{{ error_id }}" class="error-state" {% if error_hidden %}style="display:none;"{% endif %}>
+  <i class="fas fa-exclamation-triangle" style="font-size:36px;color:#dc2626;"></i>
+  <p>{{ error_text|default:"حدث خطأ أثناء التحميل" }}</p>
+  {% if error_retry %}<button class="btn btn-outline-secondary btn-sm" onclick="{{ error_retry }}">إعادة المحاولة</button>{% endif %}
+</div>

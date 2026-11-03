@@ -1,0 +1,11 @@
+asgiref==3.11.1
+Django==6.0.5
+openpyxl==3.1.5
+pillow==12.2.0
+pystray==0.19.5
+python-dotenv==1.0.1
+pyinstaller==6.20.0
+sqlparse==0.5.5
+typing_extensions==4.15.0
+tzdata==2026.2
+waitress==3.0.2

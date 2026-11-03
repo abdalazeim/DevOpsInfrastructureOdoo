@@ -1,0 +1,48 @@
+# Deployment (Render + Docker + VPS)
+
+## Supported Targets
+Local -> Docker -> Render -> Linux VPS (Nginx+Gunicorn) -> PostgreSQL/Neon.
+
+## Local
+python manage.py runserver (or python scripts/run.py). Never runserver in production.
+
+## Gunicorn
+Config: gunicorn.conf.py (root) and deployment/gunicorn/gunicorn.conf.py:
+- Binds 0.0.0.0:$PORT (default 8000)
+- Workers = cpu_count*2+1 (override GUNICORN_WORKERS)
+- Sync worker, timeout 120s, keepalive 5s
+- Access logs include x-forwarded-for
+Command: gunicorn config.wsgi:application --config gunicorn.conf.py
+
+## Nginx (Reverse Proxy)
+deployment/nginx/nginx.conf (+ docker variants). Client -> Nginx -> Gunicorn -> Django -> PostgreSQL. Responsibilities: TLS termination, static/media files, proxy to Gunicorn.
+
+## Docker / Compose
+deployment/Dockerfile + deployment/docker/Dockerfile.prod; docker-compose.yml (dev) + docker-compose.prod.yml (prod). Containers: web, db, nginx. Entrypoints: entrypoint.sh, wait_for_db.sh, migrate.sh, collectstatic.sh. Makefile helpers. docker compose up -d --build. Also runs without Docker (PostgreSQL 16 local via DATABASE_URL).
+
+## Render
+Procfile:
+  web: gunicorn config.wsgi:application --config gunicorn.conf.py
+  release: python manage.py migrate --noinput --settings=config.settings.production
+render.yaml declares web service. Env vars: SECRET_KEY, DEBUG=False, DJANGO_ALLOWED_HOSTS, CSRF_TRUSTED_ORIGINS, CORS_ALLOWED_ORIGINS, DATABASE_URL (Neon, sslmode=require), SESSION_COOKIE_SECURE=True, CSRF_COOKIE_SECURE=True.
+manage.py auto-detects PORT/RENDER -> production settings.
+
+## Linux VPS (systemd)
+Service unit deployment/gds.service (paths /opt/gds). Script scripts/deploy.sh.
+
+## Static & Media
+python manage.py collectstatic --noinput. STATIC_ROOT=staticfiles/ served via WhiteNoise. Media in media/ must be persisted/backed up.
+
+## Health Checks
+  GET /health/      app liveness (no DB)
+  GET /health/db/   DB readiness (503 on failure)
+Used by Render, Docker, LBs, monitoring.
+
+## Backup & Recovery
+python manage.py backup_db; pg_dump/pg_restore. Back up DB dump + media/ + .env.
+
+## Production Security Quick Check
+DEBUG=False; SECRET_KEY from env; HTTPS + secure cookies + HSTS; ALLOWED_HOSTS/CSRF_TRUSTED_ORIGINS set; migrations via release; collectstatic run.
+
+## CI/CD
+Jenkinsfile pipeline template; .pre-commit-config.yaml hooks; pyproject.toml tooling. Gate before merge: check + makemigrations --check + test + verify_api.py + check_static_refs.py.

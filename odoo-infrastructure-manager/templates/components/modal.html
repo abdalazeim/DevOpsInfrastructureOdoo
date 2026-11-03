@@ -1,0 +1,24 @@
+{% comment %}Reusable Bootstrap modal.
+Usage:
+  {% include "components/modal.html" with modal_id="myModal" modal_title="عنوان" modal_size="modal-lg" %}
+  ... inside the block use {% block modal_body_myModal %} ... {% endblock %}
+{% endcomment %}
+<div class="modal fade" id="{{ modal_id }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered{% if modal_size %} {{ modal_size }}{% endif %}">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="{{ modal_id }}Label">{{ modal_title }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        {% block modal_body %}{% endblock %}
+      </div>
+      {% if modal_footer %}
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-accent" id="{{ modal_id }}SaveBtn">{{ modal_save_label|default:"حفظ" }}</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>

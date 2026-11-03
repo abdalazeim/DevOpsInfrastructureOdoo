@@ -1,0 +1,75 @@
+# Sync Protocol & App Spec Ideas (from GTS app_spec)
+
+## Overview
+Flutter Android app, offline-first, syncing with Django backend on Render + Neon Postgres. JWT auth. 20 syncable models. Push kinds: shipment.advance, shipment.create, trip.advance. Cursor: server updated_at. Page size 500. Tombstones + idempotency via operation_id.
+
+## Sync endpoint
+GET/POST /api/v1/sync/
+Pull returns {rows: {model: [...]}, tombstones: [...]} since cursor.
+Push sends {operations: [{operation_id, kind, payload}]}.
+Idempotent: duplicate operation_id returns recorded result.
+Deletions via SyncTombstone, pulled with changes.
+20 syncable models (see list below).
+
+## Syncable models (20)
+customer, driver, vehicle, goods (goodstype), route, branch, agent, shipment, trip, payment, expense, invoice, company, city, location, operational_entity, department, chart_of_accounts_item, journal_entries_item, regions_item.
+
+Each has updated_at cursor and exported field list (see SYNCABLE_MODELS_Reference.md). Shipment has 36 fields; trip 22; payment 17; invoice 16; company 16; journal 16; etc.
+
+## Push kinds
+- shipment.advance (status progression)
+- shipment.create (new shipment)
+- trip.advance (trip status)
+
+## Protocol details
+- Cursor is server updated_at (never device clock).
+- Page size 500.
+- Tombstones pulled with changes.
+- operation_id UUID per operation; duplicate returns recorded result.
+- First run: full sync (GET /api/v1/sync/?models=...).
+- Offline: save to SQLite + pending_operations; show data without waiting.
+- On reconnect: POST pending; only mark applied after confirmed server result.
+- Periodic: GET ?cursor=<last_cursor>; merge; update cursor after local success.
+- Conflict resolution: server wins; updated_at versioning; log conflicts.
+
+## Local SQLite schema
+Tables: shipments, trips, customers, pending_operations, sync_state (+ others).
+pending_operations: operation_id (UUID), kind, payload (JSON), created_at, status (pending/sent/failed/rejected/applied/dead), retry_count, error, last_attempt.
+sync_state: last_cursor, last_sync_at, last_sync_status.
+Use Drift (recommended) for complex apps or sqflite for direct control.
+
+## Backend state (as documented)
+JWT auth (60 min access), sync pull supports 20 models, sync push supports 3 kinds, idempotency via sync_operation table, tombstones via sync_tombstone, row scoping via transport_repository, rate limiting on auth/sync, OpenAPI at /api/v1/schema/.
+
+## Security requirements
+- JWT 60 min access; refresh rotation + blacklist.
+- Rate limiting auth + sync.
+- CORS restricted.
+- CSRF for session-based ops.
+- SECRET_KEY required (fail if missing).
+- HTTPS only; no TLS verification disable.
+- Secure token storage (flutter_secure_storage); consider SQLCipher for sensitive local data.
+- Permission checks per operation (not just JWT validity).
+- No secrets in logs.
+- Device session revocation from server.
+- Conflict policy documented.
+
+## Testing requirements
+- Login + JWT tests.
+- User permissions + data scoping.
+- Full + incremental sync.
+- Idempotent replay (no double execution).
+- Concurrent edits + tombstones.
+- Offline interruption during send.
+- Crash recovery.
+- Real API responses + OpenAPI schema.
+
+## Render env
+SECRET_KEY, DATABASE_URL, DJANGO_SETTINGS_MODULE=config.settings.production, ALLOWED_HOSTS, CORS_ALLOWED_ORIGINS, CSRF_TRUSTED_ORIGINS, SESSION/CSRF cookie secure.
+
+## Build commands
+flutter pub get
+dart run build_runner build --delete-conflicting-outputs
+flutter analyze
+flutter test
+flutter build apk

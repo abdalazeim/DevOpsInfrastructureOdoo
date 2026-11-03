@@ -1,0 +1,31 @@
+# Database (Neon PostgreSQL)
+
+## Connection
+- DATABASE_URL env var (Neon provides it); parse with dj-database-url.
+- SSL required: sslmode=require.
+- Test DB: PostgreSQL test_<name>, created/dropped per run (config/settings/test.py).
+
+## Migrations
+- python manage.py makemigrations / migrate.
+- On deploy: release command runs migrate --noinput.
+- makemigrations --check in CI gate.
+
+## Performance
+- CONN_MAX_AGE or Neon pooler endpoint for pooling.
+- Indexes on foreign keys and frequently filtered fields.
+- select_related/prefetch_related in repositories.
+- Pagination always (cap 100).
+
+## Backups
+- Neon automated backups.
+- Manual: python manage.py backup_db; pg_dump --format=custom -f gds_backup.dump "postgresql://...?sslmode=require"; restore with pg_restore --clean --if-exists.
+- Back up: DB dump + media/ + .env.
+
+## Models
+- BaseModel: created_at, updated_at, created_by, updated_by.
+- UUID primary keys optional for public resources.
+- Soft delete via is_active/deleted_at where needed.
+- AuditLog generic trail (user, action, module, object, timestamp, IP, old/new value).
+
+## Desktop mode
+PostgreSQL via DATABASE_URL (desktop.py), offline-capable.

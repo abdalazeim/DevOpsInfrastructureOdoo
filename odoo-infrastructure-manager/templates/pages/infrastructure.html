@@ -1,0 +1,765 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+
+{% block title %}{{ site_title }} - {{ site_subtitle }}{% endblock %}
+
+{% block extra_css %}
+  <style>
+    body, .top-nav-search-input, .form-control, .form-select, .btn, .custom-table, .set-btn {
+      font-family: '{{ app_font_family }}', 'Cairo', 'Tajawal', sans-serif;
+    }
+  </style>
+{% endblock %}
+
+{% block app_content %}
+
+  <!-- Page Title Bar -->
+  <div class="page-title-bar">
+    <div class="page-title-bar-inner">
+      <div class="page-title-left">
+        <div class="page-title-text" id="topbar-page-title">إدارة البنية التحتية لأودو</div>
+        <div class="page-title-subtitle" id="topbar-page-subtitle">نشر وإدارة Odoo مع Docker وTraefik</div>
+      </div>
+      <div class="page-title-actions" id="topbar-actions">
+        <button class="topbar-btn" onclick="refreshData()" title="تحديث">
+          <i class="fas fa-rotate-right"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== DASHBOARD PAGE ===== -->
+  <div class="page-content active" id="page-dashboard">
+    <div class="section-header">
+      <div>
+        <div class="section-title">إدارة البنية التحتية لأودو</div>
+        <div class="section-subtitle" id="dash-subtitle">نشر وإدارة Odoo مع Docker وTraefik</div>
+      </div>
+    </div>
+
+    <!-- Stats Cards: System -->
+    <div class="row g-3 mb-4">
+      <div class="col-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon icon-blue"><i class="fas fa-users"></i></div>
+          <div class="stat-value" id="stat-total-users">0</div>
+          <div class="stat-label">إجمالي المستخدمين</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon icon-green"><i class="fas fa-user-check"></i></div>
+          <div class="stat-value" id="stat-active-users">0</div>
+          <div class="stat-label">مستخدمون نشطون</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon icon-gold"><i class="fas fa-clipboard-list"></i></div>
+          <div class="stat-value" id="stat-audit-today">0</div>
+          <div class="stat-label">أحداث التدقيق اليوم</div>
+        </div>
+      </div>
+      <div class="col-6 col-xl-3">
+        <div class="stat-card">
+          <div class="stat-icon icon-purple"><i class="fas fa-history"></i></div>
+          <div class="stat-value" id="stat-audit-total">0</div>
+          <div class="stat-label">إجمالي أحداث التدقيق</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Latest Audit Activity -->
+    <div class="row g-3 mb-4">
+      <div class="col-12">
+        <div class="data-card">
+          <div class="data-card-header">
+            <div class="data-card-title"><i class="fas fa-history"></i> أحدث نشاطات النظام</div>
+          </div>
+          <div style="overflow-x:auto;">
+            <table class="table table-sm" id="dash-audit-table" style="font-size:13px;margin:0;">
+              <thead style="background:#f1f5f9;"><tr>
+                <th>المستخدم</th>
+                <th>الإجراء</th>
+                <th>الوحدة</th>
+                <th>الوصف</th>
+                <th>التاريخ</th>
+              </tr></thead>
+              <tbody id="dash-audit-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== REPORTS PAGE ===== -->
+  <!-- ===== العناصر التجريبية MODULE PAGE ===== -->
+  <div class="page-content" id="page-example">
+    <div class="section-header">
+      <div>
+        <div class="section-title">العناصر التجريبية</div>
+        <div class="section-subtitle">إدارة سجلات العناصر التجريبية</div>
+      </div>
+      <div class="btn-toolbar-wrap">
+        <button class="btn btn-accent btn-sm" onclick="openExampleModal()"><i class="fas fa-plus me-1"></i> إضافة</button>
+      </div>
+    </div>
+    <div class="data-card">
+      <div style="overflow-x:auto;">
+        <table class="table table-sm" id="example-table" style="font-size:13px;margin:0;">
+          <thead style="background:#f1f5f9;"><tr>
+            <th>الكود</th><th>الاسم</th><th>الوصف</th><th>الكمية</th><th>الحالة</th><th>إجراءات</th>
+          </tr></thead>
+          <tbody id="example-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- العناصر التجريبية Add Modal -->
+    <div class="modal fade" id="exampleModal" tabindex="-1" aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+          <div class="modal-header">
+            <h5 class="modal-title">إضافة العناصر التجريبية</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+          </div>
+          <div class="modal-body">
+            <form id="exampleForm">
+              <div class="mb-3">
+                <label class="form-label">الكود <span class="required">*</span></label>
+                <input type="text" class="form-control" id="example-code" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">الاسم <span class="required">*</span></label>
+                <input type="text" class="form-control" id="example-name" required>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">الوصف</label>
+                <textarea class="form-control" id="example-desc" rows="2"></textarea>
+              </div>
+              <div class="mb-3">
+                <label class="form-label">الكمية</label>
+                <input type="number" class="form-control" id="example-qty" value="0" min="0">
+              </div>
+            </form>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+            <button type="button" class="btn btn-accent" onclick="saveExampleItem()"><i class="fas fa-save me-1"></i> حفظ</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-content" id="page-reports">
+    <div class="section-header">
+      <div>
+        <div class="section-title">التقارير</div>
+        <div class="section-subtitle">تقارير وإحصائيات سجل التدقيق</div>
+      </div>
+      <div class="btn-toolbar-wrap">
+        <button class="btn btn-outline-secondary btn-sm" onclick="auditReports.printReport()" title="طباعة"><i class="fas fa-print"></i> طباعة</button>
+        <button class="btn btn-outline-secondary btn-sm" onclick="auditReports.exportCSV()" title="تصدير CSV"><i class="fas fa-file-csv"></i> تصدير</button>
+      </div>
+    </div>
+    <!-- Report Filters -->
+    <div id="reportFilters" class="data-card" style="margin-bottom:12px; padding:12px 16px">
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center">
+        <div id="rpt-search-wrap">
+          <label style="font-size:12px; font-weight:600; display:block; margin-bottom:2px">بحث</label>
+          <input type="text" id="rpt-search" class="form-control form-control-sm" placeholder="بحث في المستخدم أو الوحدة أو الوصف..." oninput="auditReports.filterLocal()" style="min-width:200px">
+        </div>
+        <div>
+          <label style="font-size:12px; font-weight:600; display:block; margin-bottom:2px">الإجراء</label>
+          <select id="rpt-action" class="form-control form-control-sm" onchange="auditReports.load()" style="min-width:140px"></select>
+        </div>
+        <div id="rpt-date-from-wrap">
+          <label style="font-size:12px; font-weight:600; display:block; margin-bottom:2px">من تاريخ</label>
+          <input type="date" id="rpt-date-from" class="form-control form-control-sm" onchange="auditReports.load()">
+        </div>
+        <div id="rpt-date-to-wrap">
+          <label style="font-size:12px; font-weight:600; display:block; margin-bottom:2px">إلى تاريخ</label>
+          <input type="date" id="rpt-date-to" class="form-control form-control-sm" onchange="auditReports.load()">
+        </div>
+      </div>
+    </div>
+    <!-- Report Stats -->
+    <div id="reportStats" style="display:none; margin-bottom:12px"></div>
+    <!-- Report Table -->
+    <div class="data-card">
+      <div class="data-card-header">
+        <div class="data-card-title" id="reportTitle"><i class="fas fa-history"></i> سجل التدقيق</div>
+        <div class="pagination-info" id="rpt-pagination-info">عرض 0 من 0 سجل</div>
+      </div>
+      <div class="table-wrapper" id="reportTableWrapper">
+        <table class="custom-table" id="reportTable">
+          <thead id="reportTableHead"></thead>
+          <tbody id="reportTableBody"></tbody>
+        </table>
+      </div>
+      <div class="pagination-wrap" id="rpt-pagination-wrap">
+        <div class="pagination-btns" id="rpt-pagination-btns"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== SETTINGS PAGE ===== -->
+  <div class="page-content" id="page-settings">
+    <div class="settings-header" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px">
+      <div>
+        <h1 class="settings-title"><i class="fas fa-cogs" style="margin-left:8px;color:var(--accent)"></i>الإعدادات العامة</h1>
+        <p class="settings-subtitle">إدارة إعدادات النظام — التقارير والحسابات والطباعة</p>
+      </div>
+      <div style="display:flex;gap:8px" id="settingsHeaderActions"></div>
+    </div>
+
+    <!-- Main Tabs -->
+    <div class="settings-tabs" id="settingsTabs">
+      <button class="set-tab active" data-module="reporting" onclick="settings.switchModule('reporting')">
+        <i class="fas fa-chart-bar"></i> <span>إعداد التقارير</span>
+      </button>
+      <button class="set-tab" data-module="accounting" onclick="settings.switchModule('accounting')">
+        <i class="fas fa-calculator"></i> <span>إعداد الحسابات</span>
+      </button>
+      <button class="set-tab" data-module="printing" onclick="settings.switchModule('printing')">
+        <i class="fas fa-print"></i> <span>إعداد الطباعة</span>
+      </button>
+    </div>
+
+    <!-- Stats Section (dynamic) -->
+    <div class="settings-stats" id="settingsStats"></div>
+
+    <!-- ===== Reporting Settings Panel ===== -->
+    <div id="settingsReportingPanel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="set-tab active" data-rpttab="general" onclick="settings._rptTab('general')">
+            <i class="fas fa-sliders-h"></i> <span>إعدادات التقارير</span>
+          </button>
+          <button class="set-tab" data-rpttab="appearance" onclick="settings._rptTab('appearance')">
+            <i class="fas fa-palette"></i> <span>المظهر والمحتوى</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="set-btn set-btn-gold" onclick="reportSettings.seedDefaults()" title="إعادة القيم الافتراضية">
+            <i class="fas fa-seedling"></i> افتراضي
+          </button>
+          <button class="set-btn set-btn-accent" onclick="reportSettings.saveAll()" title="حفظ جميع الإعدادات">
+            <i class="fas fa-save"></i> حفظ الكل
+          </button>
+        </div>
+      </div>
+      <!-- Report Config Form -->
+      <div class="set-table-card" id="rpt-config-panel">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-sliders-h"></i> <span>إعدادات التقارير العامة</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="rpt-config-form"></div></div>
+      </div>
+      <!-- Report Appearance Config -->
+      <div class="set-table-card" id="rpt-appearance-panel" style="display:none;margin-top:16px">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-palette"></i> <span>المظهر والمحتوى</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="rpt-appearance-form"></div></div>
+      </div>
+    </div>
+
+    <!-- ===== Accounting Settings Panel ===== -->
+    <div id="settingsAccountingPanel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="set-tab active" data-acctab="company" onclick="settings._accTab('company')">
+            <i class="fas fa-building"></i> <span>معلومات الشركة</span>
+          </button>
+          <button class="set-tab" data-acctab="finance" onclick="settings._accTab('finance')">
+            <i class="fas fa-coins"></i> <span>الإعدادات المالية</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="set-btn set-btn-gold" onclick="accountingSettings.seedDefaults()" title="إعادة القيم الافتراضية">
+            <i class="fas fa-seedling"></i> افتراضي
+          </button>
+          <button class="set-btn set-btn-accent" onclick="accountingSettings.saveAll()" title="حفظ جميع الإعدادات">
+            <i class="fas fa-save"></i> حفظ الكل
+          </button>
+        </div>
+      </div>
+      <!-- Accounting Company Info -->
+      <div class="set-table-card" id="acc-company-panel">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-building"></i> <span>معلومات الشركة</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="acc-company-form"></div></div>
+      </div>
+      <!-- Accounting Finance Settings -->
+      <div class="set-table-card" id="acc-finance-panel" style="display:none;margin-top:16px">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-coins"></i> <span>الإعدادات المالية</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="acc-finance-form"></div></div>
+      </div>
+    </div>
+
+    <!-- ===== Printing Settings Panel ===== -->
+    <div id="settingsPrintingPanel" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px">
+        <div style="display:flex;gap:6px;flex-wrap:wrap">
+          <button class="set-tab active" data-prttab="layout" onclick="settings._prtTab('layout')">
+            <i class="fas fa-crop-alt"></i> <span>تخطيط الصفحة</span>
+          </button>
+          <button class="set-tab" data-prttab="content" onclick="settings._prtTab('content')">
+            <i class="fas fa-file-alt"></i> <span>المحتوى والترويسة</span>
+          </button>
+        </div>
+        <div style="display:flex;gap:6px">
+          <button class="set-btn set-btn-gold" onclick="printSettings.seedDefaults()" title="إعادة القيم الافتراضية">
+            <i class="fas fa-seedling"></i> افتراضي
+          </button>
+          <button class="set-btn set-btn-accent" onclick="printSettings.saveAll()" title="حفظ جميع الإعدادات">
+            <i class="fas fa-save"></i> حفظ الكل
+          </button>
+        </div>
+      </div>
+      <!-- Print Layout Config -->
+      <div class="set-table-card" id="prt-layout-panel">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-crop-alt"></i> <span>تخطيط الصفحة</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="prt-layout-form"></div></div>
+      </div>
+      <!-- Print Content Config -->
+      <div class="set-table-card" id="prt-content-panel" style="display:none;margin-top:16px">
+        <div class="set-table-header">
+          <div class="set-table-title"><i class="fas fa-file-alt"></i> <span>المحتوى والترويسة</span></div>
+        </div>
+        <div style="padding:20px"><div class="row" id="prt-content-form"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== BACKUP PAGE ===== -->
+  <div class="page-content" id="page-backup">
+    <div class="section-header">
+      <div>
+        <div class="section-title">النسخ الاحتياطية</div>
+        <div class="section-subtitle">إنشاء وإدارة نسخ احتياطية من قاعدة البيانات</div>
+      </div>
+      <div class="btn-toolbar-wrap">
+        <button class="btn btn-primary-custom btn-sm" onclick="createBackup()">
+          <i class="fas fa-plus me-1"></i> إنشاء نسخة احتياطية
+        </button>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-md-4">
+        <div class="stat-card" style="cursor:pointer" onclick="createBackup()">
+          <div class="stat-icon icon-green"><i class="fas fa-save"></i></div>
+          <div class="stat-value" id="backup-count">0</div>
+          <div class="stat-label">النسخ الاحتياطية</div>
+          <div class="stat-change text-muted">إجمالي النسخ المحفوظة</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-icon icon-blue"><i class="fas fa-database"></i></div>
+          <div class="stat-value" id="last-backup-date">--</div>
+          <div class="stat-label">آخر نسخة احتياطية</div>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="stat-card">
+          <div class="stat-icon icon-gold"><i class="fas fa-server"></i></div>
+          <div class="stat-value" id="total-backup-size">--</div>
+          <div class="stat-label">حجم النسخ الاحتياطية</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="alert alert-info mb-4" style="border-radius:12px;">
+      <i class="fas fa-info-circle me-2"></i>
+      <strong>ملاحظة مهمة:</strong> النسخ الاحتياطية محفوظة في مجلد <code>backup/</code> داخل المشروع.
+    </div>
+
+    <div class="data-card">
+      <div class="data-card-header">
+        <div class="data-card-title"><i class="fas fa-history"></i> قائمة النسخ الاحتياطية</div>
+      </div>
+      <div class="table-wrapper">
+        <table class="custom-table" id="backupTable">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>اسم الملف</th>
+              <th>تاريخ الإنشاء</th>
+              <th>الحجم</th>
+              <th>الإجراءات</th>
+            </tr>
+          </thead>
+          <tbody id="backupTableBody"></tbody>
+        </table>
+      </div>
+      <div id="backup-empty" class="empty-state" style="padding:40px; display:none;">
+        <i class="fas fa-database" style="font-size:40px;"></i>
+        <p>لا توجد نسخ احتياطية</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== USERS PAGE ===== -->
+  <div class="page-content" id="page-users">
+    <div class="section-header">
+      <div>
+        <div class="section-title">إدارة المستخدمين</div>
+        <div class="section-subtitle">إضافة وتعديل وحذف مستخدمين النظام</div>
+      </div>
+    </div>
+
+    <div class="settings-tabs" style="margin-bottom:20px">
+      <button class="set-tab active" data-module="users" onclick="switchUserTab('users')">
+        <i class="fas fa-users"></i> <span>المستخدمين</span>
+      </button>
+      <button class="set-tab" data-module="groups" onclick="switchUserTab('groups')">
+        <i class="fas fa-user-friends"></i> <span>مجموعات المستخدمين</span>
+      </button>
+      <button class="set-tab" data-module="roles" onclick="switchUserTab('roles')">
+        <i class="fas fa-shield-alt"></i> <span>إدارة الصلاحيات</span>
+      </button>
+    </div>
+
+    <div id="userTabUsers">
+      <div class="settings-stats" style="margin-bottom:20px">
+        <div class="stat-card"><div class="stat-value" id="users-stat-total">0</div><div class="stat-label">إجمالي المستخدمين</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#059669" id="users-stat-active">0</div><div class="stat-label">نشط</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#dc2626" id="users-stat-inactive">0</div><div class="stat-label">غير نشط</div></div>
+        <div class="stat-card"><div class="stat-value" style="color:#d97706" id="users-stat-admins">0</div><div class="stat-label">مديري النظام</div></div>
+      </div>
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">
+            <i class="fas fa-users"></i>
+            قائمة المستخدمين
+            <span class="badge-count" id="users-count-badge">0</span>
+          </div>
+          <div class="filter-bar">
+            <div class="search-input-wrap">
+              <i class="fas fa-search search-icon"></i>
+              <input type="text" class="form-control" id="usersSearchInput" placeholder="بحث..." oninput="filterUsers()">
+            </div>
+            <button class="btn btn-accent btn-sm" onclick="openUserModal()">
+              <i class="fas fa-plus me-1"></i> إضافة مستخدم
+            </button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="custom-table" id="usersTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>الاسم الكامل</th>
+                <th>اسم المستخدم</th>
+                <th>الوظيفة</th>
+                <th>القسم</th>
+                <th>رقم الموظف</th>
+                <th>المجموعة</th>
+                <th>صلاحية النظام</th>
+                <th>الحالة</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="usersTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="userTabGroups" style="display:none">
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">
+            <i class="fas fa-user-friends"></i>
+            <span>مجموعات المستخدمين</span>
+            <span class="badge-count" id="groups-count-badge">0</span>
+          </div>
+          <div class="filter-bar">
+            <button class="btn btn-accent btn-sm" onclick="openGroupModal()">
+              <i class="fas fa-plus me-1"></i> إضافة مجموعة
+            </button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="custom-table" id="groupsTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم المجموعة</th>
+                <th>الوصف</th>
+                <th>تاريخ الإنشاء</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="groupsTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div id="userTabRoles" style="display:none">
+      <div class="data-card">
+        <div class="data-card-header">
+          <div class="data-card-title">
+            <i class="fas fa-shield-alt"></i>
+            <span>الصلاحيات</span>
+            <span class="badge-count" id="roles-count-badge">0</span>
+          </div>
+          <div class="filter-bar">
+            <button class="btn btn-accent btn-sm" onclick="openRoleModal()">
+              <i class="fas fa-plus me-1"></i> إضافة صلاحية
+            </button>
+          </div>
+        </div>
+        <div class="table-wrapper">
+          <table class="custom-table" id="rolesTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>اسم الصلاحية</th>
+                <th>الوصف</th>
+                <th>عدد الصلاحيات</th>
+                <th>تاريخ الإنشاء</th>
+                <th>الإجراءات</th>
+              </tr>
+            </thead>
+            <tbody id="rolesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- User Modal -->
+  <div class="modal fade" id="userModal" tabindex="-1" aria-labelledby="userModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="userModalLabel">إضافة مستخدم جديد</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body">
+          <form id="userForm" novalidate>
+            <input type="hidden" id="userEditId">
+
+            <div class="mb-3">
+              <label class="form-label">الاسم الكامل <span class="required">*</span></label>
+              <input type="text" class="form-control" id="userFullName" placeholder="أدخل الاسم الكامل" required>
+              <div class="invalid-feedback">الرجاء إدخال الاسم الكامل</div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">اسم المستخدم <span class="required">*</span></label>
+                <input type="text" class="form-control" id="userUsername" placeholder="اسم المستخدم للدخول" required>
+                <div class="invalid-feedback">الرجاء إدخال اسم المستخدم</div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">رقم الموظف</label>
+                <input type="text" class="form-control" id="userEmployeeNumber" placeholder="رقم الموظف">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">الوظيفة</label>
+                <select class="form-select" id="userJobTitle">
+                  <option value="">— اختر الوظيفة —</option>
+                </select>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">القسم</label>
+                <select class="form-select" id="userDepartment">
+                  <option value="">— بدون قسم —</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">البريد الإلكتروني</label>
+                <input type="email" class="form-control" id="userEmail" placeholder="example@domain.com">
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">رقم الهاتف</label>
+                <input type="text" class="form-control" id="userPhone" placeholder="رقم الهاتف">
+              </div>
+            </div>
+
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">المجموعة</label>
+                <div class="input-group">
+                  <select class="form-select" id="userGroup">
+                    <option value="">— بدون مجموعة —</option>
+                  </select>
+                  <button class="btn btn-outline-primary" type="button" onclick="addNewGroupFromUser()" title="إضافة مجموعة جديدة"><i class="fas fa-plus"></i></button>
+                </div>
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">نوع الصلاحية <span class="required">*</span></label>
+                <div class="user-role-manager" id="userRoleManager">
+                  <div class="selected-role-tag-wrap" id="selectedRoleTag">
+                    <!-- populated by JS -->
+                  </div>
+                  <div class="role-dropdown" id="roleDropdown">
+                    <button type="button" class="role-dropdown-toggle" id="roleDropdownToggle" onclick="toggleRoleDropdown(event)">
+                      <span>إضافة صلاحية</span>
+                      <i class="fas fa-chevron-down"></i>
+                    </button>
+                    <div class="role-dropdown-menu" id="roleDropdownMenu">
+                      <!-- populated by JS -->
+                    </div>
+                  </div>
+                  <div class="d-flex justify-content-between align-items-center mt-1">
+                    <input type="hidden" id="userSystemRole" value="">
+                    <button type="button" class="set-btn set-btn-outline btn-sm" onclick="addNewRoleFromUser()">
+                      <i class="fas fa-plus me-1"></i> إضافة صلاحية جديدة
+                    </button>
+      </div>
+    </div>
+  </div>
+            </div>
+
+            <div class="mb-3">
+              <label class="form-label" id="userPasswordLabel">كلمة المرور <span class="required">*</span></label>
+              <input type="password" class="form-control" id="userPassword" placeholder="6 أحرف على الأقل">
+              <div class="form-text">يجب أن تكون 6 أحرف على الأقل للمستخدم الجديد</div>
+            </div>
+
+            <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="userIsActive" checked>
+              <label class="form-check-label" for="userIsActive">المستخدم نشط</label>
+            </div>
+
+          </form>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" class="btn btn-accent" onclick="saveUser()">
+            <i class="fas fa-save me-1"></i> حفظ
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete User Modal -->
+  <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fas fa-exclamation-triangle ms-1"></i> تأكيد الحذف</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+        </div>
+        <div class="modal-body" style="text-align:center;padding:30px 20px">
+          <i class="fas fa-user-times" style="font-size:48px;color:#dc2626;margin-bottom:16px"></i>
+          <p style="font-size:16px;margin-bottom:8px;color:var(--text-dark)">هل أنت متأكد من حذف هذا المستخدم؟</p>
+          <p id="deleteUserNamePreview" style="font-size:14px;color:#6b7280"></p>
+          <p style="font-size:12px;color:#9ca3af">لا يمكن التراجع عن هذا الإجراء</p>
+        </div>
+        <div class="modal-footer" style="justify-content:center">
+          <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+          <button type="button" class="btn btn-accent" style="background:#dc2626;border-color:#dc2626;color:#fff" onclick="confirmDeleteUser()">نعم، قم بالحذف</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Role Modal -->
+<div class="modal fade" id="roleModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="roleModalTitle">إدارة الصلاحية</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="roleForm">
+          <input type="hidden" id="roleEditId">
+          <div class="mb-3">
+            <label class="form-label">اسم الصلاحية <span class="required">*</span></label>
+            <input type="text" class="form-control" id="roleName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الوصف</label>
+            <textarea class="form-control" id="roleDescription" rows="2" placeholder="وصف الصلاحية"></textarea>
+          </div>
+          <hr>
+          <h6 style="font-weight:700;margin-bottom:16px;"><i class="fas fa-check-double me-1"></i> مصفوفة الصلاحيات</h6>
+          <div class="d-flex gap-2 mb-2">
+            <button type="button" class="btn btn-sm btn-outline-primary" onclick="checkAllPermissions(true)" style="font-size:12px">تحديد الكل</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="checkAllPermissions(false)" style="font-size:12px">إلغاء الكل</button>
+          </div>
+          <div id="permissionsMatrix"></div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-accent" onclick="saveRole()"><i class="fas fa-save me-1"></i> حفظ</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Group Modal -->
+<div class="modal fade" id="groupModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="groupModalTitle">إضافة مجموعة</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="إغلاق"></button>
+      </div>
+      <div class="modal-body">
+        <form id="groupForm">
+          <input type="hidden" id="groupEditId">
+          <div class="mb-3">
+            <label class="form-label">اسم المجموعة <span class="required">*</span></label>
+            <input type="text" class="form-control" id="groupName" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">الوصف</label>
+            <textarea class="form-control" id="groupDesc" rows="2" placeholder="وصف المجموعة"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">إلغاء</button>
+        <button type="button" class="btn btn-accent" onclick="saveGroup()"><i class="fas fa-save me-1"></i> حفظ</button>
+      </div>
+    </div>
+  </div>
+
+<div class="loading-overlay" id="globalLoading">
+  <div class="loading-spinner"></div>
+</div>
+
+<!-- Scroll to Top -->
+<button class="scroll-to-top" id="scrollToTopBtn" aria-label="العودة للأعلى"><i class="fas fa-chevron-up"></i></button>
+
+{% endblock %}
+
+{% block extra_js %}
+
+  <script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+  <!-- SheetJS -->
+  <script src="{% static 'vendor/sheetjs/xlsx.full.min.js' %}"></script>
+  <script src="{% static 'vendor/html2pdf/html2pdf.bundle.min.js' %}"></script>
+  <script src="{% static 'vendor/html2canvas/html2canvas.min.js' %}"></script>
+  <script src="{% static 'vendor/jspdf/jspdf.umd.min.js' %}"></script>
+
+<script src="{% static 'js/audit-reports.js' %}?v=1"></script>
+<script src="{% static 'js/modules/example.js' %}?v=1"></script>
+<script src="{% static 'js/report-settings.js' %}?v=1"></script>
+<script src="{% static 'js/accounting-settings.js' %}?v=1"></script>
+<script src="{% static 'js/print-settings.js' %}?v=1"></script>
+{% endblock %}

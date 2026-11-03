@@ -1,0 +1,8 @@
+{% comment %}Reusable loading state.
+Usage:
+  {% include "components/loading_state.html" with loading_id="loading" loading_text="جاري التحميل..." %}
+{% endcomment %}
+<div id="{{ loading_id }}" class="loading-state" {% if loading_hidden %}style="display:none;"{% endif %}>
+  <div class="spinner-border text-primary" role="status"></div>
+  <span>{{ loading_text|default:"جاري التحميل..." }}</span>
+</div>

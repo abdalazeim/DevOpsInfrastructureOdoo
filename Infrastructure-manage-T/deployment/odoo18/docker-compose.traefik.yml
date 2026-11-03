@@ -1,0 +1,68 @@
+# ==============================================================================
+# Odoo 18 + PostgreSQL 17 - Traefik Compose (optional reverse-proxy mode)
+#
+# Used by install-odoo.sh --with-traefik. Odoo joins the shared external
+# "proxy" network and is routed over HTTPS; PostgreSQL stays private.
+# ==============================================================================
+name: odoo18
+
+services:
+  db:
+    container_name: odoo18-db
+    image: ${PG_IMAGE:-postgres:17}
+    user: root
+    restart: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-odoo}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_DB=postgres
+    volumes:
+      - ./postgresql:/var/lib/postgresql/data
+    networks:
+      - internal
+
+  odoo18:
+    container_name: odoo18
+    image: ${ODOO_IMAGE:-odoo:18}
+    user: root
+    depends_on:
+      - db
+    restart: always
+    tty: true
+    command: ["--config=/etc/odoo/odoo.conf"]
+    environment:
+      - HOST=db
+      - USER=${POSTGRES_USER:-odoo}
+      - PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh
+      - ./addons:/mnt/extra-addons
+      - ./etc:/etc/odoo
+    networks:
+      - internal
+      - proxy
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "${DOCKER_PROXY_NETWORK:-proxy}"
+
+      traefik.http.routers.odoo18.rule: "Host(`${ODOO_DOMAIN:?ODOO_DOMAIN is required}`)"
+      traefik.http.routers.odoo18.entrypoints: "websecure"
+      traefik.http.routers.odoo18.tls.certresolver: "letsencrypt"
+      traefik.http.routers.odoo18.service: "odoo18"
+      traefik.http.services.odoo18.loadbalancer.server.port: "8069"
+
+      traefik.http.routers.odoo18-websocket.rule: "Host(`${ODOO_DOMAIN:?ODOO_DOMAIN is required}`) && PathPrefix(`/websocket`)"
+      traefik.http.routers.odoo18-websocket.entrypoints: "websecure"
+      traefik.http.routers.odoo18-websocket.tls.certresolver: "letsencrypt"
+      traefik.http.routers.odoo18-websocket.priority: "100"
+      traefik.http.routers.odoo18-websocket.service: "odoo18-websocket"
+      traefik.http.services.odoo18-websocket.loadbalancer.server.port: "8072"
+
+networks:
+  internal:
+    name: ${ODOO_NETWORK:-odoo18_internal}
+    driver: bridge
+  proxy:
+    external: true
+    name: ${DOCKER_PROXY_NETWORK:-proxy}

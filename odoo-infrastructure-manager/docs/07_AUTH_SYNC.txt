@@ -1,0 +1,31 @@
+# Auth & Sync
+
+## Auth (Web)
+- Session-based: POST /api/v1/auth/login creates Django session (cookies).
+- POST /api/v1/auth/logout; GET /api/v1/auth/status returns user + permissions.
+- Rate limit login (RATE_LIMIT_LOGIN, default 10/m).
+- Security logging via log_security_event.
+
+## Auth (Mobile/API)
+- Recommend JWT (djangorestframework-simplejwt) access+refresh for mobile.
+- Custom claims: user id, roles, org.
+- Refresh rotation + blacklist.
+- Password reset via email (optional).
+- Permissions: DRF permission classes + custom (IsOwner, IsOrgMember).
+
+## Authorization
+- permission_required decorator (apps/core/permissions).
+- Permissions declared per module (PERMISSIONS + GROUPS), merged into PERMISSION_REGISTRY at startup.
+- Denied -> unified error envelope 403.
+
+## Sync pattern (offline)
+- Mutation endpoints idempotent (client-generated UUID).
+- Sync log: POST /api/v1/sync/push/ (batch mutations); GET /api/v1/sync/pull/?since=timestamp.
+- Server returns changes since timestamp; client applies.
+- Conflict: last-write-wins with updated_at; log conflicts.
+- Client outbox: pending operations with retry/backoff.
+- Audit important actions via log_audit(...).
+
+## Accounts module
+- Users, roles, groups, permissions management.
+- Permission registry merged at app startup.

@@ -1,0 +1,19 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "odoo-infrastructure-manager"
+version = "1.0.0"
+description = "Odoo Infrastructure Manager"
+requires-python = ">=3.10"
+dependencies = [
+    "pyyaml>=6.0",
+    "textual>=0.50.0",
+]
+
+[project.scripts]
+odoo-manager = "app.main:main"
+
+[tool.setuptools]
+packages = ["app", "apps", "config"]

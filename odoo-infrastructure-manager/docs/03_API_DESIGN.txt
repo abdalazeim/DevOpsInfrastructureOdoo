@@ -1,0 +1,62 @@
+# API Design
+
+## 1. Base URLs & Versioning
+All endpoints mounted twice from config/api_urls.py:
+  /api/          (default, compatibility)
+  /api/v1/       (explicit versioned namespace)
+Examples: /api/v1/auth/login, /api/v1/auth/logout, /api/v1/auth/status, /api/v1/users, /api/v1/users/<id>, /api/v1/users/groups, /api/v1/users/roles, /api/v1/users/permissions, /api/v1/dashboard/stats, /api/v1/settings/..., /api/v1/backup/..., /api/v1/modules/example/items.
+Future v2: create config/api_v2_urls.py mounted at /api/v2/ without breaking v1.
+
+## 2. Unified Response Envelope
+Every endpoint returns same shape (apps/core/utils/http.py):
+{ "success": true/false, "message": "...", "data": {}|null, "errors": null|[...] }
+Success: {success:true, message:"...", data:{...}, errors:null}
+Failure: {success:false, message:"...", data:null, errors:[...]}
+Helpers: api_response(data, message, success, status, errors); api_error(message, status, errors) (also mirrors message into error for compat); api_response_paginated(items, meta,...):
+{success:true, message:"", data:{items:[...], meta:{page,page_size,total,pages,has_next,has_previous}}, errors:null}
+Pagination query: ?page=1&page_size=20 (page_size capped at 100).
+
+## 3. Authentication
+- POST /api/v1/auth/login with {username, password}. Creates Django session (session-based; frontend uses cookies).
+- POST /api/v1/auth/logout.
+- GET /api/v1/auth/status returns current user + permissions.
+- Login attempts rate-limited (RATE_LIMIT_LOGIN, default 10/m).
+- Failed/successful logins written to security log (log_security_event).
+
+Note: For Android/mobile, add JWT endpoints (simplejwt) or session cookie auth with CSRF; recommend JWT access+refresh for mobile, secure storage.
+
+## 4. Authorization
+Views protected with permission_required decorator (apps/core/permissions):
+  @permission_required("example.manage", redirect_to_login=False)
+Permissions declared per module in permissions/__init__.py (PERMISSIONS + GROUPS), merged into global PERMISSION_REGISTRY at startup. Denied -> unified error envelope 403.
+
+## 5. Example Module Reference
+apps/modules/example/urls.py mounted at /api/v1/modules/example/:
+  GET  items/          List/search (paginated)   example_view
+  POST items/create/   Create                    example_manage
+  GET  items/<id>/     Detail                    example_view
+  POST items/<id>/update/ Update                 example_manage
+  POST items/<id>/delete/ Delete                 example_manage
+Copy this module for new modules.
+
+## 6. Health Checks
+  GET /health/     -> {status:"ok", service:"GDS-Template", version:"1.0.0"}
+  GET /health/db/  -> {status:"...", database:"ok", error:null} (503 on DB failure)
+Used by Render, Docker, load balancers, monitoring.
+
+## 7. Error Handling
+Unified exception hierarchy apps/core/utils/exceptions.py:
+  AppError (base) 400 "حدث خطأ"
+  ValidationError 400 "بيانات غير صالحة"
+  PermissionDenied 403 "ليس لديك صلاحية للوصول"
+  NotFoundError 404 "العنصر غير موجود"
+  ConflictError 409 "تعارض في البيانات"
+  BusinessRuleError 422 "لا يمكن تنفيذ العملية وفقاً للقواعد"
+  SystemError 500 "خطأ في النظام"
+exception_to_response(exc) converts AppError to api_error envelope. Non-API errors use apps/core/views/handlers.py (handler404/403/500) returning same JSON envelope.
+
+## 8. Filtering/Search/Ordering
+Use django-filter for filtering, ?search=term, ?ordering=-created_at. Pagination always.
+
+## 9. OpenAPI
+drf-spectacular generates schema; Swagger UI. Verify with scripts/verify_api.py.

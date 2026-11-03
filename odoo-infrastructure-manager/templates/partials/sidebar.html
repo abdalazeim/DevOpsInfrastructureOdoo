@@ -1,0 +1,41 @@
+{% comment %}Sidebar (reusable). Provide nav_sections variable for dynamic items.{% endcomment %}
+<div id="sidebar-overlay" onclick="closeMobileSidebar()"></div>
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">
+      <i class="fas fa-layer-group"></i>
+    </div>
+    <div class="sidebar-title-wrap">
+      <div class="sidebar-title">{{ site_title }}</div>
+      <div class="sidebar-subtitle">{{ site_subtitle }}</div>
+    </div>
+  </div>
+
+  <div class="sidebar-nav">
+    {% for section in nav_sections %}
+      <div class="nav-section-title">{{ section.title }}</div>
+      {% for item in section.items %}
+        <a class="nav-item-link{% if item.active %} active{% endif %}"
+           onclick="{{ item.onclick }}" id="{{ item.id }}">
+          <span class="nav-label">{{ item.label }}</span>
+          <span class="nav-icon"><i class="{{ item.icon }}"></i></span>
+        </a>
+      {% endfor %}
+    {% endfor %}
+  </div>
+
+  <div class="sidebar-user">
+    <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
+    <div class="user-info">
+      <div class="user-name" id="sidebar-user-name">{{ user.get_full_name|default:user.username|default:"مدير النظام" }}</div>
+      <div class="user-role" id="sidebar-user-role"></div>
+    </div>
+    <button class="logout-btn" onclick="logout()" title="تسجيل الخروج">
+      <i class="fas fa-sign-out-alt"></i>
+    </button>
+  </div>
+
+  <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="تصغير القائمة">
+    <i class="fas fa-angles-right" id="sidebar-toggle-icon"></i>
+  </button>
+</nav>

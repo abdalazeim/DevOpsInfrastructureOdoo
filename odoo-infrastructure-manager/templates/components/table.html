@@ -1,0 +1,26 @@
+{% comment %}Reusable data table wrapper with empty state.
+Usage:
+  {% include "components/table.html" with table_id="myTable" table_title="القائمة" empty_id="myEmpty" %}
+  Define <thead> and <tbody> via a {% block table_body %} when including with different names.
+{% endcomment %}
+<div class="data-card">
+  <div class="data-card-header">
+    <div class="data-card-title">
+      {% if table_icon %}<i class="fas {{ table_icon }}"></i>{% endif %}
+      {{ table_title }}
+      {% if badge_id %}<span class="badge-count" id="{{ badge_id }}">0</span>{% endif %}
+    </div>
+    <div class="filter-bar">{% block table_actions %}{% endblock %}</div>
+  </div>
+  <div class="table-wrapper">
+    <table class="custom-table" {% if table_id %}id="{{ table_id }}"{% endif %}>
+      <thead>{% block table_head %}{% endblock %}</thead>
+      <tbody>{% block table_body %}{% endblock %}</tbody>
+    </table>
+  </div>
+  {% if empty_id %}
+  <div id="{{ empty_id }}" class="empty-state" style="padding:40px; display:none;">
+    {% include "components/empty_state.html" with empty_icon=empty_icon empty_text=empty_text %}
+  </div>
+  {% endif %}
+</div>
