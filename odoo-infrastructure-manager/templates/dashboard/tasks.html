@@ -1,0 +1,20 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Task center · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard task-center-page">
+  <header class="infra-heading"><div><div class="eyebrow">EXECUTION</div><h1>Task center</h1><p>Track infrastructure operations, their status, initiator, target and redacted output.</p></div></header>
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <section class="infra-panel table-panel">
+    <div class="panel-heading"><div><h2>Execution history</h2><p>{{ page.paginator.count }} task(s)</p></div>
+      <form method="get" class="task-filter"><label for="task-status">Status</label><select id="task-status" name="status" class="table-filter"><option value="">All statuses</option>{% for value,label in statuses %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="infra-button secondary small" type="submit">Filter</button></form>
+    </div>
+    {% if page.object_list %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>Task</th><th>Operation</th><th>Target</th><th>Requested by</th><th>Status</th><th>Created</th></tr></thead><tbody>
+      {% for task in page.object_list %}<tr><td><a href="{% url 'dashboard:task_detail' task.pk %}">{{ task.name }}</a><small>{{ task.pk }}</small></td><td>{{ task.operation }}</td><td>{% if task.target_server %}{{ task.target_server.name }}{% else %}—{% endif %}</td><td>{% if task.requested_by %}{{ task.requested_by.username }}{% else %}System{% endif %}</td><td><span class="task-status {{ task.status }}">{{ task.get_status_display }}</span></td><td>{{ task.created_at|date:"Y-m-d H:i:s" }}</td></tr>{% endfor %}
+    </tbody></table></div>
+    <nav class="task-pagination" aria-label="Task pages">{% if page.has_previous %}<a href="?status={{ selected_status }}&page={{ page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?status={{ selected_status }}&page={{ page.next_page_number }}">Next</a>{% endif %}</nav>
+    {% else %}<div class="empty-state compact"><i class="fas fa-list-check"></i><strong>No tasks found</strong><span>Operations dispatched through the Infrastructure Engine will appear here.</span></div>{% endif %}
+  </section>
+</main>
+{% endblock %}

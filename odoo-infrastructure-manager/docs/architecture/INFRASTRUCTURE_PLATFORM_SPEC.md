@@ -6,7 +6,7 @@
 
 ## 1. Current-state assessment
 
-The repository is already a modular Django project, but its completeness varies by area. `apps/infrastructure` owns managed hosts and services and contains older CLI/workflow code. `infrastructure_engine` contains adapters, collectors, command validation, and execution services, but most adapter packages are placeholders and several old services are mirrored under `apps/infrastructure`. The web dashboard currently has working inventory, Docker read-only discovery, service catalog, database catalog, backups, alerts, audit, Traefik inspection, and Semaphore-approved task launches. Docker mutations, general Ansible playbook authoring, remote Linux administration, centralized durable task scheduling, notifications, reports, and secrets management are not yet complete. Presence of a package directory alone does not mean a capability is operational.
+The repository is already a modular Django project, but its completeness varies by area. `apps/infrastructure` owns managed hosts and services and contains older CLI/workflow code. `infrastructure_engine` now has a strict SSH probe adapter and typed operation gateway for server connection verification; the broader Linux/Docker/Ansible dispatch and durable task processing are still pending. Several old infrastructure services remain mirrored under `apps/infrastructure`. The web dashboard currently has working inventory, Docker read-only discovery, service catalog, database catalog, backups, alerts, audit, Traefik inspection, and Semaphore-approved task launches. Docker mutations, general Ansible playbook authoring, remote Linux administration, centralized durable task scheduling, notifications, and reports are not yet complete. Presence of a package directory alone does not mean a capability is operational.
 
 The core data sources currently include `ManagedHost`, `ManagedService`, `DatabaseInstance`, `DjangoProject`, `ApprovedTaskTemplate`, `AutomationRun`, `BackupPolicy`, `BackupArtifact`, `ResourceSample`, `AlertRule`, `AlertEvent`, and `AuditLog`. Dashboard totals and pages must continue querying those source records rather than creating parallel copies. The application's own SQLite database is separate from external database inventory.
 
@@ -29,16 +29,18 @@ Dependencies point inward toward shared contracts. Core must not import business
 
 | Module | Owns | Depends on | Current status |
 | --- | --- | --- | --- |
-| Core | Settings, health aggregation, audit records, shared validation/errors | Accounts identity contract; adapters only through health checks | Partial; settings/audit models exist, health endpoints exist |
-| Accounts | Users, groups, roles, effective permission decisions, sessions | Core | Partial; custom user/profile/role records exist; resolution is being hardened |
-| Infrastructure | Server registry, groups, connection profile references, host/service inventory | Accounts, Core, Engine | Partial; `ManagedHost`/`ManagedService` exist; deep Linux inventory and safe operations are pending |
+| Core | Settings, health aggregation, audit records, shared validation/errors | Accounts identity contract; adapters only through health checks | Partial; allowlisted operational defaults page and shared audit service; broader health aggregation pending |
+| Accounts | Users, groups, roles, effective permission decisions, sessions | Core | Partial; additive grants, delegation validation, dotted/legacy codes, and inactive-account denial are implemented; complete admin workflows pending |
+| Security | Encrypted credential references, access policy and security events | Accounts, Core audit | Partial; Fernet vault, fallback-key rotation command, metadata-only UI, enable/disable and strict SSH host-key handling implemented; broader security center pending |
+| Infrastructure | Server registry, groups, connection profile references, host/service inventory | Accounts, Core, Engine | Partial; server groups, OS/connection metadata and granular registry permissions; deep Linux inventory and safe operations pending |
+| SSH Connection Manager | Host-key-verified SSH probes and discovered OS metadata | Infrastructure, Security, Engine | Partial; verified read-only `uname -srm` probe is operational when a trusted host key and encrypted SSH credential are configured; discovery coverage/scheduling pending |
+| Infrastructure Engine | Typed operation registry, validation, policy and adapter dispatch | Accounts, Infrastructure, Security | Partial; `server.test_connection` is registered; all mutations are deliberately disabled until Task Manager exists |
 | Dashboard | Read-only cross-module overview and navigation | module selectors, Monitoring, Tasks, Backup, Security | Partial; real data where connected; show unavailable state elsewhere |
 | Containers | Docker engine inventory, containers/images/volumes/networks/compose references | Infrastructure, Engine, Tasks, Audit | Package scaffold and safe read-only discovery; mutations pending |
 | Automation | Ansible inventories, approved playbooks/templates, schedules, executions | Infrastructure, Accounts, Engine, Tasks, Monitoring | Semaphore approved templates/runs exist; general inventory/playbook management pending |
 | Monitoring | Targets, samples, rules, alert events and acknowledgement | Infrastructure, Containers, Databases, Notifications | Partial; samples/rules/events exist; scheduling and retention policy pending |
 | Backup | Policies, schedules, artifacts, restore records and verification | Infrastructure, Databases, Containers, Tasks, Notifications | Partial; policy/artifact records exist; execution/scheduling/restore engine pending |
 | Databases | External database instances and safe provider operations | Infrastructure, Security credentials, Backup, Monitoring, Engine | Partial; catalog exists; connection adapters/health pending |
-| Security | Credential references, secrets, access policies and security events | Accounts, Core audit | Scaffold only; no secret may be stored plaintext |
 | Tasks | Shared long-running operation lifecycle, logs, retry/cancel metadata | Accounts, Core audit, Engine | Planned; existing `AutomationRun` remains automation-owned until migration can preserve history |
 | Notifications | In-app/email delivery records and preferences | Monitoring, Backup, Automation, Tasks, Security | Scaffold only |
 | Reports | Read models and CSV/PDF export | source module selectors | Scaffold only |
@@ -147,7 +149,25 @@ Scheduled collector obtains a scoped target batch -> adapter returns typed measu
 
 Each gate must be satisfied before destructive actions are enabled. Integrations remain explicitly “not configured” until a live provider has been verified.
 
-## 10. Immediate implementation sequence
+## 10. Feature implementation ledger
+
+| Capability | Status | Evidence / requirement to enable |
+| --- | --- | --- |
+| English-only enterprise shell and dashboard | Implemented, tested | `templates/base/base.html`, `static/css/enterprise-shell.css`; restart the web process and serve static assets |
+| Account/role/group permission resolution | Implemented, tested | `apps/accounts/services/permission_service.py`; direct, role, app-group and Django-group grants are additive; assignment API validates catalog and actor grant scope |
+| Credential encryption and rotation | Implemented, tested | `apps/security/services/credentials.py`, `rotate_credential_keys`; configure and back up Fernet key material |
+| Server registry and groups | Partial, tested | `ManagedHost`, `ServerGroup`; hardware discovery and server-detail sections remain pending |
+| SSH connection test | Partial, tested with mocked SSH | Needs remote host-key entry in the system user's known-hosts file, active SSH credential, network access and least-privilege remote account |
+| Infrastructure operation execution | Partial | Only the registered, read-only server connection probe is enabled; mutations return unavailable until persistent tasks and worker isolation exist |
+| Global operational settings | Partial, tested | Four validated defaults stored in `SystemSetting`; configured environment variables override and make fields read-only |
+| Docker | Partial/read-only | Docker SDK read discovery must be explicitly configured; lifecycle writes are not enabled before engine/task gates |
+| Ansible | Partial/approved-template adapter | Semaphore URL/token and reviewed templates required; general inventory/playbook authoring is pending |
+| Monitoring | Partial | Prometheus/local providers are configuration-dependent; scheduled collectors and retention cleanup are pending |
+| Backup, databases, notifications, reports, Linux administration, synchronization | Partial or scaffold | Module records/routes exist in parts; end-to-end operational workflows remain pending |
+
+The ledger describes tested implementation state rather than package presence. Update each row only when the feature's integration path, permission checks, failure behavior, audit record and UI have been verified together.
+
+## 11. Immediate implementation sequence
 
 1. Harden effective permissions, validate delegated grants, and preserve legacy permission-code callers.
 2. Complete credential vault, server registry and host-key-verified SSH connection handling.

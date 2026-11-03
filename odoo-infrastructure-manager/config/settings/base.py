@@ -81,6 +81,7 @@ INSTALLED_APPS = [
     "apps.core",
     "apps.accounts",
     "apps.security.apps.SecurityConfig",
+    "apps.tasks.apps.TasksConfig",
     "apps.infrastructure",
     "apps.dashboard",
     "apps.containers",

@@ -16,6 +16,8 @@ from apps.dashboard.views import _redact
 from apps.infrastructure.models import ManagedHost, ServerGroup
 from apps.security.models import Credential
 from cryptography.fernet import Fernet
+from apps.tasks.models import Task
+from apps.tasks.services.task_service import append_task_log, create_task, transition_task
 
 TEST_CREDENTIAL_KEY = Fernet.generate_key().decode("ascii")
 
@@ -169,6 +171,24 @@ class ApprovedAutomationTests(TestCase):
         self.assertContains(response, 'name="ssh_timeout_seconds"')
         self.assertContains(response, 'value="17"')
         self.assertContains(response, "controlled by the environment")
+
+    def test_task_center_reads_persisted_tasks_and_redacted_logs(self):
+        task = create_task(name="SSH metadata probe", operation="server.test_connection", actor=self.user)
+        transition_task(task.pk, Task.Status.QUEUED, actor=self.user)
+        append_task_log(task.pk, content="Connected with password=must-not-render")
+        listing = self.client.get(reverse("dashboard:tasks"))
+        self.assertContains(listing, "SSH metadata probe")
+        detail = self.client.get(reverse("dashboard:task_detail", args=[task.pk]))
+        self.assertContains(detail, "[REDACTED]")
+        self.assertNotContains(detail, "must-not-render")
+
+    def test_task_cancel_endpoint_uses_shared_state_transition(self):
+        task = create_task(name="Queued operation", operation="server.probe", actor=self.user)
+        transition_task(task.pk, Task.Status.QUEUED, actor=self.user)
+        response = self.client.post(reverse("dashboard:cancel_task", args=[task.pk]))
+        self.assertEqual(response.status_code, 302)
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.CANCELLED)
 
     def test_host_can_be_managed_from_dashboard_inventory(self):
         response = self.client.post(reverse("dashboard:create_inventory_item", args=["host"]), {

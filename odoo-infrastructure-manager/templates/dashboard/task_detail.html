@@ -1,0 +1,16 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Task {{ task.pk }} · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard task-detail-page">
+  <header class="infra-heading"><div><div class="eyebrow">TASK {{ task.pk }}</div><h1>{{ task.name }}</h1><p>{{ task.operation }} · {{ task.get_status_display }}</p></div><a class="infra-button secondary" href="{% url 'dashboard:tasks' %}">Back to tasks</a></header>
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <section class="infra-panel"><div class="panel-heading"><div><h2>Execution details</h2><p>Task state is persisted by the shared Task Manager.</p></div>{% if can_cancel_tasks and task.status == "running" or can_cancel_tasks and task.status == "queued" or can_cancel_tasks and task.status == "pending" %}<form method="post" action="{% url 'dashboard:cancel_task' task.pk %}" onsubmit="return confirm('Request cancellation for this task?')">{% csrf_token %}<button class="infra-button danger" type="submit">Cancel task</button></form>{% endif %}</div>
+    <dl class="infra-details"><dt>Status</dt><dd><span class="task-status {{ task.status }}">{{ task.get_status_display }}</span></dd><dt>Priority</dt><dd>{{ task.get_priority_display }}</dd><dt>Target server</dt><dd>{% if task.target_server %}{{ task.target_server.name }} · {{ task.target_server.hostname }}{% else %}Not assigned{% endif %}</dd><dt>Initiated by</dt><dd>{% if task.requested_by %}{{ task.requested_by.username }}{% else %}System{% endif %}</dd><dt>Source</dt><dd>{% if task.source_app %}{{ task.source_app }}.{{ task.source_model }} · {{ task.source_pk }}{% else %}Direct operation{% endif %}</dd><dt>Created</dt><dd>{{ task.created_at|date:"Y-m-d H:i:s" }}</dd><dt>Queued</dt><dd>{{ task.queued_at|date:"Y-m-d H:i:s"|default:"—" }}</dd><dt>Started</dt><dd>{{ task.started_at|date:"Y-m-d H:i:s"|default:"—" }}</dd><dt>Finished</dt><dd>{{ task.finished_at|date:"Y-m-d H:i:s"|default:"—" }}</dd><dt>Attempts</dt><dd>{{ task.attempt_count }} / {{ task.max_attempts }}</dd><dt>Result</dt><dd>{{ task.result_summary|default:"No result recorded" }}</dd>{% if task.error_category %}<dt>Error</dt><dd>{{ task.error_category }} · {{ task.error_message }}</dd>{% endif %}</dl>
+  </section>
+  <section class="infra-panel"><div class="panel-heading"><div><h2>Execution logs</h2><p>Output is redacted and bounded before storage.</p></div></div>
+    {% if logs %}<div class="task-log-list">{% for entry in logs %}<article class="task-log-entry {{ entry.stream }}"><header><strong>{{ entry.get_stream_display }}</strong><time>{{ entry.created_at|date:"Y-m-d H:i:s" }}</time></header><pre>{{ entry.content }}</pre></article>{% endfor %}</div>{% else %}<div class="empty-state compact"><strong>No output recorded</strong><span>Worker output will appear here after dispatch is configured.</span></div>{% endif %}
+  </section>
+</main>
+{% endblock %}

@@ -5,6 +5,7 @@ from functools import wraps
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied, ValidationError
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -25,6 +26,8 @@ from apps.security.models import Credential
 from apps.security.services.credentials import CredentialEncryptionError, is_credential_encryption_ready
 from infrastructure_engine.core.engine import InfrastructureEngine, OperationRejected
 from apps.monitoring.models import AlertEvent, AlertRule
+from apps.tasks.models import Task
+from apps.tasks.services.task_service import request_task_cancellation
 
 from .forms import (AlertRuleForm, ApprovedTaskTemplateForm, BackupPolicyForm, CredentialCreateForm, GlobalSettingsForm,
                     ManagedHostForm, ManagedServiceForm)
@@ -159,6 +162,52 @@ def global_settings(request):
         "can_manage_settings": can_manage,
         "nav_sections": _navigation(active="settings"),
     })
+
+
+@login_required
+@require_GET
+def tasks_list(request):
+    if not has_permission(request.user, "task.view", "tasks_manage"):
+        return HttpResponseForbidden("Task view permission required.")
+    selected_status = request.GET.get("status", "")
+    tasks = Task.objects.select_related("requested_by", "target_server")
+    if selected_status in Task.Status.values:
+        tasks = tasks.filter(status=selected_status)
+    page = Paginator(tasks, 25).get_page(request.GET.get("page"))
+    return render(request, "dashboard/tasks.html", {
+        "page": page, "selected_status": selected_status,
+        "statuses": Task.Status.choices,
+        "can_cancel_tasks": has_permission(request.user, "task.cancel", "tasks_manage"),
+        "nav_sections": _navigation(active="tasks"),
+    })
+
+
+@login_required
+@require_GET
+def task_detail(request, task_id):
+    if not has_permission(request.user, "task.view", "tasks_manage"):
+        return HttpResponseForbidden("Task view permission required.")
+    task = get_object_or_404(Task.objects.select_related("requested_by", "target_server"), pk=task_id)
+    logs = task.logs.order_by("-sequence")[:100]
+    return render(request, "dashboard/task_detail.html", {
+        "task": task, "logs": reversed(list(logs)),
+        "can_cancel_tasks": has_permission(request.user, "task.cancel", "tasks_manage"),
+        "nav_sections": _navigation(active="tasks"),
+    })
+
+
+@login_required
+@require_POST
+def cancel_task(request, task_id):
+    try:
+        task = request_task_cancellation(task_id, actor=request.user, request=request)
+    except PermissionDenied as exc:
+        return HttpResponseForbidden(str(exc))
+    except (Task.DoesNotExist, ValidationError) as exc:
+        messages.error(request, str(exc))
+        return redirect("dashboard:tasks")
+    messages.success(request, f"Cancellation recorded for task {task.pk}.")
+    return redirect("dashboard:task_detail", task_id=task.pk)
 
 
 @login_required
@@ -636,6 +685,7 @@ def _navigation(active):
       {"title": "Settings", "items": [
         {"label": "Hosts & services", "icon": "fas fa-server", "id": "nav-hosts", "onclick": "window.location.href='/dashboard/inventory/'", "active": active == "inventory"},
         {"label": "Global settings", "icon": "fas fa-sliders", "id": "nav-settings", "onclick": "window.location.href='/dashboard/settings/'", "active": active == "settings"},
+        {"label": "Task center", "icon": "fas fa-list-check", "id": "nav-tasks", "onclick": "window.location.href='/dashboard/tasks/'", "active": active == "tasks"},
         {"label": "Automation templates", "icon": "fas fa-list-check", "id": "nav-automation-templates", "onclick": "window.location.href='/dashboard/automation/templates/'", "active": active == "automation"},
         {"label": "Audit log", "icon": "fas fa-clipboard-list", "id": "nav-audit", "onclick": "window.location.href='/dashboard/audit/'", "active": active == "audit"},
       ]},

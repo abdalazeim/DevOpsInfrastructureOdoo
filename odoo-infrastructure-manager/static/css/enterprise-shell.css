@@ -133,6 +133,23 @@ table th, table td { border-color: var(--line) !important; }
 .infra-table td { color: #2d3b51; border-color: var(--line); }
 .infra-table td small { color: #7a889b; }
 .infra-logs, .task-output { background: #101b2c; }
+.task-filter, .settings-actions { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
+.task-filter label { color: var(--muted); font-size: 11px; }
+.task-status { display: inline-flex; align-items: center; padding: 4px 9px; border-radius: 999px; border: 1px solid var(--line); background: #f5f7fa; color: #58677d; font-size: 10px; font-weight: 700; white-space: nowrap; }
+.task-status.running, .task-status.queued { color: #245eb8; border-color: #cfe0fb; background: #eff5ff; }
+.task-status.completed { color: #14754e; border-color: #c5ead7; background: #edf9f2; }
+.task-status.failed, .task-status.timeout { color: #b52c38; border-color: #f2cbd0; background: #fff1f2; }
+.task-status.cancelled { color: #8a5a12; border-color: #f1dfb8; background: #fff8e8; }
+.task-pagination { display: flex; justify-content: flex-end; align-items: center; gap: 14px; padding-top: 16px; color: var(--muted); font-size: 11px; }
+.task-pagination a { color: var(--brand); text-decoration: none; }
+.task-log-entry { border: 1px solid var(--line); border-radius: 9px; overflow: hidden; margin: 0 0 10px; }
+.task-log-entry header { display: flex; justify-content: space-between; padding: 8px 11px; background: #f6f8fb; color: #68768b; font-size: 10px; }
+.task-log-entry pre { margin: 0; padding: 12px; max-height: 420px; overflow: auto; background: #101b2c; color: #d9e5f5; white-space: pre-wrap; overflow-wrap: anywhere; font: 11px/1.55 ui-monospace, SFMono-Regular, Consolas, monospace; }
+.settings-actions span { color: var(--muted); font-size: 10px; }
+.settings-read-only { color: var(--muted); font-size: 11px; }
+.inline-action-form { margin: 0 0 12px; }
+.credential-create-form { max-width: 620px; margin-bottom: 18px; }
+.inventory-edit-form { border-top: 1px solid var(--line); margin-top: 14px; padding-top: 14px; }
 
 @media (max-width: 1100px) {
   .top-nav-center { margin-inline: 12px; }
