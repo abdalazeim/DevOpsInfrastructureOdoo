@@ -77,7 +77,7 @@ def containers(request):
 @infrastructure_view_required
 @require_GET
 def inventory(request):
-    hosts = list(ManagedHost.objects.prefetch_related("groups").all())
+    hosts = list(ManagedHost.objects.prefetch_related("groups").select_related("latest_snapshot").all())
     services = list(ManagedService.objects.select_related("host").all())
     for host in hosts:
         host.edit_form = ManagedHostForm(instance=host, prefix=f"h{host.pk}")
@@ -96,6 +96,7 @@ def inventory(request):
         "can_create_servers": has_permission(request.user, "server.create", "infrastructure_manage"),
         "can_update_servers": has_permission(request.user, "server.update", "infrastructure_manage"),
         "can_test_server_connection": has_permission(request.user, "server.connect", "infrastructure_manage"),
+        "can_discover_servers": has_permission(request.user, "server.view", "infrastructure_view"),
         "nav_sections": _navigation(active="inventory"),
     })
 
@@ -249,6 +250,19 @@ def test_server_connection(request, host_id):
         return JsonResponse({"error": str(exc)}, status=exc.status_code)
     status_code = {"success": 200, "not_configured": 409, "unreachable": 503, "failed": 503}[result.status]
     return JsonResponse({"status": result.status, "message": result.message, **result.data}, status=status_code)
+
+
+@login_required
+@require_POST
+def discover_server(request, host_id):
+    try:
+        result = InfrastructureEngine.execute(
+            "server.discover", target_id=host_id, actor=request.user,
+            parameters={}, request=request,
+        )
+    except OperationRejected as exc:
+        return JsonResponse({"error": str(exc)}, status=exc.status_code)
+    return JsonResponse({"status": result.status, "message": result.message, **result.data}, status=200)
 
 
 @login_required

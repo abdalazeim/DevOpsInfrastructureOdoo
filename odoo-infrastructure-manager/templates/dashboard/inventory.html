@@ -69,8 +69,20 @@
           <dt>Location</dt><dd>{{ host.location|default:"Not set" }}</dd>
           <dt>Last check</dt><dd>{{ host.last_checked_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
           <dt>Last successful connection</dt><dd>{{ host.last_connection_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
+          <dt>Live system data</dt><dd>{% if host.latest_snapshot %}{{ host.latest_snapshot.get_status_display }} · {{ host.latest_snapshot.captured_at|date:"Y-m-d H:i:s" }}{% if host.latest_snapshot.is_stale %} · Stale (older than 5 minutes){% else %} · Current{% endif %}{% else %}Not collected{% endif %}</dd>
         </dl>
         {% if can_test_server_connection %}<form method="post" action="{% url 'dashboard:test_server_connection' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-plug"></i> Test connection</button></form>{% endif %}
+        {% if can_discover_servers and host.is_local %}<form method="post" action="{% url 'dashboard:discover_server' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-arrows-rotate"></i> Refresh system data</button></form>
+          {% if host.latest_snapshot %}<div class="discovery-summary">
+            <h3>Latest live snapshot</h3>
+            {% with snapshot=host.latest_snapshot %}
+            <p>{{ snapshot.get_status_display }} · {{ snapshot.collection_duration_ms }} ms · {{ snapshot.captured_at|timesince }} ago</p>
+            <dl class="infra-details">
+              {% for key, value in snapshot.data.items %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value }}{% else %}Unavailable{% endif %}</dd>{% endfor %}
+            </dl>
+            {% endwith %}
+          </div>{% endif %}
+        {% endif %}
         {% if can_update_servers %}<form method="post" action="{% url 'dashboard:update_inventory_item' 'host' host.id %}" class="infra-form inventory-edit-form">{% csrf_token %}{{ host.edit_form.as_p }}<button class="infra-button secondary" type="submit">Save server</button></form>{% else %}<p>{{ host.description|default:"No description" }}</p>{% endif %}
       </details>
       {% endfor %}

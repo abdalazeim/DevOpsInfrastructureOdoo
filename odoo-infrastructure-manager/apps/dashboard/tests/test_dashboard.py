@@ -13,7 +13,7 @@ from apps.core.services.system_settings import get_setting
 from apps.dashboard.services.traefik_service import TraefikReadOnlyService
 from apps.dashboard.forms import ManagedHostForm
 from apps.dashboard.views import _redact
-from apps.infrastructure.models import ManagedHost, ServerGroup
+from apps.infrastructure.models import InfrastructureSnapshot, ManagedHost, ServerGroup
 from apps.security.models import Credential
 from cryptography.fernet import Fernet
 from apps.tasks.models import Task
@@ -66,6 +66,32 @@ class DashboardAccessTests(TestCase):
         self.assertEqual(response.json()["status"], "not_configured")
         host.refresh_from_db()
         self.assertEqual(host.connection_status, ManagedHost.ConnectionStatus.UNKNOWN)
+
+    @patch("apps.infrastructure.services.discovery.collect_local_snapshot", return_value={
+        "source": "local-linux", "status": "partial",
+        "data": {"system": {"operating_system": "Linux", "architecture": "x86_64"}, "memory": None},
+        "availability": {"system": {"status": "available"}, "memory": {"status": "unavailable"}},
+        "duration_ms": 12, "error_details": "memory: PermissionError",
+    })
+    def test_local_discovery_persists_real_snapshot_and_renders_freshness(self, collect):
+        host = ManagedHost.objects.create(name="local-live", hostname="localhost", is_local=True,
+                                          server_type="local", connection_type="local")
+        response = self.client.post(reverse("dashboard:discover_server", args=[host.pk]))
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json()["snapshot_status"], "partial")
+        snapshot = InfrastructureSnapshot.objects.get(host=host)
+        self.assertEqual(snapshot.data["system"]["operating_system"], "Linux")
+        self.assertEqual(snapshot.availability["memory"]["status"], "unavailable")
+        self.assertEqual(snapshot.collection_duration_ms, 12)
+        page = self.client.get(reverse("dashboard:inventory"))
+        self.assertContains(page, "Latest live snapshot")
+        self.assertContains(page, "Partially collected")
+        collect.assert_called_once_with()
+
+    def test_local_discovery_refuses_remote_targets(self):
+        host = ManagedHost.objects.create(name="remote-live", hostname="remote.example.test")
+        response = self.client.post(reverse("dashboard:discover_server", args=[host.pk]))
+        self.assertEqual(response.status_code, 409)
 
     def test_granular_server_create_permission_does_not_require_legacy_admin_grant(self):
         operator = get_user_model().objects.create_user("server-registrar", password="test-password")

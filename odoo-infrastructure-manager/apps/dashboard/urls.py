@@ -13,6 +13,7 @@ urlpatterns = [
     path("inventory/", views.inventory, name="inventory"),
     path("inventory/<str:item_type>/create/", views.create_inventory_item, name="create_inventory_item"),
     path("inventory/hosts/<int:host_id>/test-connection/", views.test_server_connection, name="test_server_connection"),
+    path("inventory/hosts/<int:host_id>/discover/", views.discover_server, name="discover_server"),
     path("security/credentials/create/", views.create_credential, name="create_credential"),
     path("security/credentials/<int:credential_id>/toggle/", views.toggle_credential, name="toggle_credential"),
     path("inventory/<str:item_type>/<int:item_id>/update/", views.update_inventory_item, name="update_inventory_item"),

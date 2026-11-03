@@ -13,6 +13,7 @@ from django.utils import timezone
 from apps.accounts.services.permission_service import has_permission, is_identity_active
 from apps.core.services.audit_service import log_audit
 from apps.infrastructure.models import ManagedHost
+from apps.infrastructure.services.discovery import discover_local_host
 from infrastructure_engine.adapters.ssh.connection import (
     SSHConnectionAdapter,
     SSHConnectionConfigurationError,
@@ -57,12 +58,37 @@ def _ssh_test(*, host, parameters):
     return SSHConnectionAdapter.inspect(host)
 
 
+def _discover_local(*, host, parameters):
+    if parameters:
+        raise OperationRejected("This operation does not accept client-supplied parameters.")
+    try:
+        snapshot = discover_local_host(host)
+    except ValueError as exc:
+        raise OperationRejected(str(exc), status_code=409) from exc
+    available = sum(item.get("status") == "available" for item in snapshot.availability.values())
+    return {
+        "snapshot_id": snapshot.pk,
+        "snapshot_status": snapshot.status,
+        "captured_at": snapshot.captured_at.isoformat(),
+        "is_stale": snapshot.is_stale,
+        "available_sections": available,
+        "total_sections": len(snapshot.availability),
+        "collection_duration_ms": snapshot.collection_duration_ms,
+    }
+
+
 OPERATIONS = {
     "server.test_connection": OperationSpec(
         code="server.test_connection",
         permission="server.connect",
         legacy_permissions=("infrastructure_manage",),
         handler=_ssh_test,
+    ),
+    "server.discover": OperationSpec(
+        code="server.discover",
+        permission="server.view",
+        legacy_permissions=("infrastructure_view",),
+        handler=_discover_local,
     ),
 }
 
@@ -124,9 +150,9 @@ class InfrastructureEngine:
         host.connection_status = ManagedHost.ConnectionStatus.ONLINE
         host.last_checked_at = checked_at
         host.last_connection_at = checked_at
-        host.operating_system = data.get("operating_system", "")
-        host.os_version = data.get("os_version", "")
-        host.architecture = data.get("architecture", "")
+        host.operating_system = data.get("operating_system", host.operating_system)
+        host.os_version = data.get("os_version", host.os_version)
+        host.architecture = data.get("architecture", host.architecture)
         host.save(update_fields=["connection_status", "last_checked_at", "last_connection_at",
                                  "operating_system", "os_version", "architecture", "updated_at"])
         cls._audit(request, actor, spec, host, old_status, "success", data)
