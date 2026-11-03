@@ -1,0 +1,53 @@
+# ==============================================================================
+# Traefik v3.7 - Secure Production Compose (Ubuntu / Docker)
+#
+# Run from the repository root:
+#   docker compose --env-file .env -f deployment/traefik/docker-compose.yml up -d
+#
+# Security model:
+#   - api.insecure is disabled; port 8080 is never published.
+#   - The dashboard is reachable only through HTTPS + Basic Auth.
+#   - The static configuration is mounted read-only from ./config/traefik.yml.
+#   - Docker socket is mounted read-only.
+# ==============================================================================
+name: traefik
+
+services:
+  traefik:
+    image: ${TRAEFIK_IMAGE:-traefik:v3.7}
+    container_name: traefik
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    command:
+      - --configfile=/etc/traefik/traefik.yml
+      # ACME e-mail is injected from .env instead of being stored in traefik.yml.
+      - --certificatesresolvers.letsencrypt.acme.email=${ACME_EMAIL:?ACME_EMAIL is required in .env}
+      - --certificatesresolvers.letsencrypt.acme.storage=/etc/traefik/acme/acme.json
+      - --providers.docker.network=${DOCKER_PROXY_NETWORK:-proxy}
+    environment:
+      TZ: ${TZ:-UTC}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/traefik/acme/acme.json:/etc/traefik/acme/acme.json
+      - ${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}/traefik/logs:/var/log/traefik
+    labels:
+      traefik.enable: "true"
+      traefik.docker.network: "${DOCKER_PROXY_NETWORK:-proxy}"
+      traefik.http.routers.traefik-dashboard.rule: "Host(`${TRAEFIK_DASHBOARD_DOMAIN:?TRAEFIK_DASHBOARD_DOMAIN is required in .env}`)"
+      traefik.http.routers.traefik-dashboard.entrypoints: "websecure"
+      traefik.http.routers.traefik-dashboard.tls.certresolver: "letsencrypt"
+      traefik.http.routers.traefik-dashboard.service: "api@internal"
+      traefik.http.routers.traefik-dashboard.middlewares: "traefik-auth"
+      traefik.http.middlewares.traefik-auth.basicauth.users: "${TRAEFIK_BASIC_AUTH:?TRAEFIK_BASIC_AUTH is required in .env}"
+    networks:
+      - proxy
+
+networks:
+  proxy:
+    external: true
+    name: ${DOCKER_PROXY_NETWORK:-proxy}

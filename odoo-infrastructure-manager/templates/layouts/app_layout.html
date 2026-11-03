@@ -1,0 +1,14 @@
+{% extends "base/base.html" %}
+
+{% block body_class %}app-page{% endblock %}
+
+{% block body %}
+  {% include "partials/sidebar.html" %}
+  {% include "partials/navbar.html" %}
+
+  <div id="main-content">
+    {% block app_content %}{% endblock %}
+  </div>
+
+  {% include "partials/footer.html" %}
+{% endblock %}

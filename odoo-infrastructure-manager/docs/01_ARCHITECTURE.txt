@@ -1,0 +1,38 @@
+# Architecture
+
+## 1. Design
+Split into Core + Accounts + Reusable Services + Optional Business Modules. Core independent of domain.
+
+## 2. Project Layout
+manage.py; config/(urls.py, api_urls.py, asgi, wsgi, settings/{base,development,test,production,desktop}); apps/{core, accounts, modules}; templates; static; media; tests/{unit,integration,api,e2e}; scripts; deployment; desktop; docs.
+
+## 3. Module Dependency Rule
+Core <- Accounts <- Business Modules. Upwards only.
+
+## 4. Settings Architecture
+base.py: shared apps, middleware, templates, DB defaults, i18n, static/media, DRF, logging, env loading.
+development.py: DEBUG=True, dev tools.
+test.py: PostgreSQL test DB (temporary test_<name>, created/dropped per run).
+production.py: DEBUG=False, security flags, SSL/HSTS, secure cookies.
+desktop.py: PyInstaller compat, local paths, PostgreSQL via DATABASE_URL, offline.
+manage.py auto-selects production when PORT or RENDER set, else development.
+
+## 5. Layering (Service Layer)
+views -> services (validation, business rules, transactions, audit, notifications) -> repositories (query encapsulation) -> models/database. No business logic in views/forms/serializers/templates.
+
+## 6. Error Handling
+Unified hierarchy in apps/core/utils/exceptions.py:
+AppError (base, 400) -> ValidationError(400), PermissionDenied(403), NotFoundError(404), ConflictError(409), BusinessRuleError(422), SystemError(500).
+All API views funnel via exception_to_response(...). Server-rendered errors via apps/core/views/handlers.py (handler404/403/500) registered in config/urls.py.
+
+## 7. Core Components
+- BaseModel: created_at, updated_at, created_by, updated_by.
+- AuditLog: generic audit trail (user, action, module, object, timestamp, IP, old/new value).
+- SystemSettings: key/value runtime config with caching.
+- Common validators, exceptions, services, utilities.
+- apps/core/utils/http.py: api_response, api_error, exception_to_response, paginate_queryset, api_response_paginated.
+- apps/core/utils/logging.py: security_logger, log_security_event(...).
+- apps/core/services/system_settings.py: cached settings access.
+
+## 8. Reusability Rules
+No business-specific fields/models in core. New project = Core+Accounts+Infra+UI+Tests, then add modules. Semantic versioning.

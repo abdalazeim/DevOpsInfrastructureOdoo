@@ -1,0 +1,17 @@
+{
+  "snapshot_id": "snap-20261103_095018",
+  "timestamp": "20261103_095018",
+  "archive_file": "full_snapshot_20261103_095018.tar.gz",
+  "archive_path": "/home/odoo-com/Documents/odoo-infrastructure-manager/backups/system_snapshots/full_snapshot_20261103_095018.tar.gz",
+  "file_size_bytes": 20477,
+  "sha256": "a328a9a1f094833fd0d5808c20b742f1a78cc5693b27a7e0e1ae60086970bd78",
+  "included_paths": [
+    "profiles",
+    "deployment",
+    "templates",
+    "automation",
+    ".env",
+    ".env.example"
+  ],
+  "status": "verified"
+}

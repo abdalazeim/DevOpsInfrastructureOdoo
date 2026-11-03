@@ -1,0 +1,38 @@
+pipeline {
+    agent any
+
+    options {
+        timestamps()
+        disableConcurrentBuilds()
+    }
+
+    environment {
+        IMAGE_NAME = 'django-enterprise-starter'
+        IMAGE_TAG = "build-${env.BUILD_NUMBER}"
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Python checks') {
+            steps {
+                sh '''
+                    python -m pip install --upgrade pip
+                    python -m pip install -r requirements-dev.txt
+                    python manage.py check --settings=config.settings.test
+                    python manage.py test --settings=config.settings.test
+                '''
+            }
+        }
+
+        stage('Build container') {
+            steps {
+                sh "docker build -f deployment/docker/Dockerfile.prod -t ${IMAGE_NAME}:${IMAGE_TAG} ."
+            }
+        }
+    }
+}

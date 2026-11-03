@@ -1,0 +1,64 @@
+﻿# ==============================================================================
+# Git Ignore — Django Enterprise Starter Template
+# ==============================================================================
+
+# ─── Secrets ─────────────────────────────────────────────────────
+.env
+.env.local
+.env.*.local
+*.key
+*.pem
+
+# ─── Database ───────────────────────────────────────────────────
+*.dump
+backup/
+
+# ─── Python ─────────────────────────────────────────────────────
+__pycache__/
+*.py[cod]
+.desktop-secret-key
+*.pyo
+*.egg-info/
+dist/
+build/
+*.egg
+*.spec
+
+# ─── Virtual Environment ────────────────────────────────────────
+venv/
+env/
+.venv/
+
+# ─── Django ─────────────────────────────────────────────────────
+staticfiles/
+media/
+logs/
+*.log
+
+# ─── IDE / Editor ───────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# ─── Tooling caches ─────────────────────────────────────────────
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+
+# ─── Deployment (generated files) ──────────────────────────────
+nginx.conf
+*.service
+deploy.sh
+
+# ─── Local database (SQLite) ───────────────────────────────────
+db.sqlite3
+
+# ─── Desktop build artifacts ───────────────────────────────────
+dist/
+build/
+*.spec

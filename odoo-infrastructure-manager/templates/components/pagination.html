@@ -1,0 +1,8 @@
+{% comment %}Reusable pagination bar.
+Usage:
+  {% include "components/pagination.html" with page_obj=page_obj pagination_info_id="info" pagination_btns_id="btns" %}
+{% endcomment %}
+<div class="pagination-wrap" {% if wrap_id %}id="{{ wrap_id }}"{% endif %}>
+  {% if pagination_info_id %}<div class="pagination-info" id="{{ pagination_info_id }}">عرض 0 من 0 سجل</div>{% endif %}
+  <div class="pagination-btns" {% if pagination_btns_id %}id="{{ pagination_btns_id }}"{% endif %}></div>
+</div>

@@ -1,0 +1,60 @@
+# Android App (Flutter) - Architecture & Ideas (from GTS app)
+
+## Stack
+Flutter 3.47.8 / Dart 3.13.7; Android SDK Platform 36+; JDK 17. State: flutter_riverpod. HTTP: dio. Storage: flutter_secure_storage (tokens), sqflite (local DB). Routing: go_router. UUID: uuid. Lints: flutter_lints.
+
+## Architecture: Clean Architecture + Offline-First
+Layers per feature: data (datasources, models, repositories) -> domain (entities, repositories, usecases) -> presentation (pages, providers, state, widgets). Core: api, auth, config, constants, database, di, error, network, sync, usecase, utils, widgets. Shared: constants, extensions, models, utils, widgets.
+
+## App structure (lib/)
+app/{router, theme}
+core/{api, auth, config, constants, database, di, error, network, sync, usecase, utils, widgets}
+features/{auth, home, transport}
+shared/{constants, extensions, models, utils, widgets}
+
+## Auth flow
+- Splash + full identity, then real login against server.
+- Secure token storage (Android Keystore); access+refresh rotated together like server.
+- Single-flight refresh: one refresh request no matter how many failed requests; replay request once after refresh; no infinite loops.
+- Session restore on launch: with network via GET /api/v1/auth/me; offline from last saved user file (user not dropped on network loss).
+- Rejected session (401/403): cleared locally.
+- Quick local logout with background server notify (does not block logout).
+
+## Navigation (go_router)
+Routes: /splash, /login, /home, /shipments, /receiving, /goods, /trips, /reports, etc.
+
+## Screens implemented
+- Home: sync status summary, device id, last sync result, operation totals.
+- Shipments: search + filters by status/type, details, delete.
+- Receiving goods: sources, complete receiving, generate bill of lading, shipments ready to load.
+- Goods management: add/edit/delete, categories, warehouses, search.
+- Trips: create/edit, link shipments, capacity (weight/volume) enforcement, status progression, close/reopen.
+- Shipment & trip details: status timeline, POD with signature, exceptions, unloading.
+- Reports: throughput, expenses, income movement, payment methods, status distribution, top customers, time filters.
+
+## Local DB (SQLite)
+Tables with sync metadata + operation queue. Operation states: pending / sent / failed / rejected / applied / dead. Manual retry + auto retry with backoff. Manual refresh + auto refresh. Data persists across sessions.
+
+## Sync
+- Push pending mutations in batch; pull changes since timestamp.
+- Idempotent mutations (client UUID).
+- Conflict: server wins; versioning via updated_at.
+- Sync states tracked; last sync result shown on home.
+
+## UI
+- Arabic RTL, Tajawal font family (Light..Black).
+- Material design, custom theme.
+- Offline indicators.
+
+## Testing
+107 unit/widget tests pass in session; flutter analyze with no issues. 5 integration tests require device, not run.
+
+## Build/Release
+- Release signing configured locally (keystore not committed).
+- Version 1.0.4+5.
+- Scripts: build_release.ps1, generate_launcher_icon.ps1, initialize_release_signing.ps1, make_windows_assets.ps1, verify_release_signature.ps1.
+
+## Not included
+- Background sync after app fully closed (sync runs while app open / on return).
+- New user registration / password reset (not confirmed in contract).
+- Store publishing (signing key managed locally).

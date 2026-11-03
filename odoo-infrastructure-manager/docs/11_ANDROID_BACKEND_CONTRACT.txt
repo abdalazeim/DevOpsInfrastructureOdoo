@@ -1,0 +1,49 @@
+# Backend Contract for Android App
+
+The Django backend must expose endpoints that the Flutter app consumes. Based on GTS app features.
+
+## Auth
+- POST /api/v1/auth/login {username, password} -> {access, refresh, user}
+- POST /api/v1/auth/refresh {refresh} -> {access, refresh} (rotate)
+- POST /api/v1/auth/logout
+- GET  /api/v1/auth/me -> current user + permissions
+- Rate limit login (10/m). Security logging.
+
+## Core resources (transport module example)
+Shipments:
+- GET  /api/v1/modules/transport/shipments/?search=&status=&type=&page=&page_size=
+- POST /api/v1/modules/transport/shipments/create/
+- GET  /api/v1/modules/transport/shipments/<id>/
+- POST /api/v1/modules/transport/shipments/<id>/update/
+- POST /api/v1/modules/transport/shipments/<id>/delete/
+Goods (cargo types):
+- CRUD /goods/, /goods/<id>/
+Receiving:
+- sources list, complete receiving, generate bill of lading, shipments ready to load.
+Trips:
+- CRUD /trips/, link shipments, capacity enforcement, status progression, close/reopen.
+POD/exceptions/unloading:
+- POST /shipments/<id>/pod/ (signature), /exceptions/, /unload/.
+Reports:
+- GET /reports/throughput/, /expenses/, /income/, /payment-methods/, /status-distribution/, /top-customers/, with time filters.
+
+## Sync endpoints
+- POST /api/v1/sync/push/  (batch mutations with client UUID) -> results per op (applied/rejected/conflict)
+- GET  /api/v1/sync/pull/?since=<timestamp> -> changed records since
+- Idempotent by client-generated UUID (dedup).
+- Return updated_at for versioning.
+
+## Response envelope
+{success, message, data, errors}; paginated {items, meta:{page,page_size,total,pages,has_next,has_previous}}.
+
+## Permissions
+Per module: <module>_view, <module>_manage, nav_<module>. Groups: <module>.
+
+## Error codes
+ValidationError 400, PermissionDenied 403, NotFound 404, Conflict 409, BusinessRule 422, System 500.
+
+## Capacity rules (business)
+Trip cannot exceed vehicle weight/volume; enforce server-side. Status transitions validated.
+
+## Deployment
+Render web + release migrate; Neon DB sslmode=require; health /health/ and /health/db/.

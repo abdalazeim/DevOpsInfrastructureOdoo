@@ -1,0 +1,6 @@
+{% comment %}Reusable empty state.
+Usage:
+  {% include "components/empty_state.html" with empty_icon="fa-database" empty_text="لا توجد بيانات" %}
+{% endcomment %}
+<i class="fas {{ empty_icon|default:'fa-inbox' }}" style="font-size:40px;"></i>
+<p>{{ empty_text|default:"لا توجد بيانات" }}</p>

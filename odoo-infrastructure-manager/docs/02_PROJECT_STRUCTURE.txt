@@ -1,0 +1,69 @@
+# Django Project Structure
+
+## Layout
+backend/project:
+  manage.py
+  requirements.txt / requirements-desktop.txt
+  .env.example, .gitignore, README.md, LICENSE
+  config/
+    urls.py, api_urls.py, asgi.py, wsgi.py
+    settings/{base,development,test,production,desktop}.py
+  apps/
+    core/  (models/, services/, repositories/, middleware/, permissions/, validators/, utils/, constants/, exceptions/, management/, admin, context_processors, urls, api_urls, tests)
+    accounts/ (models/, services/, views/, permissions/, management/, urls, admin, apps, tests)
+    modules/
+      example/ (models/, services/, repositories/, views/, serializers/, forms/, permissions/, tests/, urls, admin, apps, migrations)
+      + business modules: transport, org, regions, chart_of_accounts, journal_entries, budgets, accounting_reports, accounting_reviewer, financial_analysis, reports_center
+  templates/{base,layouts,pages,components,partials,forms,errors,pdf}
+  static/{css,js,fonts,images,vendor}
+  media/
+  tests/{unit,integration,api,e2e}
+  scripts/{verify_api.py, check_static_refs.py, run.py, deploy.sh, maintenance/, restore/}
+  deployment/{docker, nginx, docker-compose.yml}
+  desktop/
+  docs/
+
+## Module (apps/modules/<name>/)
+__init__.py (default_app_config)
+apps.py (config + ready() registers permissions)
+admin.py
+urls.py (app_name + API routes, mounted under /api/...)
+migrations/
+models/ (one file per model)
+repositories/ (<name>_repository.py extends BaseRepository)
+services/ (<name>_service.py: create/update/delete/list, transaction.atomic + audit)
+serializers/ (<name>_serializer.py: serialize_* helpers)
+forms/ (optional ModelForm)
+permissions/ (__init__.py: PERMISSIONS dict + GROUPS dict)
+views/ (<name>_views.py: function views using api_response/api_error)
+tests/ (test_<name>.py)
+
+## Registration
+1. Add "apps.modules.<name>" to INSTALLED_APPS in config/settings/base.py.
+2. Mount routes in config/api_urls.py: path("modules/<name>/", include("apps.modules.<name>.urls")).
+3. makemigrations + migrate.
+4. Verify permission registration: python manage.py shell -c "from apps.core.permissions import PERMISSION_REGISTRY; print(PERMISSION_REGISTRY)".
+
+## Permissions Convention
+PERMISSIONS = {"<module>_view": "View {Module}", "<module>_manage": "Manage {Module}", "nav_<module>": "Show {Module} in navigation"}
+GROUPS = {"<module>": ["<module>_view","<module>_manage","nav_<module>"]}
+ready() merges into global PERMISSION_REGISTRY.
+
+## Service Layer Rules
+All create/update/delete inside transaction.atomic(). Business rules raise BusinessRuleError; duplicates ConflictError; validation ValidationError (from apps.core.utils.exceptions). Important actions via log_audit(...). No business logic in views.
+
+## API Views
+Use apps.core.utils.http (api_response, api_error, exception_to_response) and apps.core.utils.decorators (api_login_required, api_permission_required). Every endpoint returns unified envelope. Protect with api_login_required + api_permission_required("<module>_manage", ...).
+
+## Removing a Module
+1. Delete apps/modules/<name>/.
+2. Remove from INSTALLED_APPS and config/api_urls.py.
+3. makemigrations --check to confirm no dangling deps.
+No Core/Accounts code references business modules.
+
+## Conventions
+- Custom user model from start (AUTH_USER_MODEL='users.User' / accounts).
+- Settings split by env; SECRET_KEY, DATABASE_URL from env.
+- Use django-environ or python-decouple.
+- One app per bounded context.
+- UUID primary keys optional for public resources.

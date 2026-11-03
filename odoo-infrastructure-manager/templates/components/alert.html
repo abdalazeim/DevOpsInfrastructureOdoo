@@ -1,0 +1,12 @@
+{% comment %}Reusable alert component.
+Usage:
+  {% include "components/alert.html" with alert_type="danger" alert_message="حدث خطأ" alert_icon="fa-circle-exclamation" %}
+{% endcomment %}
+<div class="alert alert-{{ alert_type }} d-flex align-items-center gap-2{% if alert_dismissible %} alert-dismissible fade show{% endif %}"
+     role="alert" {% if alert_id %}id="{{ alert_id }}"{% endif %}>
+  {% if alert_icon %}<i class="fas {{ alert_icon }}"></i>{% endif %}
+  <span>{{ alert_message }}</span>
+  {% if alert_dismissible %}
+  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="إغلاق"></button>
+  {% endif %}
+</div>

@@ -1,0 +1,23 @@
+# ==============================================================================
+# Django Enterprise Starter Template - Development Dependencies
+# ==============================================================================
+
+-r requirements.txt
+
+# Testing
+pytest>=8.0.0
+pytest-django>=4.8.0
+pytest-cov>=5.0.0
+
+# Code Quality
+ruff>=0.5.0
+mypy>=1.10.0
+django-stubs>=5.0.0
+
+# Pre-commit hooks
+pre-commit>=3.7.0
+
+# Desktop (optional)
+pyinstaller>=6.8.0
+pillow>=10.0.0
+pystray>=0.19.0

@@ -1,0 +1,30 @@
+# Android Integration (Flutter)
+
+## Client
+Flutter app with Dio HTTP client. Base URL from config per flavor (dev: local, prod: Render URL).
+
+## Auth
+- Login -> obtain JWT access+refresh (or session cookie).
+- Store tokens in secure storage (flutter_secure_storage).
+- Interceptor: attach Bearer; on 401 refresh token; on failure logout.
+- Login attempts rate-limited server-side (RATE_LIMIT_LOGIN).
+
+## Offline-first
+- Local DB (sqflite/drift) cache.
+- Sync queue table for pending mutations.
+- Background sync on connectivity restore.
+- Conflict resolution: server wins by default; versioning via updated_at.
+- Idempotent mutation endpoints (client-generated UUID).
+- Sync endpoints: POST /api/v1/sync/push/ (batch mutations), GET /api/v1/sync/pull/?since=timestamp.
+
+## Push notifications
+FCM (optional).
+
+## Config
+Flavors dev/staging/prod with different base URLs and bundle ids.
+
+## Security
+- HTTPS only in prod.
+- Certificate pinning (optional).
+- No secrets in client; tokens in secure storage.
+- Handle 401/403 gracefully, redirect to login.

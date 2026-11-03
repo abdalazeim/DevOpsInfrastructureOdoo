@@ -1,0 +1,23 @@
+[options]
+admin_passwd = ${ODOO{{ odoo_version }}_ADMIN_PASSWORD}
+db_host = odoo{{ odoo_version }}-db
+db_port = {{ odoo.database.internal_port | default(5432) }}
+db_user = {{ odoo.database.user }}
+db_password = ${ODOO{{ odoo_version }}_DB_PASSWORD}
+db_name = False
+dbfilter = .*
+addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+data_dir = /var/lib/odoo
+
+proxy_mode = True
+workers = {{ odoo.workers | default(3) }}
+limit_time_cpu = 600
+limit_time_real = 1200
+limit_memory_hard = {{ odoo.memory_limit_hard | default(2684354560) }}
+limit_memory_soft = {{ odoo.memory_limit_soft | default(2147483648) }}
+limit_request = 8192
+
+log_level = info
+logfile = False
+log_handler = :INFO
+list_db = True

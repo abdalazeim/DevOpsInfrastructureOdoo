@@ -1,0 +1,42 @@
+# Best Practices
+
+## Security
+- DEBUG=False in prod; ALLOWED_HOSTS set; CSRF/CORS strict.
+- Secrets only via env; never commit .env.
+- HTTPS enforced (Render provides); secure cookies + HSTS.
+- Rate limiting on auth endpoints.
+- Input validation in serializers/forms.
+- Unified exception handling; no stack traces to client.
+- Security logging for login events.
+
+## Code
+- Type hints; docstrings for public APIs.
+- Service layer: no business logic in views/forms/serializers/templates.
+- Tests: pytest + pytest-django; coverage target 80%.
+- Lint: ruff/flake8; format: black/isort. Pre-commit hooks.
+- Migrations reviewed before deploy.
+
+## Architecture
+- Module dependency upwards only (Core <- Accounts <- Modules).
+- Copy apps/modules/example to start a new module.
+- BaseModel for all models (created/updated audit fields).
+- Repositories encapsulate queries; services handle transactions.
+
+## Performance
+- select_related/prefetch_related.
+- Pagination always (cap 100).
+- Indexes on filters/FKs.
+- Caching via SystemSettings (cached) and Redis (optional).
+
+## DX
+- OpenAPI via drf-spectacular; Swagger UI.
+- .env.example committed.
+- README with setup steps.
+- Makefile/scripts for common tasks.
+- Health endpoints for platforms.
+- verify_api.py + check_static_refs.py in CI.
+
+## Testing
+- tests/{unit,integration,api,e2e}.
+- pytest-django; test DB created/dropped per run.
+- Gate: check + makemigrations --check + test + verify_api + check_static_refs.

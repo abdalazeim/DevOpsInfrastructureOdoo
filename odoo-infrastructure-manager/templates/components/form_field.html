@@ -1,0 +1,24 @@
+{% comment %}Reusable form field.
+Usage:
+  {% include "components/form_field.html" with field_id="name" field_label="الاسم" field_required=True field_placeholder="أدخل الاسم" %}
+{% endcomment %}
+<div class="mb-3">
+  {% if field_label %}
+  <label class="form-label" for="{{ field_id }}">
+    {{ field_label }}{% if field_required %} <span class="required">*</span>{% endif %}
+  </label>
+  {% endif %}
+  {% if field_type == "select" %}
+  <select class="form-select" id="{{ field_id }}" {% if field_required %}required{% endif %}>
+    {{ field_options }}
+  </select>
+  {% elif field_type == "textarea" %}
+  <textarea class="form-control" id="{{ field_id }}" rows="{{ field_rows|default:2 }}"
+            placeholder="{{ field_placeholder }}" {% if field_required %}required{% endif %}></textarea>
+  {% else %}
+  <input type="{{ field_type|default:'text' }}" class="form-control" id="{{ field_id }}"
+         placeholder="{{ field_placeholder }}" {% if field_required %}required{% endif %}
+         {% if field_value %}value="{{ field_value }}"{% endif %}>
+  {% endif %}
+  {% if field_help %}<div class="form-text">{{ field_help }}</div>{% endif %}
+</div>
