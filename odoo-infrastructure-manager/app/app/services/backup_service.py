@@ -2,7 +2,7 @@
 Database backup and restore orchestration service.
 """
 from typing import Optional, List
-from app.models.operation import WorkflowStep
+from infrastructure_engine.models.operation import WorkflowStep
 
 class BackupService:
     """Builds commands for safe database dumps and verification."""

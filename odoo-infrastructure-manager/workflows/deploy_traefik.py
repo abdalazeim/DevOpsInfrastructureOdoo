@@ -2,9 +2,9 @@
 Workflow: Deploy Traefik v3.7 Reverse Proxy.
 """
 from typing import List
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, WorkflowStep
-from app.services.docker_service import DockerService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, WorkflowStep
+from infrastructure_engine.services.docker_service import DockerService
 
 class DeployTraefikWorkflow:
     """Builds step sequence for deploying Traefik v3.7 with TLS & ACME support."""

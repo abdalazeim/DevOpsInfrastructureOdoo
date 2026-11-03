@@ -2,7 +2,7 @@
 Ansible automation service for baseline Ubuntu server configuration.
 """
 from typing import Dict, Any, List, Optional
-from app.models.operation import WorkflowStep
+from infrastructure_engine.models.operation import WorkflowStep
 
 class AnsibleService:
     """Builds Ansible runner commands with idempotency and dry-run (--check) support."""

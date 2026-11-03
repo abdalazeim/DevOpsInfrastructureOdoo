@@ -2,7 +2,7 @@
 Service for inspecting host health, docker container statuses, and endpoint readiness.
 """
 from typing import List
-from app.models.operation import WorkflowStep
+from infrastructure_engine.models.operation import WorkflowStep
 
 class HealthService:
     """Orchestrates comprehensive infrastructure health diagnostics."""

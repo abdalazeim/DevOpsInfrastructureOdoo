@@ -9,17 +9,17 @@ import argparse
 # Ensure project root is in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
-from app.ui.app import TerminalUI
-from app.models.profile import InfrastructureProfile
-from app.validators.config_validator import ConfigValidator
-from app.workflows.server_prep import ServerPrepWorkflow
-from app.workflows.deploy_traefik import DeployTraefikWorkflow
-from app.workflows.deploy_odoo17 import DeployOdoo17Workflow
-from app.workflows.deploy_odoo18 import DeployOdoo18Workflow
-from app.workflows.deploy_odoo19 import DeployOdoo19Workflow
-from app.workflows.full_deploy import FullDeployWorkflow
-from app.services.health_service import HealthService
-from app.models.operation import OperationRecord
+from infrastructure_engine.ui.app import TerminalUI
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.validators.config_validator import ConfigValidator
+from infrastructure_engine.workflows.server_prep import ServerPrepWorkflow
+from infrastructure_engine.workflows.deploy_traefik import DeployTraefikWorkflow
+from infrastructure_engine.workflows.deploy_odoo17 import DeployOdoo17Workflow
+from infrastructure_engine.workflows.deploy_odoo18 import DeployOdoo18Workflow
+from infrastructure_engine.workflows.deploy_odoo19 import DeployOdoo19Workflow
+from infrastructure_engine.workflows.full_deploy import FullDeployWorkflow
+from infrastructure_engine.services.health_service import HealthService
+from infrastructure_engine.models.operation import OperationRecord
 
 def main():
     parser = argparse.ArgumentParser(
@@ -41,7 +41,7 @@ def main():
     tui = TerminalUI(profile_path=args.profile)
 
     if args.action == "textual":
-        from app.ui.textual_app import run_textual_app
+        from infrastructure_engine.ui.textual_app import run_textual_app
         if not run_textual_app(tui.profile):
             tui.show_menu()
     elif args.action == "tui":
@@ -57,14 +57,14 @@ def main():
         op = DeployTraefikWorkflow.create_operation(tui.profile, dry_run=args.dry_run)
         tui.execute_workflow(op, dry_run=args.dry_run)
     elif args.action == "traefik-audit":
-        from app.services.traefik_manager import TraefikDockerManager
+        from infrastructure_engine.services.traefik_manager import TraefikDockerManager
         rep = TraefikDockerManager.discover_environment()
         print(f"Traefik Status: {rep.container_status} | Proxy Network: {'OK' if rep.proxy_network_exists else 'MISSING'}")
         print(f"Dashboard URL: {rep.dashboard_url} (Accessible: {rep.dashboard_accessible})")
         for p in rep.ports_audit:
             print(f"Port {p.port}: {'IN USE' if p.is_in_use else 'FREE'} ({p.service_name})")
     elif args.action == "traefik-backup":
-        from app.services.traefik_manager import TraefikDockerManager
+        from infrastructure_engine.services.traefik_manager import TraefikDockerManager
         snap = TraefikDockerManager.create_backup_snapshot("/opt/traefik")
         print(f"Traefik Snapshot created: {snap['archive_path']} (SHA256: {snap['sha256']})")
     elif args.action == "odoo17":

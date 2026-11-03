@@ -5,9 +5,9 @@ Uses the same installer/layout as Odoo 17 and 19:
   https://github.com/minhng92/odoo-18-docker-compose
 """
 from typing import List
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, WorkflowStep
-from app.services.docker_service import DockerService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, WorkflowStep
+from infrastructure_engine.services.docker_service import DockerService
 
 
 def _installer_command(profile: InfrastructureProfile, version: str, with_traefik: bool) -> List[str]:

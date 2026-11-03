@@ -2,7 +2,7 @@
 Docker and Docker Compose orchestration service.
 """
 from typing import List, Dict, Any, Optional
-from app.models.operation import WorkflowStep
+from infrastructure_engine.models.operation import WorkflowStep
 
 class DockerService:
     """Constructs safe, parameterized docker and docker compose commands."""

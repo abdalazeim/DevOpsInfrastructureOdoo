@@ -1,6 +1,18 @@
-# Django Enterprise Starter
+# Odoo Infrastructure Manager
 
-قالب Django معياري يصلح كنقطة بداية لمشاريع متعددة المجالات. يستخدم Modular Monolith، مع فصل النواة والحسابات والوحدات الاختيارية. المثال الافتراضي محايد ويعرض CRUD من واجهة الويب وREST API.
+منصة لإدارة نشر Odoo وخدمات البنية التحتية على Ubuntu وDocker. تجمع CLI/TUI وسير عمل النشر مع لوحة Django وواجهات REST.
+
+## خريطة المشروع
+
+- `config/`: إعدادات Django والمسارات وطبقة الأمان.
+- `apps/`: تطبيقات الويب ووحدات المجال. وحدات مثل `monitoring` و`task_manager` مهيأة للتوسع ولم تنفذ بعد.
+- `infrastructure_engine/`: نماذج التشغيل والخدمات وسير العمل وواجهات الطرفية لمحرك البنية التحتية.
+- `profiles/`, `infra_templates/`, `infra_deployment/`, `automation_files/`: ملفات تعريف البيئات وقوالب وملفات التشغيل الآلي.
+- `templates/`, `static/`: واجهة الويب وأصولها.
+- `data/`, `logs/`, `media/`, `staticfiles/`: بيانات التشغيل والملفات المولدة محليًا.
+- `requirements/`: اعتماديات الأساس والتطوير والإنتاج والاختبار. تبقى `requirements.txt` و`requirements-dev.txt` كمدخلي تثبيت للتوافق.
+
+تظل الاستيرادات القديمة من `app.models` و`app.services` و`app.workflows` صالحة عبر طبقة توافق؛ التنفيذ الأساسي لهذه الحزم موجود في `infrastructure_engine/`.
 
 ## المكونات
 

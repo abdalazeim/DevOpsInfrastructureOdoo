@@ -18,7 +18,7 @@ def api_health(request):
 def api_profiles(request):
     # Return from the original app
     try:
-        from app.models.profile import InfrastructureProfile
+        from infrastructure_engine.models.profile import InfrastructureProfile
         import os, yaml
         profiles = []
         for path in ['profiles/example.yaml', 'profiles/devops-odoo-prod.yaml', 'profiles/local-dev.yaml']:
@@ -60,7 +60,7 @@ def api_containers(request):
 @require_http_methods(["GET"])
 def api_preflight(request):
     try:
-        from app.services.smart_inspector import SmartInspectorService
+        from infrastructure_engine.services.smart_inspector import SmartInspectorService
         report = SmartInspectorService.run_full_inspection()
         # Convert to dict
         from dataclasses import asdict

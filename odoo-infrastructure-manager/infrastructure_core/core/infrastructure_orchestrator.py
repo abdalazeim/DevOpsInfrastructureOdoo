@@ -9,8 +9,8 @@ import subprocess
 import os
 import sys
 from typing import Dict, Any, List, Optional
-from app.services.traefik_manager import TraefikDockerManager
-from app.services.odoo_manager import OdooDockerManager
+from infrastructure_engine.services.traefik_manager import TraefikDockerManager
+from infrastructure_engine.services.odoo_manager import OdooDockerManager
 
 # Configure Centralized Logging
 log_dir = os.path.expanduser("~/.local/log/odoo-infrastructure-manager")

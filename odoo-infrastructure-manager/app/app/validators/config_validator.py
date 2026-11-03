@@ -4,7 +4,7 @@ Ensures security, syntax correctness, port safety, and component compatibility.
 """
 import re
 from typing import List, Tuple, Dict, Any
-from app.models.profile import InfrastructureProfile
+from infrastructure_engine.models.profile import InfrastructureProfile
 
 DOMAIN_REGEX = re.compile(
     r'^(?:[a-zA-Z0-9]'

@@ -31,6 +31,11 @@ env = environ.Env(
     LANGUAGE_CODE=(str, "ar"),
     APP_FONT_FAMILY=(str, "Cairo"),
     ENABLE_DOMAIN_SAMPLES=(bool, False),
+    INFRA_DOCKER_READ_ENABLED=(bool, False),
+    PROMETHEUS_URL=(str, ""),
+    SEMAPHORE_URL=(str, ""),
+    SEMAPHORE_API_TOKEN=(str, ""),
+    SEMAPHORE_TIMEOUT_SECONDS=(int, 8),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -65,8 +70,15 @@ INSTALLED_APPS = [
     "django_filters",
     "apps.core",
     "apps.accounts",
-    "apps.modules.example",
     "apps.infrastructure",
+    "apps.dashboard",
+    "apps.containers",
+    "apps.automation",
+    "apps.monitoring",
+    "apps.backup",
+    "apps.databases",
+    "apps.django_projects",
+    "apps.modules.example",
 ]
 
 # Optional domain samples stay outside the core app package so Django's test
@@ -133,11 +145,17 @@ if DATABASE_URL:
             ssl_require=not DEBUG,
         ),
     }
+
+INFRA_DOCKER_READ_ENABLED = env.bool("INFRA_DOCKER_READ_ENABLED", default=False)
+PROMETHEUS_URL = env("PROMETHEUS_URL")
+SEMAPHORE_URL = env("SEMAPHORE_URL").rstrip("/")
+SEMAPHORE_API_TOKEN = env("SEMAPHORE_API_TOKEN")
+SEMAPHORE_TIMEOUT_SECONDS = env.int("SEMAPHORE_TIMEOUT_SECONDS", default=8)
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": BASE_DIR / "data" / "database" / "infrastructure.sqlite3",
         }
     }
 

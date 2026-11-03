@@ -2,9 +2,9 @@
 Workflow: Server Preparation and Baseline Setup.
 """
 from typing import List
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, WorkflowStep
-from app.services.docker_service import DockerService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, WorkflowStep
+from infrastructure_engine.services.docker_service import DockerService
 
 class ServerPrepWorkflow:
     """Builds the sequence of steps for baseline server configuration."""
