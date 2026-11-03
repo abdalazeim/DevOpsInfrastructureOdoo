@@ -156,7 +156,8 @@ Each gate must be satisfied before destructive actions are enabled. Integrations
 | English-only enterprise shell and dashboard | Implemented, tested | `templates/base/base.html`, `static/css/enterprise-shell.css`; restart the web process and serve static assets |
 | Account/role/group permission resolution | Implemented, tested | `apps/accounts/services/permission_service.py`; direct, role, app-group and Django-group grants are additive; assignment API validates catalog and actor grant scope |
 | Credential encryption and rotation | Implemented, tested | `apps/security/services/credentials.py`, `rotate_credential_keys`; configure and back up Fernet key material |
-| Server registry and groups | Partial, tested | `ManagedHost`, `ServerGroup`; hardware discovery and server-detail sections remain pending |
+| Server registry and groups | Partial, tested | `ManagedHost`, `ServerGroup`; local Linux snapshot collection is available; remote Linux discovery and detailed server sections remain pending |
+| Local Linux system discovery | Partial, tested | Read-only live OS, CPU, memory, filesystem, network and provider-presence data through `psutil`/system files; five-minute freshness and per-section availability; systemctl service inventory, process management and remote collection are pending |
 | SSH connection test | Partial, tested with mocked SSH | Needs remote host-key entry in the system user's known-hosts file, active SSH credential, network access and least-privilege remote account |
 | Infrastructure operation execution | Partial | Only the registered, read-only server connection probe is enabled; mutations return unavailable until persistent tasks and worker isolation exist |
 | Task Manager | Partial | UUID task registry, state machine, audit, cancellation and bounded/redacted logs are implemented; task dispatch remains disabled until Celery/Redis worker is configured |

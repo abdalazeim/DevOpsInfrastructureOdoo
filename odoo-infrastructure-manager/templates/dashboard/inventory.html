@@ -1,5 +1,5 @@
 {% extends "layouts/app_layout.html" %}
-{% load static %}
+{% load static infrastructure_extras %}
 {% block title %}Servers & services · Infrastructure Manager{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
 {% block app_content %}
@@ -78,7 +78,7 @@
             {% with snapshot=host.latest_snapshot %}
             <p>{{ snapshot.get_status_display }} · {{ snapshot.collection_duration_ms }} ms · {{ snapshot.captured_at|timesince }} ago</p>
             <dl class="infra-details">
-              {% for key, value in snapshot.data.items %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value }}{% else %}Unavailable{% endif %}</dd>{% endfor %}
+              {% for key, value in snapshot.data.items %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value|infra_json }}{% else %}Unavailable{% endif %}</dd>{% endfor %}
             </dl>
             {% endwith %}
           </div>{% endif %}
