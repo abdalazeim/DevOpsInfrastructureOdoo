@@ -47,6 +47,7 @@ class AutomationRun(models.Model):
     status = models.CharField(max_length=16, choices=Status.choices, default=Status.QUEUED)
     dry_run = models.BooleanField(default=True)
     summary = models.CharField(max_length=500, blank=True)
+    output_excerpt = models.TextField(blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     finished_at = models.DateTimeField(null=True, blank=True)
 

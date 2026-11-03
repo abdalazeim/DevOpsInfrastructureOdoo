@@ -21,8 +21,13 @@ class ResourceSample(models.Model):
 
 
 class AlertRule(models.Model):
+    class Metric(models.TextChoices):
+        CPU = "cpu_percent", "CPU usage (%)"
+        MEMORY = "memory_percent", "Memory usage (%)"
+        DISK = "disk_percent", "Root disk usage (%)"
+
     name = models.CharField(max_length=120, unique=True)
-    metric = models.CharField(max_length=40)
+    metric = models.CharField(max_length=40, choices=Metric.choices)
     threshold = models.FloatField()
     cooldown_minutes = models.PositiveIntegerField(default=30)
     enabled = models.BooleanField(default=False)

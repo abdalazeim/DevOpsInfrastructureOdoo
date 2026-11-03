@@ -1,0 +1,1354 @@
+# 1. ROLE AND PROJECT OBJECTIVE
+
+Act as a Senior Software Architect, DevOps Engineer, Linux System Administrator, Django Backend Developer, Database Architect, and Infrastructure Automation Specialist.
+
+Your responsibility is to analyze, design, and implement the complete internal functionality of Infrastructure Manager.
+
+PROJECT NAME:
+Infrastructure Manager
+
+PROJECT TYPE:
+Enterprise Infrastructure Management and Automation Platform.
+
+PRIMARY OBJECTIVE:
+
+Build a centralized platform that enables administrators to manage, monitor, automate, secure, and maintain local and remote infrastructure environments through one unified application.
+
+The system must support:
+
+- Local Ubuntu Server Management.
+- Remote Linux Server Management.
+- Docker Engine Management.
+- Ansible Automation.
+- Infrastructure Monitoring.
+- Database Management.
+- Backup and Recovery.
+- Network Administration.
+- Security and Access Control.
+- Background Task Execution.
+- Centralized Logging and Auditing.
+
+IMPORTANT:
+
+Do not treat modules as independent CRUD applications.
+
+All modules must be logically connected through shared infrastructure entities, services, execution engines, event handling, and centralized task management.
+
+==================================================
+2. CORE ARCHITECTURAL PRINCIPLES
+==================================================
+
+Implement the following architecture:
+
+Presentation Layer:
+Django Templates, HTMX, JavaScript, REST APIs.
+
+Application Layer:
+Views, Forms, Serializers, Selectors, Application Services.
+
+Domain Layer:
+Models, Business Rules, Validation, Domain Services.
+
+Infrastructure Layer:
+Linux Adapters, Docker Adapters, Ansible Adapters, SSH Adapters, Database Adapters.
+
+Execution Layer:
+Task Dispatcher, Celery Workers, Execution Policies, Result Handlers.
+
+Data Layer:
+SQLite initially, with future PostgreSQL compatibility.
+
+Security Layer:
+Authentication, RBAC, Credentials, Secrets, Audit Logging.
+
+Use:
+
+- SOLID.
+- DRY.
+- KISS.
+- OOP.
+- Service Layer.
+- Repository/Selector Pattern where appropriate.
+- Adapter Pattern.
+- Dependency Injection.
+- Event-Driven Architecture where beneficial.
+
+==================================================
+3. CORE MODULE
+==================================================
+
+The Core module is responsible for shared system functionality.
+
+Internal components:
+
+1. Application Configuration.
+2. System Constants.
+3. Shared Models.
+4. Base Services.
+5. Common Validators.
+6. Exception Handling.
+7. Logging Infrastructure.
+8. Notification Services.
+9. Event Dispatcher.
+10. Application Health Checks.
+
+Functional requirements:
+
+- Centralized application configuration.
+- Shared response formats.
+- Common validation mechanisms.
+- Standardized exception handling.
+- Centralized audit integration.
+- Application health reporting.
+- Module registration and availability.
+
+All modules must reuse Core services instead of duplicating common functionality.
+
+==================================================
+4. ACCOUNTS AND ACCESS CONTROL
+==================================================
+
+Create a complete user and permissions management system.
+
+SUBMODULES:
+
+A. Users:
+- Create User.
+- Edit User.
+- Activate User.
+- Deactivate User.
+- Reset Password.
+- Manage Sessions.
+- Login History.
+
+B. Groups:
+- Create Groups.
+- Assign Users.
+- Manage Group Membership.
+
+C. Roles:
+- Super Administrator.
+- Infrastructure Administrator.
+- Server Administrator.
+- Docker Administrator.
+- Automation Administrator.
+- Monitoring Administrator.
+- Backup Administrator.
+- Security Auditor.
+- Read-Only User.
+
+D. Permissions:
+
+Support granular permissions:
+
+- View.
+- Create.
+- Edit.
+- Delete.
+- Execute.
+- Approve.
+- Export.
+- Configure.
+
+Permissions must be enforced at both the application and execution layers.
+
+Dangerous actions may require additional approval.
+
+==================================================
+5. SERVER AND INFRASTRUCTURE MANAGEMENT
+==================================================
+
+This is one of the central modules of the platform.
+
+Create a complete server inventory and management system.
+
+A. SERVER REGISTRY
+
+Each server must have:
+
+- Server ID.
+- Server Name.
+- Hostname.
+- IP Address.
+- Operating System.
+- OS Version.
+- Architecture.
+- Environment.
+- Server Group.
+- Location.
+- Connection Method.
+- SSH Port.
+- SSH Credential Reference.
+- Connection Status.
+- Last Successful Connection.
+- Last Health Check.
+- Registration Date.
+
+Support:
+
+- Local Server.
+- Remote Servers.
+- Multiple Server Groups.
+- Server Tags.
+- Server Environments.
+
+B. SERVER CONNECTION MANAGEMENT
+
+Operations:
+
+- Test Connection.
+- Verify SSH Access.
+- Retrieve Server Information.
+- Check Operating System.
+- Check Available Resources.
+- Update Server Inventory.
+- Disconnect.
+- Reconnect.
+
+Connection failures must be logged with useful error information.
+
+C. OPERATING SYSTEM MANAGEMENT
+
+Provide:
+
+- OS Information.
+- Kernel Information.
+- System Uptime.
+- Hostname Management.
+- Package Management.
+- System Updates.
+- System Repositories.
+- Environment Information.
+
+D. SYSTEM SERVICES
+
+Provide:
+
+- List Services.
+- Service Details.
+- Start.
+- Stop.
+- Restart.
+- Enable.
+- Disable.
+- Service Logs.
+- Service Status.
+- Startup Configuration.
+
+Integrate with Systemd on supported Linux servers.
+
+E. PROCESS MANAGEMENT
+
+Provide:
+
+- Running Processes.
+- PID.
+- Process Owner.
+- CPU Usage.
+- Memory Usage.
+- Runtime.
+- Process Details.
+- Controlled Termination.
+
+F. RESOURCE MANAGEMENT
+
+CPU:
+- CPU Model.
+- Core Count.
+- Usage.
+- Load Average.
+- Historical Usage.
+
+Memory:
+- Total RAM.
+- Used RAM.
+- Available RAM.
+- Swap.
+- Utilization.
+
+Storage:
+- Disks.
+- Partitions.
+- Filesystems.
+- Mount Points.
+- Total Space.
+- Used Space.
+- Available Space.
+- Disk Usage History.
+
+G. USER AND GROUP MANAGEMENT
+
+Provide:
+
+- System Users.
+- System Groups.
+- Create User.
+- Edit User.
+- Disable User.
+- Group Assignment.
+- Sudo Access Review.
+
+Apply strict authorization policies.
+
+H. NETWORK MANAGEMENT
+
+Provide:
+
+- Network Interfaces.
+- IP Addresses.
+- Routes.
+- DNS.
+- Network Connections.
+- Listening Ports.
+- Firewall Rules.
+- Network Diagnostics.
+
+Support UFW initially, with extensible firewall adapters.
+
+==================================================
+6. DOCKER MANAGEMENT
+==================================================
+
+Create a complete Docker management subsystem.
+
+A. DOCKER ENGINE
+
+Store and manage:
+
+- Docker Endpoint.
+- Engine Version.
+- API Version.
+- Connection Status.
+- Host Association.
+- Engine Information.
+
+A Docker Engine must be associated with a registered server.
+
+B. CONTAINER MANAGEMENT
+
+Container fields:
+
+- Container ID.
+- Container Name.
+- Image Reference.
+- Server.
+- Docker Engine.
+- Status.
+- Ports.
+- Networks.
+- Volumes.
+- Created Date.
+- Started Date.
+
+Operations:
+
+- Create.
+- Start.
+- Stop.
+- Restart.
+- Pause.
+- Resume.
+- Remove.
+- Inspect.
+- View Logs.
+- View Statistics.
+- Execute Approved Commands.
+
+C. IMAGE MANAGEMENT
+
+- Image Repository.
+- Tag.
+- Image ID.
+- Size.
+- Creation Date.
+- Registry.
+- Pull Image.
+- Remove Image.
+- Inspect Image.
+
+D. VOLUME MANAGEMENT
+
+- Volume Name.
+- Driver.
+- Mount Point.
+- Associated Server.
+- Associated Containers.
+- Backup Status.
+
+E. NETWORK MANAGEMENT
+
+- Network Name.
+- Driver.
+- Scope.
+- Subnet.
+- Gateway.
+- Connected Containers.
+
+F. DOCKER COMPOSE
+
+Manage:
+
+- Compose Projects.
+- YAML Files.
+- Environment Configuration.
+- Services.
+- Project Status.
+- Project Logs.
+- Start.
+- Stop.
+- Restart.
+- Update.
+
+Validate configuration before execution.
+
+G. DOCKER EVENTS
+
+Record:
+
+- Container Created.
+- Container Started.
+- Container Stopped.
+- Container Removed.
+- Image Pulled.
+- Network Created.
+- Volume Created.
+
+All Docker actions must be connected to Task Manager and Audit Logs.
+
+==================================================
+7. ANSIBLE AUTOMATION
+==================================================
+
+Create a full automation management subsystem.
+
+A. ANSIBLE CONFIGURATION
+
+- Ansible Version.
+- Configuration File.
+- Execution Environment.
+- Inventory Sources.
+- SSH Configuration.
+- Ansible Settings.
+
+B. INVENTORY MANAGEMENT
+
+Support:
+
+- Static Inventory.
+- Dynamic Inventory.
+- Hosts.
+- Groups.
+- Group Variables.
+- Host Variables.
+- Connection Variables.
+
+Every registered host should optionally reference a server record in Infrastructure.
+
+C. PLAYBOOK MANAGEMENT
+
+Fields:
+
+- Playbook Name.
+- Description.
+- Category.
+- File Path.
+- Version.
+- Target Groups.
+- Required Variables.
+- Status.
+
+Operations:
+
+- Create.
+- Edit.
+- Validate.
+- Review.
+- Execute.
+- Schedule.
+- Archive.
+
+D. ROLES AND COLLECTIONS
+
+Manage:
+
+- Ansible Roles.
+- Collections.
+- Dependencies.
+- Installed Versions.
+- Installation History.
+
+E. EXECUTION MANAGEMENT
+
+Every execution must contain:
+
+- Execution ID.
+- Playbook.
+- Inventory.
+- Target Hosts.
+- Initiated User.
+- Parameters.
+- Start Time.
+- End Time.
+- Duration.
+- Status.
+- Output.
+- Error Output.
+- Exit Code.
+
+Support:
+
+- Running.
+- Successful.
+- Failed.
+- Cancelled.
+- Timeout.
+
+F. SCHEDULED AUTOMATION
+
+Support:
+
+- Daily Jobs.
+- Weekly Jobs.
+- Monthly Jobs.
+- Custom Schedules.
+- Recurring Jobs.
+
+All scheduled jobs must use the centralized task system.
+
+==================================================
+8. MONITORING AND ALERTS
+==================================================
+
+Create a unified monitoring subsystem.
+
+A. SERVER MONITORING
+
+Monitor:
+
+- CPU.
+- RAM.
+- Disk.
+- Network.
+- Load Average.
+- Uptime.
+- System Services.
+
+B. DOCKER MONITORING
+
+Monitor:
+
+- Container Availability.
+- Container CPU.
+- Container Memory.
+- Container Restarts.
+- Container Health.
+- Image and Volume Information.
+
+C. DATABASE MONITORING
+
+Monitor:
+
+- Connection Availability.
+- Database Size.
+- Connection Counts.
+- Backup Status.
+- Basic Health Checks.
+
+D. MONITORING CONFIGURATION
+
+Allow administrators to define:
+
+- Collection Intervals.
+- Monitoring Targets.
+- Metrics.
+- Thresholds.
+- Retention Periods.
+
+E. ALERT RULES
+
+Example:
+
+IF CPU usage > configured threshold
+FOR configured duration
+THEN generate alert.
+
+Alert properties:
+
+- Alert ID.
+- Source Server.
+- Related Service.
+- Severity.
+- Message.
+- Trigger Time.
+- Current State.
+- Resolution Time.
+
+F. ALERT LIFECYCLE
+
+Support:
+
+- New.
+- Acknowledged.
+- Investigating.
+- Resolved.
+- Suppressed.
+
+Alerts must be connected to the Notifications module and Dashboard.
+
+IMPORTANT:
+
+Use real measurements and distinguish unavailable data from zero values.
+
+==================================================
+9. DATABASE MANAGEMENT
+==================================================
+
+Build a database management subsystem using provider adapters.
+
+Initial providers:
+
+- SQLite.
+- PostgreSQL.
+
+Future providers:
+
+- MySQL.
+- MariaDB.
+
+A. DATABASE INSTANCES
+
+Each instance must reference its host and provider.
+
+Store:
+
+- Instance Name.
+- Database Engine.
+- Version.
+- Host.
+- Port.
+- Connection Reference.
+- Status.
+- Last Health Check.
+
+B. DATABASE OPERATIONS
+
+- Test Connection.
+- View Database Information.
+- Monitor Health.
+- View Size.
+- List Databases.
+- Manage Backups.
+- Restore Database.
+
+C. DATABASE BACKUP
+
+Connect database backup operations with the centralized Backup module.
+
+Never expose database credentials in plain text.
+
+==================================================
+10. BACKUP AND RECOVERY
+==================================================
+
+Create a unified backup and recovery management subsystem.
+
+A. BACKUP SOURCES
+
+Support:
+
+- Application Files.
+- SQLite Databases.
+- PostgreSQL Databases.
+- Docker Volumes.
+- Docker Compose Files.
+- Ansible Inventory.
+- Configuration Files.
+- Server Configuration.
+
+B. BACKUP JOBS
+
+Each backup job must contain:
+
+- Job Name.
+- Backup Type.
+- Source.
+- Target Server.
+- Destination.
+- Schedule.
+- Retention Policy.
+- Compression.
+- Encryption.
+- Last Execution.
+- Status.
+
+C. BACKUP DESTINATIONS
+
+Initially support:
+
+- Local Storage.
+- Remote SSH Storage.
+
+Future support:
+- S3-Compatible Storage.
+
+D. BACKUP HISTORY
+
+Track:
+
+- Backup ID.
+- Backup Job.
+- File Name.
+- Size.
+- Start Time.
+- Completion Time.
+- Checksum.
+- Verification Status.
+- Result.
+
+E. RESTORE MANAGEMENT
+
+Provide:
+
+- Select Backup.
+- Verify Backup.
+- Select Destination.
+- Preview Restore.
+- Confirm Restore.
+- Execute Restore.
+- Verify Restored Data.
+
+All restore operations must be logged and protected by confirmation and authorization.
+
+==================================================
+11. SECURITY CENTER
+==================================================
+
+Create centralized security management.
+
+A. SSH KEY MANAGEMENT
+
+- Register Public Keys.
+- Manage Private Key References.
+- Assign Keys to Servers.
+- Test Authentication.
+- Rotate Keys.
+- Revoke Keys.
+
+B. CREDENTIAL MANAGEMENT
+
+Support secure references to:
+
+- SSH Credentials.
+- Database Credentials.
+- Docker Registry Credentials.
+- API Tokens.
+
+C. SECRET MANAGEMENT
+
+- Encrypted Storage.
+- Access Policies.
+- Secret Rotation.
+- Secret Usage History.
+- Masked Display.
+
+D. ACCESS POLICIES
+
+Define:
+
+- Who can access servers.
+- Who can execute commands.
+- Who can manage containers.
+- Who can run Playbooks.
+- Who can restore backups.
+
+E. AUDIT LOGGING
+
+Record:
+
+- User.
+- Action.
+- Module.
+- Target Resource.
+- Timestamp.
+- Source IP.
+- Result.
+- Related Task ID.
+
+Never log passwords, private keys, or secret values.
+
+==================================================
+12. TASK MANAGER AND EXECUTION ENGINE
+==================================================
+
+This is the central operational component.
+
+All long-running infrastructure operations must pass through this module.
+
+TASK CATEGORIES:
+
+- SSH Operations.
+- System Commands.
+- Docker Operations.
+- Ansible Playbooks.
+- Monitoring Jobs.
+- Backup Jobs.
+- Restore Jobs.
+- Database Maintenance.
+- Scheduled Tasks.
+
+TASK LIFECYCLE:
+
+Pending
+  |
+Queued
+  |
+Running
+  |
+Completed / Failed / Cancelled / Timeout
+
+TASK MODEL:
+
+- Task ID.
+- Task Type.
+- Module.
+- Target Server.
+- Related Resource.
+- Initiated By.
+- Priority.
+- Parameters Reference.
+- Status.
+- Progress.
+- Started At.
+- Finished At.
+- Exit Code.
+- Result Summary.
+- Log Reference.
+
+FUNCTIONAL REQUIREMENTS:
+
+- Queue Management.
+- Background Execution.
+- Worker Management.
+- Execution Timeouts.
+- Retry Policies.
+- Cancellation.
+- Execution Logs.
+- Task History.
+- Concurrency Limits.
+
+Use Celery and Redis where appropriate.
+
+SQLite must not be treated as a high-concurrency task queue.
+
+Keep task state persistence separate from queue transport.
+
+==================================================
+13. NOTIFICATIONS
+==================================================
+
+Create a centralized notification system.
+
+Notification sources:
+
+- Monitoring Alerts.
+- Task Failures.
+- Backup Failures.
+- Server Disconnections.
+- Security Events.
+- Automation Results.
+
+Support:
+
+- In-App Notifications.
+- Unread Counters.
+- Read Status.
+- Notification Categories.
+- Severity.
+- User Preferences.
+
+Design notification channels so email and external messaging integrations can be added later.
+
+==================================================
+14. REPORTS AND ANALYTICS
+==================================================
+
+Create reports from real records.
+
+Reports:
+
+- Server Inventory.
+- Server Availability.
+- Infrastructure Health.
+- Resource Utilization.
+- Docker Inventory.
+- Container Activity.
+- Automation Execution.
+- Backup History.
+- Security Events.
+- Task Execution.
+
+Support:
+
+- Date Range.
+- Server Filters.
+- Module Filters.
+- Status Filters.
+- PDF.
+- CSV.
+- Print.
+
+Reports must use shared selectors and avoid duplicating business logic.
+
+==================================================
+15. SYNCHRONIZATION AND MULTI-SERVER MANAGEMENT
+==================================================
+
+Build the platform to support centralized administration of multiple servers.
+
+A. SERVER REGISTRATION
+
+Each server must have a unique identity.
+
+B. SERVER CONNECTIONS
+
+Support:
+
+- SSH.
+- Local System Adapter.
+- Future Agent-Based Communication.
+
+C. SERVER INVENTORY SYNCHRONIZATION
+
+Synchronize:
+
+- OS Information.
+- CPU Information.
+- Memory.
+- Storage.
+- Network Interfaces.
+- Docker Information.
+- Installed Services.
+
+D. SYNCHRONIZATION HISTORY
+
+Record:
+
+- Server.
+- Sync Time.
+- Status.
+- Updated Resources.
+- Errors.
+
+E. DATA CONSISTENCY
+
+- Prevent duplicate registrations.
+- Handle connection failures.
+- Avoid overwriting manually configured data with unverified information.
+- Track last successful synchronization.
+
+==================================================
+16. DASHBOARD DATA INTEGRATION
+==================================================
+
+The Dashboard must aggregate information from all modules.
+
+Display:
+
+- Total Servers.
+- Online Servers.
+- Offline Servers.
+- Docker Containers.
+- Running Containers.
+- Active Automation Jobs.
+- Failed Tasks.
+- Active Alerts.
+- CPU Utilization.
+- Memory Utilization.
+- Storage Utilization.
+- Recent Backups.
+- Security Events.
+
+Every metric must link to its corresponding module.
+
+Clicking a server metric opens the server inventory.
+
+Clicking a failed task opens its execution details.
+
+Clicking an alert opens its source and related resource.
+
+Clicking a Docker metric opens Docker Management.
+
+The Dashboard must not maintain duplicate operational records.
+
+==================================================
+17. MODULE RELATIONSHIPS AND DATA INTEGRATION
+==================================================
+
+Implement the following relationships:
+
+SERVER
+  |
+  +---- Docker Engine
+  |       |
+  |       +---- Containers
+  |       +---- Images
+  |       +---- Volumes
+  |       +---- Networks
+  |
+  +---- Ansible Inventory
+  |       |
+  |       +---- Playbook Executions
+  |
+  +---- Monitoring
+  |       |
+  |       +---- Metrics
+  |       +---- Alerts
+  |
+  +---- Database Instances
+  |
+  +---- Backup Jobs
+  |
+  +---- Security Credentials
+  |
+  +---- Task History
+
+TASK MANAGER:
+
+Receives operations from:
+- Infrastructure.
+- Docker.
+- Ansible.
+- Backup.
+- Database.
+- Security.
+
+Returns:
+- Status.
+- Results.
+- Logs.
+- Errors.
+
+AUDIT:
+
+Receives events from all sensitive operations.
+
+NOTIFICATIONS:
+
+Receives important events from:
+- Monitoring.
+- Tasks.
+- Backup.
+- Security.
+- Server Connections.
+
+DASHBOARD:
+
+Reads aggregated data from all modules.
+
+==================================================
+18. DATA MODEL AND DATABASE DESIGN
+==================================================
+
+Create normalized Django models with explicit relationships.
+
+Core entities:
+
+- User.
+- Role.
+- Permission.
+- Server.
+- ServerGroup.
+- ServerTag.
+- ServerConnection.
+- CredentialReference.
+- SSHKeyReference.
+- DockerEngine.
+- DockerContainer.
+- DockerImage.
+- DockerVolume.
+- DockerNetwork.
+- ComposeProject.
+- AnsibleInventory.
+- AnsibleHost.
+- AnsibleGroup.
+- AnsiblePlaybook.
+- AutomationExecution.
+- MonitoringTarget.
+- MetricRecord.
+- AlertRule.
+- Alert.
+- DatabaseInstance.
+- BackupJob.
+- BackupRecord.
+- RestoreOperation.
+- InfrastructureTask.
+- TaskLog.
+- Notification.
+- AuditLog.
+- SynchronizationRecord.
+
+Define:
+- Foreign Keys.
+- Many-to-Many Relationships.
+- Unique Constraints.
+- Indexes.
+- Appropriate Delete Policies.
+- Created At / Updated At.
+- Status Fields.
+- UUIDs where appropriate.
+
+Do not duplicate server information across modules.
+
+Use references to the central Server model.
+
+For time-series metrics, avoid storing unlimited high-frequency readings in SQLite. Implement retention and aggregation policies, and design an extension point for a dedicated time-series backend.
+
+==================================================
+19. BUSINESS EVENTS AND AUTOMATION
+==================================================
+
+Implement centralized event handling.
+
+Examples:
+
+SERVER_DISCONNECTED:
+- Update connection status.
+- Generate security/availability event.
+- Notify authorized users.
+- Update dashboard.
+
+CONTAINER_STOPPED:
+- Record Docker event.
+- Update container status.
+- Trigger monitoring evaluation.
+- Generate alert if policy requires it.
+
+BACKUP_FAILED:
+- Record failure.
+- Update backup job.
+- Generate notification.
+- Include related task information.
+
+ANSIBLE_EXECUTION_FAILED:
+- Store execution result.
+- Update task state.
+- Record audit event.
+- Notify the initiating user.
+
+TASK_COMPLETED:
+- Persist final result.
+- Update related resource.
+- Trigger relevant events.
+
+Use reliable event dispatching and transaction-aware processing.
+
+Do not perform long-running operations inside Django request transactions.
+
+==================================================
+20. API ARCHITECTURE
+==================================================
+
+Provide centralized REST API routing.
+
+Organize endpoints by module:
+
+/api/v1/accounts/
+/api/v1/dashboard/
+/api/v1/servers/
+/api/v1/infrastructure/
+/api/v1/docker/
+/api/v1/ansible/
+/api/v1/monitoring/
+/api/v1/databases/
+/api/v1/backups/
+/api/v1/security/
+/api/v1/tasks/
+/api/v1/notifications/
+/api/v1/reports/
+
+Requirements:
+
+- Consistent Response Formats.
+- Authentication.
+- Permission Enforcement.
+- Pagination.
+- Filtering.
+- Validation.
+- API Versioning.
+- Error Handling.
+- API Documentation.
+
+Do not expose internal infrastructure credentials through APIs.
+
+==================================================
+21. TESTING AND QUALITY CONTROL
+==================================================
+
+Create comprehensive tests.
+
+UNIT TESTS:
+- Services.
+- Validators.
+- Business Rules.
+- Adapters.
+
+INTEGRATION TESTS:
+- Docker Integration.
+- Ansible Execution.
+- SSH Connections.
+- Database Adapters.
+- Backup and Restore.
+
+SECURITY TESTS:
+- Permission Enforcement.
+- Unauthorized Execution.
+- Secret Protection.
+- Audit Integrity.
+- Dangerous Operations.
+
+API TESTS:
+- Authentication.
+- CRUD.
+- Filtering.
+- Error Responses.
+
+E2E TESTS:
+- Register Server.
+- Test Connection.
+- View Server Details.
+- Manage Docker.
+- Execute Playbook.
+- Create Backup.
+- Review Task History.
+
+Use mocks for external infrastructure during automated tests.
+
+==================================================
+22. IMPLEMENTATION PHASES
+==================================================
+
+Do not implement everything at once.
+
+PHASE 1:
+- Project Architecture.
+- Core.
+- Accounts.
+- Security.
+- SQLite.
+- Dashboard Foundation.
+
+PHASE 2:
+- Server Registry.
+- SSH.
+- Local Ubuntu Adapter.
+- System Services.
+- Resource Collection.
+
+PHASE 3:
+- Infrastructure Engine.
+- Task Manager.
+- Execution Policies.
+- Celery and Redis.
+
+PHASE 4:
+- Docker Engine.
+- Containers.
+- Images.
+- Volumes.
+- Networks.
+- Compose.
+
+PHASE 5:
+- Ansible Configuration.
+- Inventory.
+- Playbooks.
+- Execution History.
+- Scheduling.
+
+PHASE 6:
+- Monitoring.
+- Metrics.
+- Alert Rules.
+- Notifications.
+
+PHASE 7:
+- Database Management.
+- Backup.
+- Restore.
+- Retention Policies.
+
+PHASE 8:
+- Reports.
+- Synchronization.
+- Advanced Security.
+- Multi-Server Management.
+
+PHASE 9:
+- Full Integration.
+- Security Review.
+- Performance Testing.
+- Documentation.
+- Production Readiness.
+
+==================================================
+23. FINAL DEVELOPMENT RULES
+==================================================
+
+1. Inspect the existing project before modifying anything.
+2. Preserve the existing architecture and reusable components.
+3. Never create duplicate modules.
+4. Never place business logic inside views.
+5. Never execute privileged commands directly from HTTP requests.
+6. Never execute arbitrary shell commands supplied by users.
+7. Never run Django as root.
+8. Never store secrets in plain text.
+9. Never use fake operational information.
+10. Never create nonfunctional UI actions.
+11. Use transactions for database consistency.
+12. Use Django ORM and migrations.
+13. Keep SQLite compatibility in the initial implementation.
+14. Design for future PostgreSQL migration.
+15. Implement logging and auditing.
+16. Implement proper error handling.
+17. Keep modules independently testable.
+18. Document inter-module dependencies.
+19. Maintain API backward compatibility where practical.
+20. Verify every module before integrating the next one.
+
+==================================================
+24. FINAL ACCEPTANCE CRITERIA
+==================================================
+
+The platform must deliver:
+
+- Complete local Ubuntu management.
+- Remote server management.
+- Docker administration.
+- Ansible automation.
+- Infrastructure monitoring.
+- Database administration.
+- Backup and recovery.
+- Centralized security.
+- Background task management.
+- Audit and notifications.
+- Integrated reporting.
+- Multi-server scalability.
+
+Every module must have:
+
+- Defined responsibilities.
+- Defined models.
+- Defined services.
+- Defined APIs.
+- Defined permissions.
+- Defined events.
+- Defined dependencies.
+- Defined tests.
+
+FINAL REQUIREMENT:
+
+Produce a fully integrated Infrastructure Management Platform, not a collection of unrelated Django applications.
+
+Every server, container, task, playbook, alert, backup, credential, and audit event must have a clear relationship with the rest of the system.
+
+The implementation must prioritize security, reliability, maintainability, operational accuracy, and future extensibility.

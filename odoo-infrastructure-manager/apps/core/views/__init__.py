@@ -13,6 +13,7 @@ from .main import (
     example_page as example_page,
     index as index,
     login_page as login_page,
+    logout_page as logout_page,
 )
 from .settings import (
     bulk_save_settings as bulk_save_settings,

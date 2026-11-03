@@ -1,9 +1,11 @@
 from django.http import JsonResponse
+from django.db import transaction
 
 from apps.core.services.audit_service import log_audit
 from apps.core.utils.decorators import api_login_required, api_permission_required
 from apps.core.utils.http import parse_json_body
-from ...models import User, UserProfile
+from ...models import SystemRole, User, UserGroup, UserProfile
+from ...permissions.validation import actor_can_grant, permission_codes_from_payload
 from ...services.permission_service import get_effective_permissions
 
 
@@ -44,6 +46,15 @@ def list_users(request):
                 status=400,
             )
 
+        permissions, error = permission_codes_from_payload(permissions or [])
+        if error:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        inherited, error = _permissions_for_assignments(group_id, system_role_id)
+        if error:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        if not actor_can_grant(request.user, [*permissions, *inherited]):
+            return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+
         name_parts = full_name.split(" ", 1)
         first_name = name_parts[0]
         last_name = name_parts[1] if len(name_parts) > 1 else ""
@@ -67,7 +78,7 @@ def list_users(request):
             user=user,
             group_id=group_id if group_id else None,
             system_role_id=system_role_id if system_role_id else None,
-            permissions=permissions if permissions else [],
+            permissions=permissions,
         )
 
         log_audit(
@@ -167,8 +178,6 @@ def edit_user(request, user_id):
         if "password" in data and data["password"]:
             user.set_password(data["password"])
 
-        user.save()
-
         if "group_id" in data:
             profile.group_id = data["group_id"] if data["group_id"] else None
         if "system_role_id" in data:
@@ -176,8 +185,20 @@ def edit_user(request, user_id):
                 data["system_role_id"] if data["system_role_id"] else None
             )
         if "permissions" in data:
-            profile.permissions = data["permissions"]
-        profile.save()
+            permissions, error = permission_codes_from_payload(data["permissions"])
+            if error:
+                return JsonResponse({"success": False, "error": error}, status=400)
+            if not actor_can_grant(request.user, permissions):
+                return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+            profile.permissions = permissions
+        inherited, error = _permissions_for_assignments(profile.group_id, profile.system_role_id)
+        if error:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        if not actor_can_grant(request.user, inherited):
+            return JsonResponse({"success": False, "error": "You cannot assign a role or group with permissions you do not hold."}, status=403)
+        with transaction.atomic():
+            user.save()
+            profile.save()
 
         log_audit(
             request,
@@ -218,3 +239,16 @@ def edit_user(request, user_id):
         return JsonResponse({"success": True, "message": "تم حذف المستخدم بنجاح"})
 
     return JsonResponse({"success": False, "error": "Method not allowed"}, status=405)
+
+
+def _permissions_for_assignments(group_id, role_id):
+    """Resolve role/group grants before creating or updating a user profile."""
+    permissions = []
+    try:
+        if group_id:
+            permissions.extend(UserGroup.objects.get(pk=group_id).permissions)
+        if role_id:
+            permissions.extend(SystemRole.objects.get(pk=role_id).permissions)
+    except (UserGroup.DoesNotExist, SystemRole.DoesNotExist, ValueError, TypeError):
+        return [], "The selected group or role does not exist."
+    return permissions, None

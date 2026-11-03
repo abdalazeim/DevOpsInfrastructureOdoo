@@ -33,6 +33,7 @@ class User(AbstractUser):
 class UserGroup(models.Model):
     name = models.CharField(max_length=100, unique=True, verbose_name="اسم المجموعة")
     description = models.TextField(blank=True, verbose_name="الوصف")
+    permissions = models.JSONField(default=list, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

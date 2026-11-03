@@ -1,0 +1,8 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Audit log · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard"><header class="infra-heading"><div><div class="eyebrow">SECURITY</div><h1>Audit log</h1><p>Recorded user and automation actions</p></div></header>
+<section class="infra-panel"><div class="panel-heading"><div><h2>Recent events</h2><p>{{ page.paginator.count }} event(s)</p></div></div>{% if page.object_list %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>Time</th><th>User</th><th>Action</th><th>Module</th><th>Object</th><th>IP</th></tr></thead><tbody>{% for event in page.object_list %}<tr><td>{{ event.created_at|date:"Y-m-d H:i:s" }}</td><td>{{ event.user|default:"—" }}</td><td>{{ event.get_action_display }}</td><td>{{ event.module }}</td><td>{{ event.object_repr }}</td><td>{{ event.ip_address|default:"—" }}</td></tr>{% endfor %}</tbody></table></div><div class="pagination-links">{% if page.has_previous %}<a class="infra-button secondary" href="?page={{ page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a class="infra-button secondary" href="?page={{ page.next_page_number }}">Next</a>{% endif %}</div>{% else %}<div class="empty-state compact"><strong>No audit events</strong><span>Events appear here as infrastructure actions are performed.</span></div>{% endif %}</section></main>
+{% endblock %}

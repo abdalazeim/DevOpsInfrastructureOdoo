@@ -1,0 +1,8 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Docker {{ resource_type }} · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+{% block app_content %}<main class="infra-dashboard"><header class="infra-heading"><div><div class="eyebrow">DOCKER MANAGER · READ ONLY</div><h1>{{ resource_type|title }}</h1><p>Inventory is displayed without destructive controls.</p></div><a class="infra-button secondary" href="{% url 'dashboard:containers' %}"><i class="fas fa-arrow-left"></i> Containers</a></header>
+{% if not discovery.available %}<div class="provider-notice"><i class="fas fa-circle-info"></i><div><strong>Provider unavailable</strong><span>{{ discovery.reason }}</span></div></div>{% endif %}
+<section class="infra-panel">{% if items %}<div class="table-responsive"><table class="infra-table"><thead><tr>{% for key in items.0.keys %}<th>{{ key }}</th>{% endfor %}</tr></thead><tbody>{% for item in items %}<tr>{% for value in item.values %}<td>{{ value|default:"—" }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>{% elif discovery.available %}<div class="empty-state"><strong>No {{ resource_type }} found</strong></div>{% endif %}</section>
+<footer class="infra-footnote"><i class="fas fa-lock"></i> No delete, prune, or volume/network cleanup action is available here.</footer></main>{% endblock %}

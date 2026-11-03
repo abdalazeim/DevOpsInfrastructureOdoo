@@ -27,15 +27,13 @@
   <div class="sidebar-user">
     <div class="user-avatar"><i class="fas fa-user-shield"></i></div>
     <div class="user-info">
-      <div class="user-name" id="sidebar-user-name">{{ user.get_full_name|default:user.username|default:"مدير النظام" }}</div>
+      <div class="user-name" id="sidebar-user-name">{{ user.get_full_name|default:user.username|default:"System Administrator" }}</div>
       <div class="user-role" id="sidebar-user-role"></div>
     </div>
-    <button class="logout-btn" onclick="logout()" title="تسجيل الخروج">
-      <i class="fas fa-sign-out-alt"></i>
-    </button>
+    <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="logout-btn" type="submit" title="Sign out"><i class="fas fa-sign-out-alt"></i></button></form>
   </div>
 
-  <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="تصغير القائمة">
+  <button class="sidebar-toggle-btn" onclick="toggleSidebar()" title="Collapse navigation">
     <i class="fas fa-angles-right" id="sidebar-toggle-icon"></i>
   </button>
 </nav>

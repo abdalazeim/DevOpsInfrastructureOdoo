@@ -4,6 +4,7 @@ from functools import wraps
 from django.http import JsonResponse
 
 from apps.accounts.services.permission_service import has_permission
+from apps.accounts.services.permission_service import is_identity_active
 from apps.core.utils.http import api_error
 from apps.core.utils.logging import log_security_event
 
@@ -13,7 +14,7 @@ def api_login_required(view_func):
 
     @wraps(view_func)
     def wrapper(request, *args, **kwargs):
-        if not request.user.is_authenticated:
+        if not is_identity_active(request.user):
             log_security_event(
                 "anonymous_access_denied",
                 request=request,

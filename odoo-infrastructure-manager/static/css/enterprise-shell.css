@@ -1,0 +1,151 @@
+/* Enterprise Infrastructure Manager visual system */
+:root {
+  --sidebar-width: 264px;
+  --sidebar-collapsed: 76px;
+  --surface: #fff;
+  --surface-muted: #f7f9fc;
+  --canvas: #f1f4f8;
+  --ink: #172238;
+  --muted: #68768b;
+  --line: #e1e7ef;
+  --brand: #2563eb;
+  --brand-soft: #eff5ff;
+  --navy: #0b1628;
+}
+
+html, body { min-height: 100%; }
+body { background: var(--canvas); color: var(--ink); font-family: Inter, "Segoe UI", Arial, sans-serif; }
+button, input, select, textarea { font: inherit; }
+
+/* Persistent application frame */
+#sidebar {
+  width: var(--sidebar-width);
+  background: var(--navy);
+  border-right: 1px solid #24344c;
+  box-shadow: 8px 0 28px #10203a12;
+}
+[dir="ltr"] #sidebar { box-shadow: 8px 0 28px #10203a12; }
+.sidebar-header { min-height: 82px; padding: 17px 18px; border-color: #22314a; }
+.sidebar-logo, .top-nav-logo { background: linear-gradient(145deg,#3b82f6,#1d4ed8); color: #fff; box-shadow: 0 7px 18px #2563eb40; border-radius: 12px; }
+.sidebar-title { font-size: 14px; letter-spacing: -.01em; }
+.sidebar-subtitle { color: #8fa4c5; font-size: 10px; }
+.sidebar-nav { padding: 12px 10px 118px; max-height: calc(100vh - 165px); }
+.nav-section-title { padding: 17px 12px 7px; color: #7184a2; font-size: 9px; letter-spacing: .13em; }
+.nav-item-link { min-height: 40px; margin: 2px 0; padding: 9px 12px; border: 0; border-radius: 8px; color: #bdc9dc; font-size: 12px; transition: background .16s ease,color .16s ease; }
+.nav-item-link:hover { transform: none; background: #172842; color: #fff; box-shadow: none; }
+.nav-item-link.active { background: #1d3557; color: #8db6ff; border: 0; box-shadow: inset 3px 0 #4d8cff; }
+.nav-item-link .nav-icon { width: 20px; font-size: 14px; color: #91a5c2; }
+.nav-item-link.active .nav-icon { color: #8db6ff; }
+.sidebar-user { min-height: 74px; padding: 12px 15px; background: #0e1d33; border-color: #22314a; }
+.user-avatar, .top-nav-avatar { background: #203b60; color: #a9c7ff; border-radius: 10px; }
+.user-avatar i { color: #a9c7ff; }
+.user-name { font-size: 11px; }
+.user-role { color: #8295b0; }
+.logout-btn { background: #352431; color: #f4a5a5; }
+.sidebar-toggle-btn { bottom: 89px; background: #14243c; border-color: #2b3b54; color: #9aabc4; }
+
+.top-navbar { height: 66px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: 0 2px 8px #17223808; }
+.top-navbar-inner { padding-inline: 24px; }
+.top-nav-right { gap: 14px; }
+.top-nav-title { color: #172238; font-size: 13px; }
+.top-nav-subtitle { color: #75839a; }
+.top-nav-center { max-width: 460px; }
+.top-nav-search-input { background: #f6f8fb; border: 1px solid #e2e7ef; border-radius: 9px; color: #172238; }
+.top-nav-search-input::placeholder { color: #8491a4; }
+.top-nav-search-input:focus { background: #fff; border-color: #9dbaf5; box-shadow: 0 0 0 3px #2563eb14; }
+.top-nav-search-icon { color: #7c8ba1; }
+.top-nav-datetime { background: #f5f7fa; color: #5f6d82; }
+.top-nav-datetime i { color: #6884b0; }
+.top-nav-profile { background: transparent; border: 1px solid transparent; }
+.top-nav-profile:hover { background: #f5f7fa; }
+.top-nav-profile-name { color: #26344a; }
+.top-nav-profile-role { color: #75839a; }
+.top-nav-arrow { color: #718096; }
+.top-nav-dropdown { background: #fff; border-color: var(--line); box-shadow: 0 18px 42px #14213a20; }
+.top-nav-dropdown-username { color: var(--ink); }
+.top-nav-dropdown-item { color: #526176; }
+.top-nav-dropdown-item:hover { background: #f3f6fb; color: var(--brand); }
+
+#main-content { background: var(--canvas); min-width: 0; }
+.app-footer { background: transparent; color: #8190a5; }
+
+/* Shared page hierarchy, controls, forms, tables and status labels */
+.page-content { padding: 26px 30px; }
+.page-title-bar { min-height: 70px; background: #fff; border-bottom: 1px solid var(--line); box-shadow: none; }
+.page-title-text { color: var(--ink); }
+.page-title-subtitle { color: var(--muted); }
+.card, .stat-card, .table-panel, .infra-panel, .metric-card, .content-card {
+  border: 1px solid var(--line) !important;
+  border-radius: 12px !important;
+  background: var(--surface) !important;
+  box-shadow: 0 2px 8px #14213a08 !important;
+}
+.card-header, .panel-heading { border-color: var(--line); }
+.btn, .infra-button { border-radius: 8px; }
+.btn-primary, .infra-button:not(.secondary):not(.danger) { background: var(--brand); border-color: var(--brand); color: #fff; }
+.btn-primary:hover, .infra-button:not(.secondary):not(.danger):hover { background: #1d4ed8; border-color: #1d4ed8; color: #fff; }
+.form-control, .form-select, input[type="text"], input[type="email"], input[type="password"], input[type="number"], select, textarea {
+  border-color: #d7deea; border-radius: 8px; box-shadow: none;
+}
+.form-control:focus, .form-select:focus, input:focus, select:focus, textarea:focus { border-color: #8db0f5; box-shadow: 0 0 0 3px #2563eb18; outline: 0; }
+table { color: var(--ink); }
+table thead th { background: #f6f8fb; color: #68768b; font-size: 10px; letter-spacing: .06em; text-transform: uppercase; }
+table th, table td { border-color: var(--line) !important; }
+
+/* Overview dashboard */
+.infra-dashboard { max-width: none; width: 100%; min-height: calc(100vh - 66px); margin: 0; padding: 28px clamp(18px,2.3vw,38px) 38px; background: var(--canvas); color: var(--ink); border-radius: 0; }
+.infra-heading { margin: 0 0 23px; }
+.infra-heading h1 { color: #15233b; font-size: 25px; letter-spacing: -.035em; }
+.infra-heading p, .panel-heading p { color: #728097; }
+.eyebrow { color: #4a72b8; font-size: 9px; letter-spacing: .16em; }
+.updated-label { color: #78869a; }
+.infra-stats { grid-template-columns: repeat(5,minmax(0,1fr)); gap: 13px; }
+.metric-card { padding: 16px 18px; border-top: 3px solid #eaf0f8 !important; }
+.metric-card:nth-child(1) { border-top-color: #3b82f6 !important; }
+.metric-card:nth-child(2) { border-top-color: #ef6b73 !important; }
+.metric-card:nth-child(3) { border-top-color: #8b6ce2 !important; }
+.metric-card:nth-child(4) { border-top-color: #10a77a !important; }
+.metric-card:nth-child(5) { border-top-color: #e4a03b !important; }
+.metric-head { color: #66758b; font-size: 11px; font-weight: 600; }
+.metric-head i { color: #6480ad; }
+.metric-card strong { color: #172238; font-size: 27px; }
+.metric-card small { color: #7d8a9d; }
+.infra-grid-two { gap: 15px; }
+.infra-panel { padding: 18px 20px; }
+.panel-heading h2 { color: #1e2c43; font-size: 14px; }
+.panel-heading p { font-size: 10px; }
+.text-link { color: #2863cf; }
+.service-row, .automation-row, .run-row { border-color: #edf0f5; }
+.service-mark, .run-icon { background: #f0f5fc; }
+.service-main strong, .automation-row strong, .run-row strong { color: #26344a; }
+.service-main small, .automation-row small, .run-row small { color: #7d8a9d; }
+.status-chip { background: #fafbfd; border-color: #e1e7ef; color: #526176; }
+.status-chip.running i, .status-chip.connected i { background: #16a36a; }
+.chart-wrap { min-height: 225px; }
+.chart-empty { color: #8390a3; }
+.empty-state { border-color: #dce4ef; background: #fbfcfe; color: #738197; }
+.empty-state strong { color: #29384f; }
+.empty-state>i { color: #7e93b4; }
+.infra-footnote { color: #77859a; }
+.infra-form input, .infra-form select, .infra-form textarea, .table-filter { background: #fff; color: var(--ink); border-color: #d7deea; }
+.inventory-record { border-color: var(--line); }
+.infra-table th { background: #f6f8fb; color: #65748b; border-color: var(--line); }
+.infra-table td { color: #2d3b51; border-color: var(--line); }
+.infra-table td small { color: #7a889b; }
+.infra-logs, .task-output { background: #101b2c; }
+
+@media (max-width: 1100px) {
+  .top-nav-center { margin-inline: 12px; }
+  .infra-stats { grid-template-columns: repeat(3,minmax(0,1fr)); }
+}
+@media (max-width: 767px) {
+  .top-navbar { padding-inline-start: 0 !important; }
+  .top-navbar-inner { padding-inline: 12px; }
+  .top-nav-brand, .top-nav-datetime { display: none; }
+  .top-nav-center { margin: 0 8px; }
+  .top-nav-profile { padding: 4px; }
+  .top-nav-profile-info, .top-nav-arrow { display: none; }
+  .infra-dashboard { padding: 20px 13px 30px; }
+  .infra-stats { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .page-content { padding: 16px 12px; }
+}

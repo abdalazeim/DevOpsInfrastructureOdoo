@@ -1,0 +1,1425 @@
+# MASTER ROLE
+
+Act as a Principal Infrastructure Software Architect, Senior Python/Django Engineer, Linux System Administrator, DevOps Engineer, Docker Specialist, Ansible Automation Engineer, Database Administrator, and Cybersecurity Engineer.
+
+Your mission is to transform the existing Infrastructure Manager project into a fully functional, integrated, enterprise-grade infrastructure administration and control platform.
+
+This is NOT a UI-only project.
+
+Every menu, submenu, button, form, table, dashboard, setting, action, and configuration must be connected to real backend functionality and actual infrastructure resources.
+
+The platform must be capable of discovering, collecting, displaying, configuring, monitoring, managing, and executing authorized operations on local and remote infrastructure.
+
+==================================================
+1. PRIMARY PROJECT OBJECTIVE
+==================================================
+
+Build a centralized Infrastructure Management Platform that provides complete operational visibility and controlled administration of:
+
+1. Ubuntu/Linux Servers.
+2. Operating Systems.
+3. System Services.
+4. Running Processes.
+5. CPU, RAM, Storage, and Hardware.
+6. Networking and Firewall.
+7. Docker Engine.
+8. Docker Containers.
+9. Docker Images.
+10. Docker Volumes.
+11. Docker Networks.
+12. Docker Compose.
+13. Ansible Automation.
+14. SSH Connections.
+15. Database Servers.
+16. Database Instances.
+17. Monitoring and Metrics.
+18. Alerts and Notifications.
+19. Backup and Recovery.
+20. Users and Permissions.
+21. Security and Credentials.
+22. Background Tasks.
+23. Logs and Audit Trails.
+24. Reports and Analytics.
+
+The platform must support:
+
+- Local Server Management.
+- Remote Server Management.
+- Multiple Servers.
+- Multiple Docker Engines.
+- Multiple Database Instances.
+- Centralized Automation.
+- Centralized Monitoring.
+- Centralized Execution History.
+
+==================================================
+2. FUNDAMENTAL IMPLEMENTATION RULE
+==================================================
+
+Every interface must represent a real operational function.
+
+For every menu item, implement:
+
+- Data Model.
+- Data Collection Method.
+- Data Source.
+- Backend Service.
+- Infrastructure Adapter.
+- Configuration Management.
+- User Permissions.
+- API Endpoints.
+- Frontend Interface.
+- Execution Logic.
+- Validation.
+- Error Handling.
+- Logging.
+- Audit Records.
+- Tests.
+
+Do not create interfaces that only display static information.
+
+Do not create buttons without working backend operations.
+
+Do not use fake metrics or simulated operational results in production.
+
+If a feature requires unavailable software, permissions, hardware, or infrastructure capabilities, display its actual availability status and explain what is required to enable it.
+
+==================================================
+3. INFRASTRUCTURE ACCESS AND DATA COLLECTION ENGINE
+==================================================
+
+Develop a centralized Infrastructure Access Layer.
+
+This layer is responsible for obtaining information and executing authorized operations on local and remote systems.
+
+Create the following adapters:
+
+A. LOCAL LINUX ADAPTER
+
+Use appropriate Linux system interfaces and utilities.
+
+Supported information sources include:
+
+- /proc filesystem.
+- /sys filesystem.
+- systemd.
+- systemctl.
+- journalctl.
+- ps.
+- top.
+- free.
+- df.
+- lsblk.
+- lscpu.
+- uname.
+- hostnamectl.
+- iproute2.
+- ss.
+- UFW.
+- package management tools.
+- Linux system APIs.
+
+B. REMOTE LINUX ADAPTER
+
+Support remote infrastructure through:
+
+- OpenSSH.
+- Paramiko.
+- SSH Key Authentication.
+- SSH Agent where appropriate.
+
+Capabilities:
+
+- Remote System Discovery.
+- Remote Resource Collection.
+- Remote Service Management.
+- Remote Process Inspection.
+- Remote Storage Inspection.
+- Remote Network Inspection.
+- Remote Package Management.
+- Remote Log Collection.
+
+C. DOCKER ADAPTER
+
+Use the official Docker Engine API and Docker SDK for Python.
+
+Support:
+- Engine Discovery.
+- Container Inspection.
+- Image Inspection.
+- Volume Inspection.
+- Network Inspection.
+- Statistics.
+- Lifecycle Operations.
+- Events.
+- Logs.
+
+D. ANSIBLE ADAPTER
+
+Integrate Ansible Core.
+
+Support:
+- Version Detection.
+- Configuration Discovery.
+- Inventory.
+- Playbooks.
+- Roles.
+- Collections.
+- Execution.
+- Results.
+- Scheduling.
+
+E. DATABASE ADAPTERS
+
+Implement provider-specific adapters for:
+
+- SQLite.
+- PostgreSQL.
+- Future MySQL/MariaDB support.
+
+F. MONITORING ADAPTERS
+
+Collect real infrastructure metrics through appropriate local and remote collectors.
+
+IMPORTANT:
+
+Do not execute arbitrary shell commands directly from HTTP requests.
+
+Use predefined, validated operations and controlled execution policies.
+
+Use structured command arguments instead of constructing unsafe shell strings.
+
+==================================================
+4. SERVER MANAGEMENT – COMPLETE IMPLEMENTATION
+==================================================
+
+Develop a complete Server Management Center.
+
+SERVER REGISTRATION:
+
+Create a server registration workflow.
+
+Required fields:
+
+- Server Name.
+- Hostname.
+- IP Address.
+- SSH Port.
+- Operating System.
+- Environment.
+- Server Group.
+- Location.
+- Connection Method.
+- Authentication Method.
+- Credential Reference.
+- Description.
+- Tags.
+
+Support:
+
+- Local Server.
+- Remote Ubuntu Server.
+- Remote Debian Server.
+- Other supported Linux distributions.
+
+SERVER DISCOVERY:
+
+When a server is registered, provide an authorized discovery operation.
+
+Automatically collect:
+
+1. Hostname.
+2. Operating System.
+3. Distribution.
+4. Distribution Version.
+5. Kernel Version.
+6. CPU Model.
+7. CPU Architecture.
+8. CPU Core Count.
+9. Total RAM.
+10. Available RAM.
+11. Swap Information.
+12. Disk Devices.
+13. Filesystems.
+14. Mount Points.
+15. Network Interfaces.
+16. IP Addresses.
+17. MAC Addresses.
+18. DNS Configuration.
+19. Default Gateway.
+20. System Uptime.
+21. System Load.
+22. Installed Package Manager.
+23. Running Services.
+24. Listening Ports.
+25. Docker Installation Status.
+26. Docker Engine Information.
+27. Ansible Availability.
+28. System Security Information.
+
+Store discovered information with:
+
+- Collection Timestamp.
+- Source.
+- Collection Status.
+- Error Details.
+- Data Freshness.
+
+Provide manual refresh and scheduled synchronization.
+
+SERVER DETAILS:
+
+Create a complete server control center.
+
+Tabs:
+
+- Overview.
+- Hardware.
+- Operating System.
+- CPU.
+- Memory.
+- Storage.
+- Network.
+- Services.
+- Processes.
+- Installed Packages.
+- Docker.
+- Automation.
+- Monitoring.
+- Security.
+- Logs.
+- Tasks.
+- History.
+
+Every tab must retrieve information from the correct backend service.
+
+SERVER OPERATIONS:
+
+Implement authorized operations:
+
+- Test Connection.
+- Refresh Information.
+- Restart Server.
+- Shutdown Server.
+- Reboot Server.
+- Change Hostname.
+- Update Packages.
+- Inspect System.
+- View System Logs.
+
+Dangerous operations must require confirmation and explicit authorization.
+
+==================================================
+5. OPERATING SYSTEM MANAGEMENT
+==================================================
+
+Create a full Linux Administration module.
+
+A. SYSTEM INFORMATION
+
+Collect:
+
+- Distribution.
+- OS Version.
+- Kernel.
+- Architecture.
+- Hostname.
+- Boot Time.
+- Uptime.
+- Timezone.
+- Locale.
+
+B. PACKAGE MANAGEMENT
+
+Support distribution-aware package managers.
+
+Ubuntu/Debian:
+- APT.
+- dpkg.
+
+Future:
+- DNF.
+- YUM.
+- Zypper.
+
+Operations:
+
+- List Installed Packages.
+- Search Packages.
+- Package Details.
+- Install Package.
+- Remove Package.
+- Update Package.
+- Upgrade System.
+- Check Available Updates.
+- View Package History.
+
+Show execution progress and errors.
+
+C. SYSTEM CONFIGURATION
+
+Provide controlled management of:
+
+- Hostname.
+- Timezone.
+- Date and Time.
+- Locale.
+- Host Configuration.
+- Kernel Information.
+
+Validate configuration changes before applying them.
+
+==================================================
+6. SYSTEM SERVICES MANAGEMENT
+==================================================
+
+Implement complete systemd service administration.
+
+SERVICE DISCOVERY:
+
+Retrieve actual services using systemd.
+
+For every service display:
+
+- Service Name.
+- Description.
+- Load State.
+- Active State.
+- Sub State.
+- Main PID.
+- User.
+- Startup Configuration.
+- Last State Change.
+- Resource Consumption where available.
+
+SERVICE OPERATIONS:
+
+- Start.
+- Stop.
+- Restart.
+- Reload.
+- Enable.
+- Disable.
+- Mask.
+- Unmask.
+- View Status.
+- View Logs.
+- Inspect Configuration.
+
+SERVICE DETAILS:
+
+Provide tabs:
+
+- Overview.
+- Status.
+- Configuration.
+- Logs.
+- Dependencies.
+- Resource Usage.
+- History.
+
+Implement safe confirmation for potentially disruptive operations.
+
+==================================================
+7. PROCESS MANAGEMENT
+==================================================
+
+Use psutil and supported Linux interfaces.
+
+Collect:
+
+- PID.
+- Process Name.
+- Executable.
+- Command Information.
+- User.
+- CPU Usage.
+- Memory Usage.
+- Memory Percentage.
+- Threads.
+- Open Files where permitted.
+- Network Connections where permitted.
+- Start Time.
+- Running Duration.
+
+Operations:
+
+- Inspect Process.
+- View Parent Process.
+- View Child Processes.
+- Send Termination Signal.
+- Terminate.
+- Kill.
+
+Restrict destructive process operations through explicit policies.
+
+==================================================
+8. HARDWARE AND RESOURCE MANAGEMENT
+==================================================
+
+A. CPU
+
+Collect:
+
+- CPU Model.
+- Architecture.
+- Physical Cores.
+- Logical Cores.
+- Frequency.
+- CPU Usage.
+- Per-Core Usage.
+- Load Average.
+
+B. MEMORY
+
+Collect:
+
+- Total RAM.
+- Used RAM.
+- Available RAM.
+- Cached Memory.
+- Buffers.
+- Swap Total.
+- Swap Used.
+- Swap Usage.
+
+C. STORAGE
+
+Collect:
+
+- Physical Disks.
+- Partitions.
+- Filesystems.
+- Mount Points.
+- Capacity.
+- Used Space.
+- Available Space.
+- Filesystem Type.
+- Disk I/O.
+
+D. HARDWARE HEALTH
+
+Where supported, collect:
+
+- Disk SMART Health.
+- Temperature.
+- Hardware Sensors.
+- Battery Information where applicable.
+
+If a sensor or device is unsupported, report it as unavailable rather than inventing a value.
+
+==================================================
+9. NETWORK AND FIREWALL MANAGEMENT
+==================================================
+
+NETWORK DISCOVERY:
+
+Collect:
+
+- Network Interfaces.
+- Interface State.
+- IP Addresses.
+- MAC Addresses.
+- Routes.
+- Default Gateway.
+- DNS Servers.
+- Listening Ports.
+- Active Connections.
+- Network Statistics.
+
+NETWORK DIAGNOSTICS:
+
+Provide:
+
+- Ping.
+- DNS Lookup.
+- Route Inspection.
+- Port Connectivity Test.
+- Interface Diagnostics.
+- Network Throughput.
+
+FIREWALL MANAGEMENT:
+
+Initially support UFW.
+
+Operations:
+
+- Firewall Status.
+- List Rules.
+- Add Rule.
+- Edit Rule.
+- Delete Rule.
+- Enable Firewall.
+- Disable Firewall.
+- Reload Rules.
+
+Validate rules before applying.
+
+Protect the management connection against accidental lockout.
+
+Do not disable SSH access through an unsafe firewall change.
+
+Support additional firewall providers through independent adapters.
+
+==================================================
+10. DOCKER MANAGEMENT – COMPLETE OPERATIONS
+==================================================
+
+Connect to actual Docker Engines.
+
+ENGINE DISCOVERY:
+
+Collect:
+
+- Docker Version.
+- API Version.
+- Engine Status.
+- Storage Driver.
+- Operating System.
+- Architecture.
+- Available Resources.
+- Docker Root Directory.
+- Container Runtime Information.
+
+CONTAINER MANAGEMENT:
+
+Retrieve all containers.
+
+Display:
+
+- ID.
+- Name.
+- Image.
+- Status.
+- State.
+- Created At.
+- Started At.
+- Ports.
+- Networks.
+- Mounts.
+- CPU Usage.
+- Memory Usage.
+- Restart Count.
+
+Operations:
+
+- Create.
+- Start.
+- Stop.
+- Restart.
+- Pause.
+- Unpause.
+- Remove.
+- Rename.
+- Inspect.
+- View Logs.
+- View Statistics.
+- Inspect Processes.
+- Execute Approved Commands.
+
+CONTAINER CREATION:
+
+Provide a complete configuration form supporting:
+
+- Container Name.
+- Image.
+- Tag.
+- Environment Variables.
+- Ports.
+- Volumes.
+- Networks.
+- Restart Policy.
+- Resource Limits.
+- Health Check.
+- Command.
+- Entrypoint.
+
+Validate configuration before creation.
+
+IMAGE MANAGEMENT:
+
+- List Images.
+- Search Images.
+- Pull Image.
+- Inspect Image.
+- Remove Image.
+- View Image Layers.
+- View Image Size.
+
+VOLUME MANAGEMENT:
+
+- List Volumes.
+- Create Volume.
+- Inspect Volume.
+- Remove Volume.
+- Identify Attached Containers.
+- Backup Volume.
+
+NETWORK MANAGEMENT:
+
+- List Networks.
+- Create Network.
+- Inspect Network.
+- Connect Container.
+- Disconnect Container.
+- Remove Network.
+
+COMPOSE MANAGEMENT:
+
+- Discover Compose Projects.
+- Create Project.
+- Edit YAML.
+- Validate Configuration.
+- Start.
+- Stop.
+- Restart.
+- Update.
+- View Logs.
+
+Every operation must be connected to Task Manager.
+
+==================================================
+11. ANSIBLE AUTOMATION – COMPLETE OPERATIONS
+==================================================
+
+Implement real Ansible integration.
+
+ANSIBLE DISCOVERY:
+
+Detect:
+
+- Installed Version.
+- Executable Path.
+- Configuration File.
+- Collections.
+- Roles.
+- Inventory Sources.
+
+INVENTORY MANAGEMENT:
+
+Support:
+
+- Static Inventory.
+- Dynamic Inventory.
+- Host Groups.
+- Host Variables.
+- Group Variables.
+- SSH Connection Variables.
+
+HOST VALIDATION:
+
+Provide:
+
+- Connection Test.
+- Authentication Test.
+- Host Availability.
+- Ansible Ping.
+- Inventory Validation.
+
+PLAYBOOK MANAGEMENT:
+
+Operations:
+
+- Create.
+- Edit.
+- Validate YAML.
+- Syntax Check.
+- List Tasks.
+- Execute.
+- Schedule.
+- Archive.
+
+PLAYBOOK EXECUTION:
+
+Support:
+
+- Target Host Selection.
+- Inventory Selection.
+- Limit.
+- Tags.
+- Skip Tags.
+- Extra Variables.
+- Check Mode.
+- Diff Mode.
+- Verbosity.
+
+Capture:
+
+- Standard Output.
+- Standard Error.
+- Return Code.
+- Host Results.
+- Task Results.
+- Failed Tasks.
+- Execution Duration.
+
+Never expose secrets in execution output.
+
+==================================================
+12. DATABASE MANAGEMENT
+==================================================
+
+Implement real database discovery and administration.
+
+DATABASE DISCOVERY:
+
+Detect supported installed database services and instances.
+
+For each instance retrieve:
+
+- Provider.
+- Version.
+- Host.
+- Port.
+- Status.
+- Database Names.
+- Size.
+- Connection Information.
+- Health Information.
+
+SQLITE:
+
+- Discover Database Files.
+- Inspect Database Metadata.
+- Check Integrity.
+- Show Tables.
+- Show Schema.
+- Backup.
+- Restore.
+
+POSTGRESQL:
+
+- Connect.
+- List Databases.
+- Inspect Database.
+- Monitor Connections.
+- Inspect Database Size.
+- Backup.
+- Restore.
+- Run Approved Maintenance Operations.
+
+Provide a secure SQL console only for authorized users, with query restrictions, execution timeouts, and audit logging.
+
+==================================================
+13. MONITORING AND METRICS COLLECTION
+==================================================
+
+Create a real monitoring engine.
+
+COLLECTORS:
+
+- CPU Collector.
+- Memory Collector.
+- Disk Collector.
+- Network Collector.
+- Process Collector.
+- Service Collector.
+- Docker Collector.
+- Database Collector.
+
+COLLECTION METHODS:
+
+Use:
+
+- psutil.
+- Linux /proc.
+- Linux /sys.
+- Docker API.
+- SSH Remote Collectors.
+- Database Provider APIs.
+
+COLLECTION CONFIGURATION:
+
+Allow administrators to configure:
+
+- Collection Interval.
+- Target Server.
+- Metric Categories.
+- Retention Period.
+- Collection Timeout.
+- Retry Policy.
+
+METRICS:
+
+Store:
+
+- Server.
+- Metric Name.
+- Metric Value.
+- Unit.
+- Timestamp.
+- Source.
+- Collection Status.
+
+Provide:
+
+- Current Metrics.
+- Historical Charts.
+- Aggregated Metrics.
+- Threshold Evaluation.
+- Data Freshness Indicators.
+
+Avoid excessive database writes and implement retention policies.
+
+==================================================
+14. ALERT MANAGEMENT
+==================================================
+
+Build a configurable alert engine.
+
+Allow administrators to create rules such as:
+
+- CPU above a configured threshold.
+- RAM above a configured threshold.
+- Disk usage above a configured threshold.
+- Server unavailable.
+- Service stopped.
+- Container unhealthy.
+- Backup failed.
+- Automation failed.
+
+Support:
+
+- Conditions.
+- Thresholds.
+- Duration.
+- Severity.
+- Notification Targets.
+- Escalation Policies.
+- Maintenance Windows.
+
+Provide complete alert history and resolution tracking.
+
+==================================================
+15. BACKUP AND RECOVERY
+==================================================
+
+Implement complete backup operations.
+
+BACKUP SOURCES:
+
+- Django Application.
+- SQLite Database.
+- PostgreSQL Databases.
+- Docker Volumes.
+- Docker Compose Files.
+- Configuration Files.
+- Ansible Inventory.
+- Playbooks.
+- SSH Configuration References.
+- Server Configuration.
+
+BACKUP CONFIGURATION:
+
+- Backup Name.
+- Source.
+- Destination.
+- Schedule.
+- Compression.
+- Encryption.
+- Retention.
+- Verification.
+- Exclusion Rules.
+
+BACKUP DESTINATIONS:
+
+- Local Filesystem.
+- Remote SSH Storage.
+- Future S3-Compatible Storage.
+
+RECOVERY:
+
+- List Backups.
+- Verify Checksum.
+- Inspect Backup.
+- Select Restore Destination.
+- Preview Restore.
+- Confirm Restore.
+- Execute Restore.
+- Validate Restored Data.
+
+Test restore procedures regularly.
+
+==================================================
+16. SECURITY AND PRIVILEGED OPERATIONS
+==================================================
+
+Implement a dedicated privilege management system.
+
+IMPORTANT:
+
+The platform requires sufficient operating-system permissions to perform administrative operations, but it must NEVER use unrestricted root execution as its default architecture.
+
+Use:
+
+- Dedicated Application User.
+- Least-Privilege Sudo Rules.
+- Command Allowlist.
+- Validated Parameters.
+- Separate Execution Workers.
+- Secure SSH Credentials.
+- Encrypted Secrets.
+- Audit Logging.
+
+Define operation permissions such as:
+
+- View System Information.
+- View Logs.
+- Manage Services.
+- Manage Packages.
+- Manage Docker.
+- Execute Playbooks.
+- Manage Firewall.
+- Manage Users.
+- Manage Databases.
+- Create Backups.
+- Restore Backups.
+- Restart Server.
+- Shutdown Server.
+
+Support configurable approval requirements for critical actions.
+
+Never permit arbitrary command execution through a general-purpose sudo permission.
+
+==================================================
+17. CONFIGURATION MANAGEMENT CENTER
+==================================================
+
+Create a central configuration interface.
+
+Manage:
+
+A. Application Settings.
+B. Local Server Settings.
+C. Remote Server Connections.
+D. SSH Settings.
+E. Docker Connections.
+F. Ansible Configuration.
+G. Monitoring Settings.
+H. Database Connections.
+I. Backup Policies.
+J. Security Policies.
+K. Task Execution Settings.
+L. Notification Settings.
+
+For every setting provide:
+
+- Description.
+- Current Value.
+- Default Value.
+- Validation.
+- Required Permissions.
+- Save Operation.
+- Test Configuration.
+- Change History.
+
+Never overwrite important configuration files without backups and validation.
+
+==================================================
+18. CENTRALIZED TASK EXECUTION
+==================================================
+
+Every long-running operation must use Task Manager.
+
+Execution flow:
+
+User Interface
+      |
+Django API
+      |
+Authentication
+      |
+Permission Validation
+      |
+Operation Validation
+      |
+Task Dispatcher
+      |
+Celery Worker
+      |
+Infrastructure Adapter
+      |
+Target Infrastructure
+      |
+Result Collector
+      |
+Database Persistence
+      |
+Audit Logging
+      |
+Notification
+      |
+Dashboard Update
+
+Task states:
+
+- Pending.
+- Queued.
+- Running.
+- Completed.
+- Failed.
+- Cancelled.
+- Timeout.
+
+Support:
+
+- Progress.
+- Execution Logs.
+- Error Messages.
+- Retry Policies.
+- Timeouts.
+- Cancellation.
+- Concurrency Control.
+
+Use Redis as a task broker where Celery is enabled.
+
+Do not use SQLite as the task queue.
+
+==================================================
+19. DATA COLLECTION AND REFRESH STRATEGY
+==================================================
+
+Implement three collection modes.
+
+1. ON-DEMAND:
+
+Collect information when the administrator opens a resource or requests refresh.
+
+2. SCHEDULED:
+
+Collect information automatically at configured intervals.
+
+3. EVENT-DRIVEN:
+
+Update resource status when relevant infrastructure events occur.
+
+For every collected value store:
+
+- Value.
+- Collection Timestamp.
+- Source.
+- Target.
+- Collection Duration.
+- Status.
+- Error Information.
+
+Distinguish:
+
+- Current.
+- Stale.
+- Unknown.
+- Unavailable.
+- Failed Collection.
+
+Never display stale data as current information.
+
+==================================================
+20. PERMISSIONS AND COMPLETE ADMINISTRATION
+==================================================
+
+Implement granular permissions for every module and operation.
+
+Permission levels:
+
+1. View.
+2. Create.
+3. Edit.
+4. Delete.
+5. Execute.
+6. Approve.
+7. Configure.
+8. Export.
+
+Create role templates:
+
+- Super Administrator.
+- Infrastructure Administrator.
+- Server Administrator.
+- Docker Administrator.
+- Automation Administrator.
+- Database Administrator.
+- Monitoring Administrator.
+- Backup Administrator.
+- Security Auditor.
+- Read-Only Administrator.
+
+The Super Administrator may configure all application-level permissions.
+
+However, access to operating-system operations must still be governed by explicit execution policies and operating-system permissions.
+
+==================================================
+21. INTEGRATION BETWEEN ALL MODULES
+==================================================
+
+All modules must share central infrastructure records.
+
+SERVER RELATIONSHIPS:
+
+One Server may have:
+
+- Multiple Docker Engines where supported.
+- Multiple Database Instances.
+- Multiple Monitoring Targets.
+- Multiple Ansible Inventory References.
+- Multiple Backup Jobs.
+- Multiple SSH Credential References.
+- Multiple Execution Tasks.
+- Multiple Alerts.
+
+DOCKER RELATIONSHIPS:
+
+A Docker Engine belongs to a Server.
+
+Containers belong to a Docker Engine.
+
+Containers reference:
+
+- Images.
+- Networks.
+- Volumes.
+- Compose Projects.
+
+ANSIBLE RELATIONSHIPS:
+
+Playbooks execute against Inventory Hosts.
+
+Inventory Hosts may reference registered Servers.
+
+Executions generate Task Records and Audit Records.
+
+MONITORING RELATIONSHIPS:
+
+Metrics belong to monitoring targets.
+
+Alerts reference metrics, rules, and affected resources.
+
+BACKUP RELATIONSHIPS:
+
+Backup Jobs reference source resources and destinations.
+
+Backup executions create Backup Records and Task Records.
+
+TASK RELATIONSHIPS:
+
+Every operational task must reference:
+
+- Initiating User.
+- Operation Type.
+- Module.
+- Target Server.
+- Related Resource.
+- Execution Result.
+
+==================================================
+22. FRONTEND AND BACKEND CONNECTION
+==================================================
+
+Every page must use real backend services.
+
+For each page implement:
+
+- Data Loading.
+- Search.
+- Filtering.
+- Pagination.
+- Sorting.
+- Forms.
+- Validation.
+- Actions.
+- Confirmation Dialogs.
+- Loading Indicators.
+- Success Messages.
+- Error Messages.
+- Empty States.
+- Permission-Based Visibility.
+
+Use Django Templates, HTMX, Tailwind CSS, and modular JavaScript.
+
+Use REST APIs for operations that benefit from API access.
+
+Support real-time updates where needed through WebSockets or controlled polling.
+
+Do not expose infrastructure operations directly to client-side JavaScript.
+
+==================================================
+23. ERROR HANDLING AND OPERATIONAL RELIABILITY
+==================================================
+
+Implement structured error handling.
+
+Handle:
+
+- SSH Connection Failure.
+- Authentication Failure.
+- Network Timeout.
+- Docker API Failure.
+- Ansible Execution Failure.
+- Permission Denied.
+- Database Connection Failure.
+- Disk Space Errors.
+- Invalid Configuration.
+- Service Operation Failure.
+- Backup Failure.
+- Restore Failure.
+
+For every failure:
+
+- Store the error category.
+- Store safe diagnostic information.
+- Preserve execution logs.
+- Update the operation status.
+- Notify relevant users.
+- Provide a clear corrective message.
+
+Implement idempotency for retryable operations where appropriate.
+
+Avoid duplicate executions caused by repeated requests.
+
+==================================================
+24. TESTING AND VERIFICATION
+==================================================
+
+Every module must be tested against real functionality and mocked environments.
+
+For each operation verify:
+
+1. Correct resource discovery.
+2. Correct data collection.
+3. Correct parameter validation.
+4. Correct permission enforcement.
+5. Correct execution.
+6. Correct result collection.
+7. Correct database updates.
+8. Correct audit records.
+9. Correct frontend status.
+10. Correct error handling.
+
+Create:
+
+- Unit Tests.
+- Integration Tests.
+- API Tests.
+- Security Tests.
+- Infrastructure Adapter Tests.
+- End-to-End Tests.
+
+Provide a clear implementation status for every feature:
+
+- Implemented.
+- Tested.
+- Operational.
+- Partially Supported.
+- Unsupported.
+- Requires Configuration.
+- Requires Additional Privileges.
+
+==================================================
+25. IMPLEMENTATION STRATEGY
+==================================================
+
+Implement incrementally.
+
+PHASE 1:
+Core, Accounts, Security, Configuration, SQLite.
+
+PHASE 2:
+Local Ubuntu Discovery and Infrastructure Management.
+
+PHASE 3:
+SSH and Remote Server Management.
+
+PHASE 4:
+System Services, Processes, Storage, Networking.
+
+PHASE 5:
+Infrastructure Engine and Task Manager.
+
+PHASE 6:
+Docker Management.
+
+PHASE 7:
+Ansible Automation.
+
+PHASE 8:
+Monitoring and Alerts.
+
+PHASE 9:
+Database Management.
+
+PHASE 10:
+Backup and Recovery.
+
+PHASE 11:
+Notifications, Reports, and Advanced Administration.
+
+PHASE 12:
+Full Integration, Security Audit, and Production Testing.
+
+==================================================
+26. MANDATORY IMPLEMENTATION DELIVERABLES
+==================================================
+
+For every completed module produce:
+
+1. Complete Django Models.
+2. Database Migrations.
+3. Data Collection Services.
+4. Infrastructure Adapters.
+5. Business Logic Services.
+6. Selectors.
+7. API Endpoints.
+8. Views and Forms.
+9. Permissions.
+10. Frontend Templates.
+11. JavaScript Interactions.
+12. Configuration Options.
+13. Background Tasks.
+14. Execution Logs.
+15. Audit Integration.
+16. Automated Tests.
+17. Documentation.
+
+Also provide:
+
+- Required Ubuntu Packages.
+- Required Python Dependencies.
+- Required System Permissions.
+- Required Environment Variables.
+- Required Configuration Files.
+- Installation Instructions.
+- Verification Commands.
+- Troubleshooting Guide.
+
+==================================================
+27. FINAL ACCEPTANCE REQUIREMENTS
+==================================================
+
+The completed system must be capable of:
+
+- Discovering actual local Ubuntu infrastructure.
+- Registering remote Linux servers.
+- Retrieving detailed system information.
+- Managing system services.
+- Inspecting and managing processes.
+- Managing storage and networking.
+- Managing Docker Engines and Containers.
+- Creating and executing Ansible Playbooks.
+- Monitoring actual system metrics.
+- Creating and resolving alerts.
+- Managing database instances.
+- Performing backups and restores.
+- Managing secure credentials.
+- Executing authorized infrastructure operations.
+- Tracking every operation.
+- Displaying actual operational information.
+- Producing reliable reports.
+
+FINAL INSTRUCTION:
+
+Do not stop at creating the architecture or interface.
+
+Implement real functionality, real infrastructure integrations, real data collection, real configuration management, and complete operational workflows.
+
+The system must provide administrators with comprehensive visibility and controlled management capabilities across all supported infrastructure resources.
+
+Prioritize operational correctness, security, reliability, completeness, and maintainability over superficial feature counts.

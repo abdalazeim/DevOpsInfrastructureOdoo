@@ -29,7 +29,7 @@ Middleware stack (in order, `config/settings/base.py`):
 |------------|---------|
 | `InputSanitizationMiddleware` | Sanitize/clean incoming input |
 | `RateLimitMiddleware` | Request rate limiting (login + API) |
-| `LanguageSwitchMiddleware` | `?lang=` switch (session/cookie) |
+| `LanguageSwitchMiddleware` | Enforces the active English-only interface |
 | `SecurityHeadersMiddleware` | Security response headers |
 
 ## 4. Authentication Events
@@ -50,14 +50,40 @@ Events carry `user=`, `ip=`, `path=` and arbitrary `extra` context and land in
 
 ## 5. Authorization Model
 
-- Role/group based permissions declared per module in `permissions/__init__.py`.
+- Permission codes are declared in the Accounts catalog and registered by modules.
 - A global `PERMISSION_REGISTRY` merges all module permissions at startup.
 - `has_permission(user, *perm_codes)` (`apps/accounts/services/permission_service.py`)
-  checks group membership.
+  resolves direct user, application-group, system-role, and Django auth-group grants.
+- Inactive user accounts and inactive profiles have no effective grants. Permission
+  assignment APIs reject unknown codes and reject delegation beyond the actor's own
+  grants; only a superuser may seed the full default role set.
 - API views use `api_login_required` (401) and `api_permission_required` (403)
   decorators from `apps/core/utils/decorators.py`.
 
-## 6. Logging
+## 6. Credential Encryption
+
+`apps.security.Credential` stores SSH passwords, SSH private keys, and provider
+tokens as Fernet ciphertext. The independent `CREDENTIAL_ENCRYPTION_KEY` must
+be a valid Fernet key and must not be committed. The local development key is
+kept in the ignored `.env` file with mode `0600`; production must provide it via
+a protected secret store. Without a valid key, credential creation is disabled
+and encryption fails closed. Credential lists and audit records contain metadata
+only; the secret is never rendered or serialized.
+
+To rotate keys without losing access to existing ciphertext:
+
+1. Set the new primary `CREDENTIAL_ENCRYPTION_KEY` and the old key in
+   `CREDENTIAL_ENCRYPTION_KEY_FALLBACKS`.
+2. Run `python manage.py rotate_credential_keys` and verify it reports the
+   number of encrypted records processed.
+3. Remove the old key from the fallback list after successful rotation and
+   retain a protected recovery copy according to the deployment's key policy.
+
+SSH probes reject unknown host keys, use bounded timeouts, invoke only the fixed
+`uname -srm` metadata probe, and redact exception details before returning them.
+Do not weaken host-key policy to make an untrusted host connect.
+
+## 7. Logging
 
 ```
 logs/
@@ -78,7 +104,7 @@ logger = logging.getLogger("apps.api")
 security_logger = logging.getLogger("apps.security")
 ```
 
-## 7. Audit Log
+## 8. Audit Log
 
 Generic `AuditLog` model in `apps/core/models/audit_log.py` records:
 user, action, module, object, timestamp, IP, old value, new value.
@@ -87,7 +113,7 @@ Actions: `CREATE`, `UPDATE`, `DELETE`, `LOGIN`, `LOGOUT`, `APPROVE`, `REJECT`.
 It is generic (not tied to any business domain); services call the shared
 `log_audit(...)` helper inside their `transaction.atomic()` block.
 
-## 8. Attack Vectors
+## 9. Attack Vectors
 
 - **CSRF** — default Django CSRF middleware + `CsrfViewMiddleware`; API write
   endpoints accept the CSRF cookie/token.
@@ -98,7 +124,7 @@ It is generic (not tied to any business domain); services call the shared
 - **Brute force** — rate limiting on login (`RATE_LIMIT_LOGIN=10/m`).
 - **Session** — session-based auth with secure-cookie flags in production.
 
-## 9. Production Checklist
+## 10. Production Checklist
 
 1. `DEBUG=False`
 2. `SECRET_KEY` set to a long random value (env only)
@@ -109,3 +135,5 @@ It is generic (not tied to any business domain); services call the shared
 6. `DATABASE_URL` with `sslmode=require`
 7. `DJANGO_SEED_ADMIN` left `False`; create the admin manually
 8. Email backend configured (not console)
+9. `CREDENTIAL_ENCRYPTION_KEY` stored separately from `SECRET_KEY`; fallback
+   keys are removed after a verified rotation

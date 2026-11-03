@@ -5,6 +5,7 @@ from apps.core.utils.decorators import api_login_required, api_permission_requir
 from apps.core.utils.http import parse_json_body
 from ...models import SystemRole
 from ...permissions.catalog import get_all_permissions
+from ...permissions.validation import actor_can_grant, permission_codes_from_payload
 
 
 @api_login_required
@@ -21,10 +22,16 @@ def list_roles(request):
                 {"success": False, "error": "اسم الصلاحية مطلوب"}, status=400
             )
 
+        permissions, error = permission_codes_from_payload(data.get("permissions", []))
+        if error:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        if not actor_can_grant(request.user, permissions):
+            return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+
         role = SystemRole.objects.create(
             name=name,
             description=(data.get("description") or "").strip(),
-            permissions=data.get("permissions", []),
+            permissions=permissions,
         )
         log_audit(
             request,
@@ -82,7 +89,12 @@ def edit_role(request, role_id):
         if "description" in data:
             role.description = data["description"].strip()
         if "permissions" in data:
-            role.permissions = data["permissions"]
+            permissions, error = permission_codes_from_payload(data["permissions"])
+            if error:
+                return JsonResponse({"success": False, "error": error}, status=400)
+            if not actor_can_grant(request.user, permissions):
+                return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+            role.permissions = permissions
         role.save()
 
         log_audit(
@@ -124,6 +136,8 @@ def edit_role(request, role_id):
 @api_login_required
 @api_permission_required("users_manage")
 def seed_default_roles(request):
+    if not request.user.is_superuser:
+        return JsonResponse({"success": False, "error": "Only a system administrator can seed default roles."}, status=403)
     if SystemRole.objects.exists():
         return JsonResponse(
             {"success": False, "error": "الصلاحيات موجودة مسبقاً"}, status=400
@@ -135,18 +149,18 @@ def seed_default_roles(request):
 
     roles_data = [
         {
-            "name": "مدير النظام",
-            "description": "صلاحية كاملة - جميع أقسام النظام وإدارة المستخدمين والإعدادات",
+            "name": "System Administrator",
+            "description": "Full access to all registered system capabilities.",
             "permissions": all_codes,
         },
         {
-            "name": "مشرف",
-            "description": "إدارة شاملة - القوائم والتقارير والإعدادات",
+            "name": "Infrastructure Administrator",
+            "description": "Manage registered infrastructure and system operations.",
             "permissions": list(dict.fromkeys([*nav_codes, *manage_codes])),
         },
         {
-            "name": "مستخدم",
-            "description": "صلاحيات أساسية - عرض المعلومات فقط",
+            "name": "Read Only User",
+            "description": "Basic dashboard visibility.",
             "permissions": ["nav_dashboard"],
         },
     ]

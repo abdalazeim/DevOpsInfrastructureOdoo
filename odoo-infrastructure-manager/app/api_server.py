@@ -322,9 +322,6 @@ class ApiHandler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("Content-Type", "application/json; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))
-        self.send_header("Access-Control-Allow-Origin", "*")
-        self.send_header("Access-Control-Allow-Headers", "Content-Type")
-        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
         self.end_headers()
         self.wfile.write(body)
 
@@ -332,7 +329,7 @@ class ApiHandler(BaseHTTPRequestHandler):
         self._send(status, {"error": message})
 
     def do_OPTIONS(self) -> None:  # noqa: N802
-        self._send(HTTPStatus.NO_CONTENT, {})
+        self._error(HTTPStatus.METHOD_NOT_ALLOWED, "CORS is disabled for this local API")
 
     def do_GET(self) -> None:  # noqa: N802
         parsed = urlparse(self.path)
@@ -374,19 +371,7 @@ class ApiHandler(BaseHTTPRequestHandler):
             return self._error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
 
     def do_POST(self) -> None:  # noqa: N802
-        parsed = urlparse(self.path)
-        if parsed.path.rstrip("/") != "/api/operations":
-            return self._error(HTTPStatus.NOT_FOUND, "Unknown endpoint")
-
-        try:
-            length = int(self.headers.get("Content-Length", "0"))
-            payload = json.loads(self.rfile.read(length) or b"{}")
-            record = create_operation(payload, self.profile_path)
-            return self._send(HTTPStatus.CREATED, record)
-        except ValueError as exc:
-            return self._error(HTTPStatus.BAD_REQUEST, str(exc))
-        except Exception as exc:
-            return self._error(HTTPStatus.INTERNAL_SERVER_ERROR, str(exc))
+        return self._error(HTTPStatus.GONE, "Legacy operation API is disabled. Use the authenticated Django dashboard and approved Semaphore templates.")
 
 
 def run_api_server(
@@ -395,6 +380,13 @@ def run_api_server(
     profile_path: str = "profiles/example.yaml",
     dry_run: bool = False,
 ) -> None:
+    import ipaddress
+    try:
+        bind_address = ipaddress.ip_address(host)
+    except ValueError as exc:
+        raise ValueError("The legacy API can bind only to a loopback IP address.") from exc
+    if not bind_address.is_loopback:
+        raise ValueError("The legacy API can bind only to a loopback IP address.")
     ApiHandler.profile_path = profile_path
     server = ThreadingHTTPServer((host, port), ApiHandler)
     print("=" * 72)

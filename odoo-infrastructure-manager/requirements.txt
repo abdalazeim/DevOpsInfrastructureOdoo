@@ -1,27 +1,2 @@
-# Django Framework
-Django==6.1.2
-
-# Django REST Framework
-djangorestframework
-django-filter
-
-# Environment Configuration
-python-dotenv
-
-# Infrastructure Management
-ansible
-docker
-paramiko
-psutil
-
-# Background Tasks
-celery
-redis
-
-# Production
-gunicorn
-whitenoise
-
-# Utilities
-requests
-packaging
+# Backwards-compatible production install entry point.
+-r requirements/production.txt

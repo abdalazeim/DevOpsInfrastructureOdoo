@@ -189,15 +189,6 @@ async function checkAuthStatus() {
 }
 
 // ============================================================
-//  LANGUAGE SWITCH
-// ============================================================
-function toggleLanguage() {
-  const langLabel = document.getElementById('langLabel');
-  const next = (langLabel && langLabel.textContent === 'EN') ? 'en' : 'ar';
-  window.location.href = window.location.pathname + '?lang=' + next;
-}
-
-// ============================================================
 //  API HELPER
 // ============================================================
 function apiFetch(path, options = {}) {

@@ -76,6 +76,20 @@ class SemaphoreClient:
             payload["limit"] = limit
         return self._request(f"project/{int(project_id)}/tasks", payload)
 
+    def list_projects(self):
+        return self._list("projects")
+
+    def list_templates(self, project_id):
+        return self._list(f"project/{int(project_id)}/templates")
+
+    def _list(self, path):
+        result = self._request(path)
+        if isinstance(result, list):
+            return result
+        if isinstance(result, dict) and isinstance(result.get("data"), list):
+            return result["data"]
+        raise SemaphoreError("Semaphore returned an unexpected catalog response.")
+
     def get_task(self, project_id, task_id):
         return self._request(f"project/{int(project_id)}/tasks/{int(task_id)}")
 

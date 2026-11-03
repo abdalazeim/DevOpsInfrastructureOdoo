@@ -1,0 +1,21 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Global settings · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard settings-page">
+  <header class="infra-heading">
+    <div><div class="eyebrow">CONFIGURATION</div><h1>Global settings</h1><p>Validated defaults used by infrastructure, monitoring and execution services.</p></div>
+  </header>
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <section class="infra-panel settings-panel">
+    <div class="panel-heading"><div><h2>Operational defaults</h2><p>Environment variables override database values and are read-only here.</p></div></div>
+    <form method="post" class="infra-form settings-form">
+      {% csrf_token %}{{ form.as_p }}
+      {% if can_manage_settings %}<div class="settings-actions"><button class="infra-button" type="submit">Save settings</button><span>Changes are validated, stored in the system settings registry and audit logged.</span></div>
+      {% else %}<p class="settings-read-only">You have read-only access to these settings.</p>{% endif %}
+    </form>
+  </section>
+  <footer class="infra-footnote"><i class="fas fa-circle-info"></i> Secrets, database URLs and encryption keys are not editable in this page. Configure those through the protected environment.</footer>
+</main>
+{% endblock %}

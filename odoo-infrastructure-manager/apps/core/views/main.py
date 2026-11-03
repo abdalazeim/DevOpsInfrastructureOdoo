@@ -1,117 +1,79 @@
-from django.shortcuts import render
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import redirect, render
+from django.utils.http import url_has_allowed_host_and_scheme
+from django.views.decorators.http import require_POST
 
 
 def login_page(request):
-    return render(request, "pages/login.html")
+    if request.user.is_authenticated:
+        return redirect("dashboard:index")
+    error = ""
+    if request.method == "POST":
+        username = request.POST.get("username", "").strip()
+        password = request.POST.get("password", "")
+        user = authenticate(request, username=username, password=password)
+        if user is not None and user.is_active:
+            login(request, user)
+            next_url = request.POST.get("next", "")
+            if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+                return redirect(next_url)
+            return redirect("dashboard:index")
+        error = "The username or password is incorrect."
+    return render(request, "pages/login.html", {"error": error, "next": request.GET.get("next", "")})
+
+
+@require_POST
+def logout_page(request):
+    logout(request)
+    return redirect("login")
 
 
 def index(request):
-    context = {
-        "nav_sections": [
-            {
-                "title": "القائمة الرئيسية",
-                "items": [
-                    {
-                        "label": "لوحة التحكم",
-                        "icon": "fa-th-large",
-                        "id": "nav-dashboard",
-                        "onclick": "showPage('dashboard')",
-                        "active": True,
-                    },
-                    {
-                        "label": "العناصر التجريبية",
-                        "icon": "fa-cubes",
-                        "id": "nav-example",
-                        "onclick": "showPage('example')",
-                    },
-                    {
-                        "label": "التقارير",
-                        "icon": "fa-chart-pie",
-                        "id": "nav-reports",
-                        "onclick": "showPage('reports')",
-                    },
-                    {
-                        "label": "إدارة البنية التحتية لأودو",
-                        "icon": "fa-server",
-                        "id": "nav-infrastructure",
-                        "onclick": "window.location.href='/infrastructure/'",
-                    },
-                ],
-            },
-            {
-                "title": "إعدادات النظام",
-                "items": [
-                    {
-                        "label": "الإعدادات العامة",
-                        "icon": "fa-cog",
-                        "id": "nav-settings",
-                        "onclick": "showPage('settings')",
-                    },
-                    {
-                        "label": "النسخ الاحتياطية",
-                        "icon": "fa-database",
-                        "id": "nav-backup",
-                        "onclick": "showPage('backup')",
-                    },
-                    {
-                        "label": "إدارة المستخدمين",
-                        "icon": "fa-users",
-                        "id": "nav-users",
-                        "onclick": "showPage('users')",
-                    },
-                ],
-            },
-        ],
-        "profile_menu": [
-            {"label": "الإعدادات", "icon": "fa-cog", "onclick": "showPage('settings')"},
-            {"label": "المستخدمين", "icon": "fa-users", "onclick": "showPage('users')"},
-        ],
-    }
-    return render(request, "pages/index.html", context)
+    return redirect("dashboard:index")
 
 
 def example_page(request):
     """Demonstrates the modular template architecture (layouts/components/partials)."""
     context = {
-        "page_title": "صفحة المثال",
-        "page_subtitle": "نموذج للهيكلة النمطية للقوالب (Master Template)",
+        "page_title": "Example Page",
+        "page_subtitle": "Reusable template layout example",
         "breadcrumbs": [
-            {"label": "الرئيسية", "url": "/"},
-            {"label": "صفحة المثال"},
+            {"label": "Home", "url": "/"},
+            {"label": "Example Page"},
         ],
         "nav_sections": [
             {
-                "title": "القائمة الرئيسية",
+                "title": "Overview",
                 "items": [
                     {
-                        "label": "لوحة التحكم",
+                        "label": "Dashboard",
                         "icon": "fa-th-large",
                         "id": "nav-example-dashboard",
-                        "onclick": "alert('لوحة التحكم')",
+                        "onclick": "alert('Dashboard')",
                         "active": True,
                     },
                     {
-                        "label": "الوحدات",
+                        "label": "Modules",
                         "icon": "fa-cubes",
                         "id": "nav-example-modules",
-                        "onclick": "alert('الوحدات')",
+                        "onclick": "alert('Modules')",
                     },
                 ],
             },
             {
-                "title": "الإعدادات",
+                "title": "Settings",
                 "items": [
                     {
-                        "label": "الإعدادات العامة",
+                        "label": "General Settings",
                         "icon": "fa-cog",
                         "id": "nav-example-settings",
-                        "onclick": "alert('الإعدادات')",
+                        "onclick": "alert('Settings')",
                     },
                 ],
             },
         ],
         "profile_menu": [
-            {"label": "الملف الشخصي", "icon": "fa-user", "onclick": "alert('الملف')"},
+            {"label": "Profile", "icon": "fa-user", "onclick": "alert('Profile')"},
         ],
     }
     return render(request, "pages/example_page.html", context)
