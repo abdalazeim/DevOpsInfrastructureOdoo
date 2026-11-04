@@ -1,0 +1,29 @@
+# Odoo Multi-Version Deployment - Role: docker
+# Deploys Odoo and PostgreSQL containers using Docker Compose
+
+- name: Render Docker Compose file for instance
+  become: true
+  ansible.builtin.template:
+    src: "{{ docker_compose_template }}"
+    dest: "{{ item.config_path }}/docker-compose.yml"
+    mode: '0644'
+  loop: "{{ odoo_instances }}"
+
+- name: Create entrypoint script
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ item.config_path }}/entrypoint.sh"
+    content: |
+      #!/bin/bash
+      set -e
+      exec "$@"
+    mode: '0755'
+  loop: "{{ odoo_instances }}"
+
+- name: Start Docker Compose services
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ item.config_path }}"
+    state: present
+    restart_policy: always
+  loop: "{{ odoo_instances }}"

@@ -14,7 +14,7 @@ services:
     restart: always
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-odoo}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-odoo19}
       - POSTGRES_DB=postgres
     volumes:
       - ./postgresql:/var/lib/postgresql/18/docker
@@ -33,7 +33,7 @@ services:
     environment:
       - HOST=db
       - USER=${POSTGRES_USER:-odoo}
-      - PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      - PASSWORD=${POSTGRES_PASSWORD:-odoo19}
       - PIP_BREAK_SYSTEM_PACKAGES=1
     volumes:
       - ./entrypoint.sh:/entrypoint.sh

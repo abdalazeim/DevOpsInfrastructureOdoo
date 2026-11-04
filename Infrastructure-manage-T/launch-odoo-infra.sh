@@ -9,7 +9,7 @@
 #   ./launch-odoo-infra.sh                          # interactive TUI
 #   ./launch-odoo-infra.sh --action validate
 #   ./launch-odoo-infra.sh --action preflight -p profiles/example.yaml
-#   ./launch-odoo-infra.sh --action api --api-port 8787
+#   ./launch-odoo-infra.sh --action textual
 #   ./launch-odoo-infra.sh --no-bootstrap --help
 # ==============================================================================
 set -Eeuo pipefail

@@ -2,7 +2,7 @@
 Workflow: Deploy Odoo 19 and PostgreSQL 18.
 
 Delegates to automation/scripts/install-odoo.sh, which follows the
-minhng92/odoo-19-docker-compose layout (dedicated folder, postgresql/,
+Odoo-MultiVersion-Deployment layout (dedicated folder, postgresql/,
 addons/, etc/, entrypoint.sh, direct ports 10019/20019).
 """
 from typing import List
@@ -38,7 +38,7 @@ class DeployOdoo19Workflow:
                 id="verify-odoo19-dirs",
                 name="Ensure Odoo 19 Instance Directories Exist",
                 description=(
-                    f"Creates the minhng92-style layout under {destination} "
+                    f"Creates the Odoo-MultiVersion-Deployment layout under {destination} "
                     "(addons/, etc/, postgresql/, backup/)"
                 ),
                 command=[

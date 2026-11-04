@@ -44,7 +44,6 @@
    - Routes WebSocket / livechat traffic to port 8072.
    - Routes standard web traffic to port 8069.
    - Protected Web Dashboard with Basic Auth middleware (exposed only via secure router; `api.insecure=false`, no published management port).
-   - Local API on `127.0.0.1:8787` serves the React dashboard; Vite proxies `/api`.
 3. **External Network (`proxy`)**:
    - Subnet `172.28.0.0/16`.
    - Shared between Traefik and frontend Odoo containers.
@@ -74,3 +73,9 @@
    - Credentials from `.env`; published on `${PGADMIN_HTTP_PORT:-5050}`.
 8. **Unified installer** (`automation/scripts/install-odoo.sh`):
    - Accepts `17`, `18`, or `19` and creates a self-contained instance directory with `docker-compose.yml`, `postgresql/`, `addons/`, `etc/odoo.conf`, `entrypoint.sh`, and a per-version `.env` (`0600`).
+
+## Operator interface
+
+The manager runs entirely in the terminal: the default menu, the optional Textual dashboard, and direct CLI actions all call Python workflows and services. No local HTTP server or JavaScript runtime is required.
+
+Run `./launch-odoo-infra.sh` for the menu or `./launch-odoo-infra.sh --action textual` for Textual.

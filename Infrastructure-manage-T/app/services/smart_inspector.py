@@ -4,6 +4,7 @@ Audits Ubuntu OS, Docker Engine, Docker Compose, Traefik, Ansible, System Packag
 Storage Paths, Ports, and Configurations without modifying the system.
 """
 import os
+import platform
 import shutil
 import socket
 import subprocess
@@ -80,123 +81,52 @@ class SmartInspectorService:
             binary_path="/etc/os-release",
             why_needed="Base operating system supported for running modern Docker Engine, Ansible, and systemd.",
             why_needed_ar="النظام الأساسي المعتمد لتشغيل محرك دوكر وترافيك وحزم الأتمتة.",
-            details=f"Detected: {pretty_name} (Architecture: {os.uname().machine})",
-            details_ar=f"النظام المكتشف: {pretty_name} (المعمارية: {os.uname().machine})",
+            details=f"Detected: {pretty_name} (Architecture: {platform.machine()})",
+            details_ar=f"النظام المكتشف: {pretty_name} (المعمارية: {platform.machine()})",
             recommended_action="None (OS is compliant)" if is_supported else "Upgrade to Ubuntu 22.04 LTS or newer",
             recommended_action_ar="لا يلزم إجراء (النظام متوافق)" if is_supported else "الترقية إلى Ubuntu 22.04 LTS أو أحدث",
         )
 
     @staticmethod
     def inspect_docker_engine() -> InspectedComponent:
-        docker_bin = shutil.which("docker")
-        if not docker_bin:
-            return InspectedComponent(
-                id="docker_engine",
-                name="Docker Engine",
-                name_ar="محرك دوكر (Docker Engine)",
-                status=ComponentStatus.MISSING,
-                why_needed="Required to containerize and isolate Odoo 17, Odoo 18, Odoo 19, Traefik, and PostgreSQL.",
-                why_needed_ar="ضروري لتشغيل وعزل حاويات أودو 17 و 18 و 19 وترافيك وقواعد البيانات بشكل مستقل.",
-                details="Executable 'docker' not found in system PATH.",
-                details_ar="الأمر docker غير موجود في مسارات النظام.",
-                recommended_action="Install docker-ce from official Docker repository.",
-                recommended_action_ar="تثبيت حزمة docker-ce من مستودع دوكر الرسمي.",
-                install_command=["apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io"],
-            )
-
-        try:
-            ver_res = subprocess.run([docker_bin, "--version"], capture_output=True, text=True, timeout=5)
-            version_str = ver_res.stdout.strip()
-            
-            # Check daemon connectivity
-            daemon_res = subprocess.run([docker_bin, "info"], capture_output=True, text=True, timeout=5)
-            if daemon_res.returncode == 0:
-                status = ComponentStatus.INSTALLED
-                details = "Docker daemon is active and responsive."
-                details_ar = "محرك دوكر يعمل وجاهز لاستقبال الأوامر."
-            else:
-                status = ComponentStatus.MISCONFIGURED
-                details = "Docker CLI is present, but daemon socket is unreachable or inactive."
-                details_ar = "أمر دوكر موجود، لكن خدمة daemon متوقفة أو صلاحيات المستخدم مقيدة."
-
-            return InspectedComponent(
-                id="docker_engine",
-                name="Docker Engine",
-                name_ar="محرك دوكر (Docker Engine)",
-                status=status,
-                detected_version=version_str,
-                binary_path=docker_bin,
-                why_needed="Runs and isolates application containers.",
-                why_needed_ar="تشغيل وعزل الحاويات البرمجية.",
-                details=details,
-                details_ar=details_ar,
-                recommended_action="Start docker service: sudo systemctl start docker" if status != ComponentStatus.INSTALLED else "None",
-                recommended_action_ar="تشغيل الخدمة: sudo systemctl start docker" if status != ComponentStatus.INSTALLED else "لا يلزم إجراء",
-            )
-        except Exception as e:
-            return InspectedComponent(
-                id="docker_engine",
-                name="Docker Engine",
-                name_ar="محرك دوكر (Docker Engine)",
-                status=ComponentStatus.MISCONFIGURED,
-                binary_path=docker_bin,
-                details=f"Error checking docker: {e}",
-                details_ar=f"خطأ أثناء فحص دوكر: {e}",
-            )
+        from app.services.docker_inspector import inspect_engine, STATUS_TEXT
+        report = inspect_engine()
+        status = (ComponentStatus.INSTALLED if report["status"] == "running" else
+                  ComponentStatus.MISSING if report["status"] == "missing" else
+                  ComponentStatus.MISCONFIGURED)
+        details = STATUS_TEXT[report["status"]]
+        if report["errors"]:
+            details += " " + " | ".join(report["errors"])
+        return InspectedComponent(
+            id="docker_engine", name="Docker Engine", name_ar="محرك دوكر (Docker Engine)",
+            status=status, binary_path=report["path"],
+            detected_version=report["server_version"] or report["client_version"] or None,
+            why_needed="Runs and isolates application containers.",
+            why_needed_ar="تشغيل وعزل الحاويات البرمجية.",
+            details=details, details_ar=details,
+            recommended_action="Install Docker Engine" if status == ComponentStatus.MISSING else
+                               "None" if status == ComponentStatus.INSTALLED else "Check connection and permissions",
+            recommended_action_ar="تثبيت Docker Engine" if status == ComponentStatus.MISSING else
+                                  "لا يلزم إجراء" if status == ComponentStatus.INSTALLED else "فحص الاتصال والصلاحيات والخدمة",
+        )
 
     @staticmethod
     def inspect_docker_compose() -> InspectedComponent:
-        docker_bin = shutil.which("docker")
-        if not docker_bin:
-            return InspectedComponent(
-                id="docker_compose",
-                name="Docker Compose v2 Plugin",
-                name_ar="ملحق دوكر كومبوز (Docker Compose v2)",
-                status=ComponentStatus.MISSING,
-                why_needed="Orchestrates multi-container services, networks, and persistent volumes.",
-                why_needed_ar="أتمتة تشغيل الخدمات المتعددة وشبكات الاتصال ووحدات التخزين.",
-                details="Docker is not installed.",
-                details_ar="دوكر غير مثبت.",
-                install_command=["apt-get", "install", "-y", "docker-compose-plugin"],
-            )
-
-        try:
-            res = subprocess.run([docker_bin, "compose", "version"], capture_output=True, text=True, timeout=5)
-            if res.returncode == 0:
-                return InspectedComponent(
-                    id="docker_compose",
-                    name="Docker Compose v2 Plugin",
-                    name_ar="ملحق دوكر كومبوز (Docker Compose v2)",
-                    status=ComponentStatus.INSTALLED,
-                    detected_version=res.stdout.strip(),
-                    binary_path=f"{docker_bin} compose",
-                    why_needed="Orchestrates multi-container stacks defined in YAML.",
-                    why_needed_ar="أتمتة وإدارة الخدمات المتعددة المعرفة في ملفات YAML.",
-                    details="Docker Compose v2 plugin is active and functional.",
-                    details_ar="ملحق دوكر كومبوز v2 مفعل ويعمل بكفاءة.",
-                    recommended_action="None",
-                    recommended_action_ar="لا يلزم إجراء",
-                )
-            else:
-                return InspectedComponent(
-                    id="docker_compose",
-                    name="Docker Compose v2 Plugin",
-                    name_ar="ملحق دوكر كومبوز (Docker Compose v2)",
-                    status=ComponentStatus.MISSING,
-                    why_needed="Orchestrates multi-container stacks.",
-                    why_needed_ar="أتمتة وإدارة الخدمات المتعددة.",
-                    details="docker compose plugin missing or failed to execute.",
-                    details_ar="ملحق docker-compose-plugin غير مثبت.",
-                    install_command=["apt-get", "install", "-y", "docker-compose-plugin"],
-                )
-        except Exception as e:
-            return InspectedComponent(
-                id="docker_compose",
-                name="Docker Compose v2 Plugin",
-                name_ar="ملحق دوكر كومبوز (Docker Compose v2)",
-                status=ComponentStatus.MISSING,
-                details=str(e),
-            )
+        from app.services.compose_installer import inspect_compose
+        report = inspect_compose()
+        installed = report['status'] == 'installed'
+        return InspectedComponent(
+            id="docker_compose", name="Docker Compose Plugin", name_ar="إضافة Docker Compose",
+            status=ComponentStatus.INSTALLED if installed else
+                   ComponentStatus.MISSING if report['status'] == 'docker_missing' else ComponentStatus.MISCONFIGURED,
+            binary_path=report['path'] or None,
+            detected_version=report['details'] if installed else None,
+            details=report['details'], details_ar=report['details'],
+            why_needed="Orchestrates multi-container stacks.",
+            why_needed_ar="إدارة الخدمات متعددة الحاويات.",
+            recommended_action="None" if installed else "Use component menu 16 -> 4",
+            recommended_action_ar="لا يلزم إجراء" if installed else "استخدم قائمة المكونات 16 ثم 4 للفحص والتثبيت",
+        )
 
     @staticmethod
     def inspect_traefik() -> InspectedComponent:

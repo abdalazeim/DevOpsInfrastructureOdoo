@@ -1,0 +1,4 @@
+# Odoo 17 Multi-Instance - System Role - Defaults
+os_package_update: yes
+required_memory_mb: 2048
+required_disk_gb: 20

@@ -1,0 +1,20 @@
+# Odoo Multi-Version Deployment - Role: odoo
+# Odoo configuration and validation tasks
+
+- name: Write Odoo configuration file
+  become: true
+  ansible.builtin.template:
+    src: odoo.conf.j2
+    dest: "{{ item.config_path }}/etc/odoo.conf"
+    mode: '0640'
+    owner: '999'
+    group: '999'
+  loop: "{{ odoo_instances }}"
+
+- name: Verify Odoo container is running
+  become: true
+  community.docker.docker_container_info:
+    name: "{{ item.container_name }}"
+  register: odoo_container_info
+  failed_when: odoo_container_info.exists == false or odoo_container_info.info.State.Status != 'running'
+  loop: "{{ odoo_instances }}"

@@ -1,0 +1,61 @@
+# ==============================================================================
+# Odoo 17 Multi-Instance Configuration Template (Jinja2)
+# يستخدم لتكوين ملف odoo.conf لكل نسخة بشكل منفصل
+# يستخدمه كل من Jenkins Pipeline و Terminal Script بشكل موحد
+# ==============================================================================
+[options]
+; ==============================================================================
+; Odoo 17 Configuration - {{ instance_name }}
+; يتم إنشاء هذا الملف تلقائياً بواسطة Ansible من القالب
+; لا يتم تعديل هذا الملف يدوياً
+; ==============================================================================
+admin_passwd = {{ admin_password }}
+db_host = db
+db_port = 5432
+db_user = {{ db_user }}
+db_password = {{ db_password }}
+addons_path = /usr/lib/python3/dist-packages/odoo/addons,/mnt/extra-addons
+data_dir = /var/lib/odoo
+
+list_db = False
+proxy_mode = True
+
+; Logging
+log_level = info
+logfile = False
+log_handler = :INFO
+
+; Resource limits
+workers = {{ workers }}
+limit_time_cpu = 600
+limit_time_real = 1200
+limit_memory_hard = 2684354560
+limit_memory_soft = 2147483648
+limit_request = 8192
+
+; Database
+db_maxconn = 64
+db_template = template0
+
+; Security-related options
+list_db = False
+
+; Advanced options
+limit_time_cpu = 60
+limit_time_real = 120
+limit_time_real_cron = -1
+limit_request = 8192
+
+; Multiprocessing options
+limit_memory_soft = 2147483648
+limit_memory_hard = 2684354560
+limit_time_cpu = 60
+limit_time_real = 120
+limit_request = 8192
+
+; Options not exposed on the command line
+csv_internal_sep = ,
+reportgz = False
+websocket_keep_alive_timeout = 3600
+websocket_rate_limit_burst = 10
+websocket_rate_limit_delay = 0.2

@@ -1,0 +1,29 @@
+---
+# Odoo 17 Multi-Instance Installation Playbook
+# ينشر نسختين من Odoo 17 مع PostgreSQL مستقل لكل نسخة
+
+- name: Install Odoo 17 Multi-Instance
+  hosts: odoo_instances
+  become: yes
+  vars_files:
+    - ../../instances/odoo17.yml
+
+  tasks:
+    - name: Validate instance variables
+      ansible.builtin.assert:
+        that:
+          - odoo_instances is defined
+          - odoo_instances | length > 0
+          - docker_network is defined
+        fail_msg: "متغيرات النشر غير مكتملة"
+        success_msg: "متغيرات النشر صحيحة"
+
+    - name: Include instance deployment tasks
+      ansible.builtin.include_tasks: roles/odoo/tasks/deploy_instance.yml
+      loop: "{{ odoo_instances }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Deployment completed
+      ansible.builtin.debug:
+        msg: "تم نشر جميع نسخ Odoo 17 بنجاح: {{ odoo_instances | map(attribute='name') | join(', ') }}"

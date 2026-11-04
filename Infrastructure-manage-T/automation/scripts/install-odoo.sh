@@ -2,7 +2,7 @@
 # ==============================================================================
 # Odoo Infrastructure Manager - Odoo 17 / 18 / 19 One-Command Installer
 #
-# Follows the layout used by minhng92/odoo-{17,18,19}-docker-compose:
+# Follows the layout used by Odoo-MultiVersion-Deployment:
 #   DESTINATION/
 #     docker-compose.yml
 #     entrypoint.sh

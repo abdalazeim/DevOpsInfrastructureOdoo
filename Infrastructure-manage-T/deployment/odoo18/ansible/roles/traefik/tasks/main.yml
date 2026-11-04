@@ -1,0 +1,19 @@
+# Odoo 18 Multi-Instance - Role: traefik
+# Traefik reverse proxy configuration and validation
+
+- name: Verify proxy network exists
+  become: true
+  community.docker.docker_network_info:
+    name: "{{ proxy_network }}"
+  register: proxy_net_info
+  failed_when: not proxy_net_info.exists
+
+- name: Check Traefik container exists
+  become: true
+  community.docker.docker_container_info:
+    name: traefik
+  register: traefik_container_info
+
+- name: Display Traefik status
+  ansible.builtin.debug:
+    msg: "Traefik container status: {{ traefik_container_info.info.State.Status | default('not found') }}"

@@ -1,0 +1,4 @@
+# Odoo Role - Odoo Role - Defaults
+odoo_workers: 3
+odoo_list_db: false
+odoo_proxy_mode: true

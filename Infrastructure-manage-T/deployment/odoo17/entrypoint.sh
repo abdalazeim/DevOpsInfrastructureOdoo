@@ -1,13 +1,8 @@
 #!/bin/sh
 # ==============================================================================
-# Generic Odoo entrypoint wrapper (used by deployment/odoo17|18|19).
+# Odoo 17 Private Repository - Generic Entrypoint Wrapper
 #
-# The instance directory is laid out like the minhng92 reference repos:
-#   ./etc/odoo.conf   -> /etc/odoo/odoo.conf (rendered by install-odoo.sh)
-#   ./addons          -> /mnt/extra-addons
-#   ./postgresql      -> PostgreSQL data directory
-#
-# Compose passes the config path via `command: ["--config=/etc/odoo/odoo.conf"]`.
+# يستمد الأفكار من Odoo-MultiVersion-Deployment مع تحسينات للأمان والتوافق.
 # ==============================================================================
 set -eu
 
@@ -16,12 +11,12 @@ set -eu
 : "${USER:=odoo}"
 : "${PASSWORD:=}"
 
-# Install extra Python requirements if the operator added some.
+# تثبيت متطلبات بايثون الإضافية إذا أضافها المشغل.
 if [ -f /etc/odoo/requirements.txt ]; then
     pip3 install --no-cache-dir -r /etc/odoo/requirements.txt || true
 fi
 
-# Wait briefly for PostgreSQL to accept connections before starting Odoo.
+# الانتظار حتى تقبل PostgreSQL الاتصالات قبل تشغيل أودو.
 if [ -n "${PASSWORD}" ]; then
     python3 - <<'PY' || true
 import os

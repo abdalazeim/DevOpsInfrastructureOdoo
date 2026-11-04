@@ -1,0 +1,15 @@
+*.pyc
+__pycache__/
+*.pyo
+.env
+*.env
+*.local
+.vscode/
+.idea/
+.DS_Thumbs
+Thumbs.db
+*.log
+*.retry
+group_vars/vault.yml
+/tmp/.vault_pass
+/tmp/.ansible_vault_pass

@@ -1,0 +1,209 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/your-org/Odoo-MultiVersion-Deployment.git'
+        REPO_CREDENTIALS = 'github-credentials'
+        ANSIBLE_VAULT_PASSWORD = 'ansible-vault-password'
+        INSTANCES_CONFIG = 'instances/odoo19.yml'
+        DEPLOY_USER = 'root'
+        DEPLOY_HOST = 'localhost'
+        ODOO_ADMIN_PASSWORD = credentials('odoo-admin-password')
+        POSTGRES_PASSWORD = credentials('postgres-password')
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout GitHub') {
+            steps {
+                echo "المرحلة 1: سحب ملفات المشروع من GitHub"
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], 
+                         userRemoteConfigs: [[credentialsId: env.REPO_CREDENTIALS, url: env.REPO_URL]])
+            }
+        }
+
+        stage('Pre-Deployment Validation') {
+            steps {
+                echo "المرحلة 2: التحقق المسبق قبل النشر"
+                sh '''
+                    set -e
+                    echo "فحص Docker Engine..."
+                    docker --version
+                    
+                    echo "فحص Docker Compose..."
+                    docker compose version
+                    
+                    echo "فحص شبكة Traefik (proxy)..."
+                    if ! docker network inspect proxy >/dev/null 2>&1; then
+                        echo "إنشاء شبكة proxy..."
+                        docker network create --driver bridge --subnet 172.28.0.0/16 proxy
+                    fi
+                    
+                    echo "فحص مساحة القرص والذاكرة..."
+                    df -h /opt /data
+                    free -h
+                    
+                    echo "إنشاء المجلدات المطلوبة..."
+                    mkdir -p /opt/odoo19 /data/odoo19 /data/backups/odoo19
+                    mkdir -p /data/odoo19/instance1/postgresql /data/odoo19/instance2/postgresql
+                    mkdir -p /opt/odoo19/instance1/etc /opt/odoo19/instance1/addons
+                    mkdir -p /opt/odoo19/instance2/etc /opt/odoo19/instance2/addons
+                    
+                    echo "✓ التحقق المسبق مكتمل بنجاح"
+                '''
+            }
+        }
+
+        stage('Ansible Preparation') {
+            steps {
+                echo "المرحلة 3: تجهيز Ansible"
+                sh '''
+                    set -e
+                    echo "تثبيت مجموعات Ansible Galaxy..."
+                    ansible-galaxy collection install -r requirements.yml
+                    
+                    echo "التحقق من ملف المتغيرات..."
+                    test -f instances/odoo19.yml || { echo "ERROR: ملف instances/odoo19.yml غير موجود"; exit 1; }
+                    
+                    echo "✓ تجهيز Ansible مكتمل"
+                '''
+            }
+        }
+
+        stage('Secrets Configuration') {
+            steps {
+                echo "المرحلة 4: إعداد الأسرار (Secrets)"
+                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS')]) {
+                    sh '''
+                        set -e
+                        echo "إنشاء ملف متغيرات الأسرار (Ansible Vault)..."
+                        
+                        cat > group_vars/vault.yml <<EOF
+                        vault_odoo_admin_password: "${ODOO_ADMIN_PASSWORD}"
+                        vault_postgres_password: "${POSTGRES_PASSWORD}"
+                        EOF
+                        
+                        echo "${VAULT_PASS}" > /tmp/.vault_pass
+                        chmod 600 /tmp/.vault_pass
+                        
+                        ansible-vault encrypt group_vars/vault.yml --vault-password-file /tmp/.vault_pass
+                        rm -f /tmp/.vault_pass
+                        
+                        echo "✓ تم إنشاء وتشفير ملف الأسرار"
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Deployment') {
+            steps {
+                echo "المرحلة 5: نشر Docker Compose عبر Ansible"
+                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS')]) {
+                    sh '''
+                        set -e
+                        echo "${VAULT_PASS}" > /tmp/.vault_pass
+                        chmod 600 /tmp/.vault_pass
+                        
+                        echo "تشغيل Ansible Playbook للنشر..."
+                        ansible-playbook -i ansible/inventory/hosts.ini \\
+                            -e @instances/odoo19.yml \\
+                            -e vault_odoo_admin_password="${ODOO_ADMIN_PASSWORD}" \\
+                            -e vault_postgres_password="${POSTGRES_PASSWORD}" \\
+                            --vault-password-file /tmp/.vault_pass \\
+                            ansible/playbooks/install.yml
+                        
+                        rm -f /tmp/.vault_pass
+                        
+                        echo "✓ تم نشر نسختي Odoo 19 بنجاح"
+                    '''
+                }
+            }
+        }
+
+        stage('Traefik Configuration') {
+            steps {
+                echo "المرحلة 6: تكوين ترافيك"
+                sh '''
+                    set -e
+                    echo "التحقق من انضمام حاويات Odoo إلى شبكة proxy..."
+                    docker network inspect proxy --format '{{json .Containers}}' | python3 -m json.tool 2>/dev/null || true
+                    
+                    echo "✓ تم تكوين ترافيك والتوجيه عبر HTTPS"
+                '''
+            }
+        }
+
+        stage('Health Checks') {
+            steps {
+                echo "المرحلة 7: فحص صحة الخدمات"
+                script {
+                    def instances = ['instance1', 'instance2']
+                    def failedInstances = []
+                    
+                    for (instance in instances) {
+                        echo "فحص صحة النسخة: ${instance}"
+                        try {
+                            sh script: """
+                                set -e
+                                ./scripts/health-check.sh ${instance} 10019 20019
+                            """, returnStatus: true
+                            echo "✓ النسخة ${instance} سالمة"
+                        } catch (Exception e) {
+                            echo "✗ فشل فحص صحة النسخة: ${instance}"
+                            failedInstances.add(instance)
+                        }
+                    }
+                    
+                    if (!failedInstances.isEmpty()) {
+                        error("فشل فحص الصحة للنسخ: ${failedInstances.join(', ')}. النشر لم يكتمل بنجاح.")
+                    }
+                }
+            }
+        }
+
+        stage('Deployment Report') {
+            steps {
+                echo "المرحلة 8: التقرير النهائي"
+                sh '''
+                    echo "=========================================="
+                    echo " تقرير النشر النهائي - Odoo 19 Multi-Instance"
+                    echo "=========================================="
+                    echo ""
+                    echo "الحاويات العاملة:"
+                    docker ps --filter "name=odoo19" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                    echo ""
+                    echo "الشبكات:"
+                    docker network ls --filter "name=odoo19\|proxy" --format "table {{.Name}}\t{{.Driver}}"
+                    echo ""
+                    echo "✓ تم نشر جميع نسخ Odoo 19 بنجاح"
+                    echo "النسخة 1: https://odoo1.devops-odoo.com"
+                    echo "النسخة 2: https://odoo2.devops-odoo.com"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✓ عملية النشر اكتملت بنجاح عبر Jenkins"
+            mail to: 'admin@yourdomain.com',
+                 subject: "نجاح نشر Odoo 19 - بناء ${env.BUILD_NUMBER}",
+                 body: "تم نشر نسختي Odoo 19 بنجاح عبر Jenkins Pipeline.\n\nالروابط:\nhttps://odoo1.devops-odoo.com\nhttps://odoo2.devops-odoo.com"
+        }
+        failure {
+            echo "✗ عملية النشر فشلت عبر Jenkins"
+            mail to: 'admin@yourdomain.com',
+                 subject: "فشل نشر Odoo 19 - بناء ${env.BUILD_NUMBER}",
+                 body: "فشلت عملية نشر Odoo 19 عبر Jenkins. يرجى مراجعة سجلات البناء."
+        }
+        always {
+            archiveArtifacts artifacts: 'ansible/**, instances/**, scripts/**, requirements.yml', allowEmptyArchive: true
+        }
+    }
+}

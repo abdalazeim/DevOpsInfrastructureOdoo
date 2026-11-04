@@ -1,0 +1,32 @@
+---
+# Odoo 17 Multi-Instance Installation Playbook
+# هذا الملف موحد ويُستخدم من قبل كل من Jenkins و Terminal
+# يضمن نفس الإعدادات ونفس خطوات التثبيت في الطريقتين
+
+- name: Install Odoo 17 Multi-Instance
+  hosts: odoo_instances
+  become: yes
+  vars_files:
+    - ../../instances/odoo17.yml
+
+  pre_tasks:
+    - name: Validate instance variables
+      ansible.builtin.assert:
+        that:
+          - odoo_instances is defined
+          - odoo_instances | length > 0
+          - docker_network is defined
+        fail_msg: "متغيرات النشر غير مكتملة. يرجى التحقق من ملف instances/odoo17.yml"
+        success_msg: "متغيرات النشر صحيحة"
+
+  roles:
+    - role: system
+    - role: docker
+    - role: postgresql
+    - role: odoo
+    - role: traefik
+
+  post_tasks:
+    - name: Deployment completed successfully
+      ansible.builtin.debug:
+        msg: "✓ تم نشر جميع نسخ Odoo 17 بنجاح: {{ odoo_instances | map(attribute='name') | join(', ') }}"

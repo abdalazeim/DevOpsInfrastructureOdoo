@@ -4,7 +4,7 @@ Provides discovery, lifecycle management, and diagnostics for Odoo 17, 18 & 19
 environments.
 
 Container names and data paths follow the dedicated instance folders created by
-automation/scripts/install-odoo.sh (minhng92-style):
+automation/scripts/install-odoo.sh (Odoo-MultiVersion-Deployment layout):
   - containers: odoo17 / odoo17-db, odoo18 / odoo18-db, odoo19 / odoo19-db
   - data:       /opt/odoo-infrastructure/odoo{17,18,19}
 """

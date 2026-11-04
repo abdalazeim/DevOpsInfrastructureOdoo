@@ -1,0 +1,22 @@
+# Odoo 18 Multi-Instance - Group Vars (all)
+# Shared variables for Odoo 18 deployment
+
+# Network configuration
+proxy_network: "proxy"
+internal_network_odoo18: "odoo18_internal"
+
+# Directories
+opt_root: "/opt"
+data_root: "/data"
+backup_root: "/data/backups"
+
+# PostgreSQL settings
+postgres_pgdata_version_17: "/var/lib/postgresql/data"
+
+# Odoo settings
+odoo_http_port: 8069
+odoo_chat_port: 8072
+
+# Traefik settings
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"

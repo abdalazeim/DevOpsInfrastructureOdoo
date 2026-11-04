@@ -1,7 +1,0 @@
-pyyaml>=6.0
-textual>=0.50.0
-
-[dev]
-pytest>=7.4.0
-flake8>=6.0.0
-mypy>=1.5.0

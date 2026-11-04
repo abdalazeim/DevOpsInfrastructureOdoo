@@ -1,0 +1,23 @@
+---
+# Odoo Role - Traefik Role Tasks
+# يتحقق من وجود شبكة Traefik وتكوينها
+
+- name: Check Traefik proxy network exists
+  community.docker.docker_network_info:
+    name: "{{ docker_network }}"
+  register: traefik_network
+  changed_when: false
+
+- name: Create Traefik proxy network if missing
+  community.docker.docker_network:
+    name: "{{ docker_network }}"
+    driver: bridge
+    state: present
+  when: traefik_network.exists | default(false) | bool == false
+
+- name: Verify Traefik container is running
+  community.docker.docker_container_info:
+    name: traefik
+  register: traefik_container
+  changed_when: false
+  failed_when: traefik_container.exists | default(false) | bool == false

@@ -1,0 +1,20 @@
+# Odoo Multi-Version Deployment - Odoo Configuration Template
+# Jinja2 template for odoo.conf
+
+[options]
+admin_passwd = {{ vault_odoo_admin_password }}
+db_host = {{ item.container_name }}-db
+db_port = 5432
+db_user = {{ item.db_user }}
+db_password = {{ vault_postgres_password }}
+db_name = {{ item.db_name }}
+http_port = {{ item.http_port }}
+addons_path = /mnt/extra-addons
+proxy_mode = True
+workers = 2
+limit_memory_hard = 1677721600
+limit_memory_soft = 1509949440
+limit_request = 8192
+limit_time_cpu = 600
+limit_time_real = 1200
+data_dir = /var/lib/odoo

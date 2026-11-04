@@ -1,0 +1,91 @@
+# ==============================================================================
+# Odoo 17 Multi-Instance Docker Compose Template (Jinja2)
+# يستخدم لتكوين نسخ متعددة من Odoo 17 مع PostgreSQL مستقل لكل نسخة
+# يستخدمه كل من Jenkins Pipeline و Terminal Script بشكل موحد
+# ==============================================================================
+version: '3.8'
+
+services:
+  db:
+    container_name: {{ container_name }}-db
+    image: {{ postgres_image }}
+    user: root
+    restart: always
+    environment:
+      - POSTGRES_USER={{ db_user }}
+      - POSTGRES_PASSWORD={{ db_password }}
+      - POSTGRES_DB={{ db_name }}
+    volumes:
+      - {{ data_path }}/postgresql:/var/lib/postgresql/data
+    networks:
+      - internal
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ db_user }} -d {{ db_name }}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  odoo:
+    container_name: {{ container_name }}
+    image: {{ odoo_image }}
+    user: root
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: always
+    tty: true
+    command: ["--config=/etc/odoo/odoo.conf"]
+    environment:
+      - HOST=db
+      - PORT=5432
+      - USER={{ db_user }}
+      - PASSWORD={{ db_password }}
+      - PIP_BREAK_SYSTEM_PACKAGES=1
+    {% if traefik_enabled %}
+    networks:
+      - internal
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ proxy_network }}"
+      - "traefik.http.routers.{{ container_name }}.rule=Host(`{{ domain }}`)"
+      - "traefik.http.routers.{{ container_name }}.entrypoints=websecure"
+      - "traefik.http.routers.{{ container_name }}.tls=true"
+      - "traefik.http.routers.{{ container_name }}.tls.certresolver={{ certresolver }}"
+      - "traefik.http.services.{{ container_name }}.loadbalancer.server.port=8069"
+      - "traefik.http.routers.{{ container_name }}-websocket.rule=Host(`{{ domain }}`) && PathPrefix(`/websocket`)"
+      - "traefik.http.routers.{{ container_name }}-websocket.entrypoints=websecure"
+      - "traefik.http.routers.{{ container_name }}-websocket.tls=true"
+      - "traefik.http.routers.{{ container_name }}-websocket.tls.certresolver={{ certresolver }}"
+      - "traefik.http.routers.{{ container_name }}-websocket.priority=100"
+      - "traefik.http.services.{{ container_name }}-websocket.loadbalancer.server.port=8072"
+    {% else %}
+    ports:
+      - "{{ http_port }}:8069"
+      - "{{ chat_port }}:8072"
+    networks:
+      - internal
+    {% endif %}
+    volumes:
+      - ./entrypoint.sh:/entrypoint.sh:ro
+      - ./addons:/mnt/extra-addons
+      - ./etc:/etc/odoo
+    environment:
+      - ODOO_RC=/etc/odoo/odoo.conf
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8069/web/database/selector"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+networks:
+  internal:
+    name: {{ internal_network }}
+    driver: bridge
+  {% if traefik_enabled %}
+  proxy:
+    external: true
+    name: {{ proxy_network }}
+  {% endif %}

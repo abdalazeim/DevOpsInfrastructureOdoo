@@ -1,6 +1,0 @@
-{
-  "name": "Odoo Infrastructure Manager",
-  "description": "Enterprise multi-version Odoo (17 & 19) infrastructure provisioning, Traefik v3.7 reverse proxy, PostgreSQL, backup/restore orchestration, and interactive terminal dashboard.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}

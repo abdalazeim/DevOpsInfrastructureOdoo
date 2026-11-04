@@ -1,0 +1,4 @@
+# Odoo 19 Multi-Instance - Odoo Role - Defaults
+odoo_workers: 3
+odoo_list_db: false
+odoo_proxy_mode: true

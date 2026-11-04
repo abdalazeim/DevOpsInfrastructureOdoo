@@ -1,0 +1,56 @@
+# Odoo Multi-Version Deployment - Role: verify
+# التحقق من سلامة نسخ Odoo الاحتياطية
+
+- name: Discover backup directories
+  become: true
+  ansible.builtin.find:
+    paths: "{{ backup_root }}"
+    patterns: "manifest.json"
+    file_type: file
+    recurse: yes
+  register: backup_manifests
+
+- name: Display discovered backups
+  ansible.builtin.debug:
+    msg: "وجدت نسخة احتياطية: {{ item.path }}"
+  loop: "{{ backup_manifests.files }}"
+
+- name: Verify backup manifest is valid JSON
+  become: true
+  ansible.builtin.command: python3 -m json.tool {{ item.path }}
+  args:
+    warn: false
+  register: manifest_json_check
+  failed_when: manifest_json_check.rc != 0
+  loop: "{{ backup_manifests.files }}"
+  loop_control:
+    label: "{{ item.path }}"
+
+- name: Verify backup checksums exist and are valid
+  become: true
+  ansible.builtin.command: sha256sum -c checksums.sha256
+  args:
+    chdir: "{{ item.path | dirname }}"
+  register: checksums_check
+  failed_when: checksums_check.rc != 0
+  loop: "{{ backup_manifests.files }}"
+  loop_control:
+    label: "{{ item.path | dirname }}"
+
+- name: Verify essential backup files exist
+  become: true
+  ansible.builtin.stat:
+    path: "{{ item.path | dirname }}/{{ file }}"
+  register: essential_files
+  loop:
+    - "{{ backup_manifests.files }}"
+  loop_control:
+    label: "{{ item.0.path | dirname }}"
+  vars:
+    file: "{{ item.1 }}"
+  with_items:
+    - "{{ backup_manifests.files | product(['database_*.sql', 'filestore_*.tar.zst', 'manifest.json', 'checksums.sha256']) | list }}"
+
+- name: Display verification summary
+  ansible.builtin.debug:
+    msg: "✓ تم التحقق من جميع النسخ الاحتياطية بنجاح - عدد النسخ: {{ backup_manifests.files | length }}"

@@ -1,0 +1,29 @@
+# Odoo 18 Multi-Instance - Role: odoo
+# Odoo configuration and validation tasks
+
+- name: Write Odoo configuration file
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ item.config_path }}/etc/odoo.conf"
+    content: |
+      [options]
+      admin_passwd = {{ vault_odoo_admin_password }}
+      db_host = db
+      db_port = 5432
+      db_user = {{ item.db_user }}
+      db_password = {{ vault_postgres_password }}
+      db_name = {{ item.db_name }}
+      http_port = {{ item.http_port }}
+      addons_path = /mnt/extra-addons
+      proxy_mode = True
+      workers = 2
+    mode: '0640'
+  loop: "{{ odoo_instances }}"
+
+- name: Verify Odoo container is running
+  become: true
+  community.docker.docker_container_info:
+    name: "{{ item.container_name }}"
+  register: odoo_container_info
+  failed_when: odoo_container_info.exists == false or odoo_container_info.info.State.Status != 'running'
+  loop: "{{ odoo_instances }}"

@@ -1,0 +1,128 @@
+# Odoo Multi-Version Deployment - Role: permissions
+# إدارة الصلاحيات والأمان للملفات والمجلدات والمستخدمين
+# يُطبق مبدأ أقل صلاحية كافية (Least Privilege)
+
+- name: Ensure odoo user and group exist
+  become: true
+  ansible.builtin.group:
+    name: odoo
+    state: present
+    system: yes
+
+- name: Ensure odoo user exists
+  become: true
+  ansible.builtin.user:
+    name: odoo
+    group: odoo
+    system: yes
+    shell: /usr/sbin/nologin
+    home: /var/lib/odoo
+    create_home: yes
+
+- name: Set data root directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ data_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Set backup root directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ backup_root }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Set Odoo version directories permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ data_root }}/odoo17"
+    - "{{ data_root }}/odoo19"
+    - "{{ opt_root }}/odoo17"
+    - "{{ opt_root }}/odoo19"
+
+- name: Set instance data directory permissions (PostgreSQL data)
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.data_path }}/postgresql"
+    state: directory
+    owner: '999'
+    group: '999'
+    mode: '0700'
+  loop: "{{ odoo_instances }}"
+
+- name: Set instance config directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.config_path }}/etc"
+    state: directory
+    owner: '999'
+    group: '999'
+    mode: '0750'
+  loop: "{{ odoo_instances }}"
+
+- name: Set instance addons directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.config_path }}/addons"
+    state: directory
+    owner: '999'
+    group: '999'
+    mode: '0755'
+  loop: "{{ odoo_instances }}"
+
+- name: Set Odoo config file permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.config_path }}/etc/odoo.conf"
+    state: file
+    owner: '999'
+    group: '999'
+    mode: '0640'
+  loop: "{{ odoo_instances }}"
+  when: ansible_facts['mounts'] | selectattr('mount', 'equalto', item.config_path | dirname | dirname) | list | length > 0 or true
+
+- name: Set Docker socket group permissions
+  become: true
+  ansible.builtin.file:
+    path: /var/run/docker.sock
+    state: file
+    owner: root
+    group: docker
+    mode: '0660'
+  when: ansible_facts['mounts'] | selectattr('mount', 'equalto', '/var/run') | list | length > 0 or true
+  ignore_errors: yes
+
+- name: Add odoo user to docker group
+  become: true
+  ansible.builtin.user:
+    name: odoo
+    groups: docker
+    append: yes
+  ignore_errors: yes
+
+- name: Set backup directory permissions per version
+  become: true
+  ansible.builtin.file:
+    path: "{{ backup_root }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0750'
+  loop:
+    - odoo17
+    - odoo19
+
+- name: Display permissions summary
+  ansible.builtin.debug:
+    msg: "✓ تم ضبط الصلاحيات لجميع المجلدات والملفات بنجاح"

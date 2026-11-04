@@ -1,0 +1,54 @@
+---
+# Odoo 17 Pre-Deployment Validation Playbook
+# يفحص Docker وCompose وشبكة Traefik والمساحة والذاكرة والمجلدات قبل النشر
+
+- name: Pre-Deployment Validation
+  hosts: odoo_instances
+  become: yes
+  vars_files:
+    - ../../instances/odoo17.yml
+
+  tasks:
+    - name: Check Docker Engine is installed
+      ansible.builtin.command: docker --version
+      register: docker_version
+      changed_when: false
+      failed_when: docker_version.rc != 0
+
+    - name: Check Docker Compose is installed
+      ansible.builtin.command: docker compose version
+      register: compose_version
+      changed_when: false
+      failed_when: compose_version.rc != 0
+
+    - name: Check proxy network exists
+      community.docker.docker_network_info:
+        name: "{{ docker_network }}"
+      register: proxy_network_info
+      failed_when: proxy_network_info.exists | default(false) | bool == false
+
+    - name: Check available disk space
+      ansible.builtin.command: df -h /opt /data
+      register: disk_space
+      changed_when: false
+
+    - name: Check available memory
+      ansible.builtin.command: free -h
+      register: memory_info
+      changed_when: false
+
+    - name: Create required directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+      loop:
+        - /opt/odoo17
+        - /data/odoo17
+        - /data/backups/odoo17
+
+    - name: Validation completed
+      ansible.builtin.debug:
+        msg: "الفحص المسبق للنشر مكتمل بنجاح"

@@ -1,42 +1,62 @@
-#!/bin/sh
-# ==============================================================================
-# Generic Odoo entrypoint wrapper (used by deployment/odoo17|18|19).
-#
-# The instance directory is laid out like the minhng92 reference repos:
-#   ./etc/odoo.conf   -> /etc/odoo/odoo.conf (rendered by install-odoo.sh)
-#   ./addons          -> /mnt/extra-addons
-#   ./postgresql      -> PostgreSQL data directory
-#
-# Compose passes the config path via `command: ["--config=/etc/odoo/odoo.conf"]`.
-# ==============================================================================
-set -eu
+#!/bin/bash
 
-: "${HOST:=db}"
-: "${PORT:=5432}"
-: "${USER:=odoo}"
-: "${PASSWORD:=}"
+set -e
 
-# Install extra Python requirements if the operator added some.
-if [ -f /etc/odoo/requirements.txt ]; then
-    pip3 install --no-cache-dir -r /etc/odoo/requirements.txt || true
+# set the postgres database host, port, user and password according to the environment
+# and pass them as arguments to the odoo process if not present in the config file
+: ${HOST:=${DB_PORT_5432_TCP_ADDR:='db'}}
+: ${PORT:=${DB_PORT_5432_TCP_PORT:=5432}}
+: ${USER:=${DB_ENV_POSTGRES_USER:=${POSTGRES_USER:='odoo'}}}
+: ${PASSWORD:=${DB_ENV_POSTGRES_PASSWORD:=${POSTGRES_PASSWORD:='odoo18'}}}
+
+# install python packages
+# pip3 install pip --upgrade                # may cause errors
+pip3 install -r /etc/odoo/requirements.txt
+
+# sed -i 's|raise werkzeug.exceptions.BadRequest(msg)|self.jsonrequest = {}|g' /usr/lib/python3/dist-packages/odoo/http.py
+
+# Install logrotate if not already installed
+if ! dpkg -l | grep -q logrotate; then
+    apt-get update && apt-get install -y logrotate
 fi
 
-# Wait briefly for PostgreSQL to accept connections before starting Odoo.
-if [ -n "${PASSWORD}" ]; then
-    python3 - <<'PY' || true
-import os
-import socket
-import time
+# Copy logrotate config
+cp /etc/odoo/logrotate /etc/logrotate.d/odoo
 
-host = os.environ.get("HOST", "db")
-port = int(os.environ.get("PORT", "5432"))
-for _ in range(60):
-    try:
-        with socket.create_connection((host, port), timeout=2):
-            break
-    except OSError:
-        time.sleep(1)
-PY
-fi
+# Start cron daemon (required for logrotate)
+cron
 
-exec odoo "$@"
+DB_ARGS=()
+function check_config() {
+    param="$1"
+    value="$2"
+    if grep -q -E "^\s*\b${param}\b\s*=" "$ODOO_RC" ; then       
+        value=$(grep -E "^\s*\b${param}\b\s*=" "$ODOO_RC" |cut -d " " -f3|sed 's/["\n\r]//g')
+    fi;
+    DB_ARGS+=("--${param}")
+    DB_ARGS+=("${value}")
+}
+check_config "db_host" "$HOST"
+check_config "db_port" "$PORT"
+check_config "db_user" "$USER"
+check_config "db_password" "$PASSWORD"
+
+case "$1" in
+    -- | odoo)
+        shift
+        if [[ "$1" == "scaffold" ]] ; then
+            exec odoo "$@"
+        else
+            wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+            exec odoo "$@" "${DB_ARGS[@]}"
+        fi
+        ;;
+    -*)
+        wait-for-psql.py ${DB_ARGS[@]} --timeout=30
+        exec odoo "$@" "${DB_ARGS[@]}"
+        ;;
+    *)
+        exec "$@"
+esac
+
+exit 1
