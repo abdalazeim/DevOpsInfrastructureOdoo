@@ -25,11 +25,11 @@ def docker_command(use_sudo=False):
 
 
 def inspect_odoo(version: str, use_sudo=False):
-    """فحص حالة إصدار أودو معين (مثبت / مفقود / تضارب / خطأ)."""
+    """Check status of a specific Odoo version (installed / missing / conflict / error)."""
     if version not in ODOO_VERSIONS:
-        return {'status': 'error', 'containers': [], 'error': f'إصدار غير مدعوم: {version}'}
+        return {'status': 'error', 'containers': [], 'error': f'Unsupported version: {version}'}
     if not shutil.which('docker'):
-        return {'status': 'docker_missing', 'containers': [], 'error': 'جهّز Docker Engine أولًا.'}
+        return {'status': 'docker_missing', 'containers': [], 'error': 'Docker Engine is not installed.'}
     code, output = probe(docker_command(use_sudo) + ['ps', '-a', '--format', '{{json .}}'])
     if code:
         return {'status': 'error', 'containers': [], 'error': output}
@@ -46,13 +46,13 @@ def inspect_odoo(version: str, use_sudo=False):
                 containers.append(item)
                 collision |= not (is_odoo or is_db)
     except (ValueError, AttributeError):
-        return {'status': 'error', 'containers': [], 'error': 'تعذر قراءة استجابة Docker.'}
+        return {'status': 'error', 'containers': [], 'error': 'Failed to read Docker response.'}
     return {'status': 'conflict' if collision else 'installed' if containers else 'missing',
             'containers': containers, 'error': ''}
 
 
 def odoo_diagnose(version: str, use_sudo=False):
-    """تشخيص أخطاء أودو المحتملة وقائمة بالإصلاحات المقترحة."""
+    """Diagnose potential Odoo errors and list suggested fixes."""
     issues = []
     repairs = []
 
@@ -60,12 +60,12 @@ def odoo_diagnose(version: str, use_sudo=False):
         issues.append({
             'id': 'odoo_invalid_version',
             'component': f'Odoo {version}',
-            'title': 'إصدار أودو غير مدعوم',
-            'description': f'الإصدار {version} غير مدعوم. الإصدارات المدعومة: 17، 18، 19.',
+            'title': 'Unsupported Odoo version',
+            'description': f'Version {version} is not supported. Supported versions: 17, 18, 19.',
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'اختر إصداراً مدعوماً (17 أو 18 أو 19).',
+            'fix_description': 'Select a supported version (17 or 18 or 19).',
         })
         return issues, repairs
 
@@ -73,12 +73,12 @@ def odoo_diagnose(version: str, use_sudo=False):
         issues.append({
             'id': f'odoo{version}_docker_missing',
             'component': f'Odoo {version}',
-            'title': 'Docker Engine غير مثبت',
-            'description': 'لا يمكن تشغيل أودو دون Docker Engine.',
+            'title': 'Docker Engine is not installed',
+            'description': 'Odoo cannot run without Docker Engine.',
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'ثبت Docker Engine أولاً عبر القائمة.',
+            'fix_description': 'Install Docker Engine first from the menu.',
         })
         return issues, repairs
 
@@ -88,12 +88,12 @@ def odoo_diagnose(version: str, use_sudo=False):
         issues.append({
             'id': f'odoo{version}_daemon_error',
             'component': f'Odoo {version}',
-            'title': 'خطأ في التواصل مع Docker daemon',
-            'description': report.get('error', 'غير معلوم'),
+            'title': 'Error communicating with Docker daemon',
+            'description': report.get('error', 'Unknown'),
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'تحقق من تشغيل Docker وصلاحيات المستخدم.',
+            'fix_description': 'Check Docker is running and user permissions.',
         })
         return issues, repairs
 
@@ -101,16 +101,16 @@ def odoo_diagnose(version: str, use_sudo=False):
         issues.append({
             'id': f'odoo{version}_name_conflict',
             'component': f'Odoo {version}',
-            'title': 'تضارب باسم حاوية أودو',
-            'description': f'اسم حاوية odoo{version} أو odoo{version}-db مستخدم من حاوية أخرى.',
+            'title': 'Odoo container name conflict',
+            'description': f'Container name odoo{version} or odoo{version}-db is used by another container.',
             'severity': 'high',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'غير اسم الحاوية الأخرى أو احذفها قبل التثبيت.',
+            'fix_description': 'Rename the other container or remove it before installing.',
         })
         return issues, repairs
 
-    # فحص حالة الحاويات
+    # Check container status
     odoo_running = False
     db_running = False
     for c in report['containers']:
@@ -121,14 +121,14 @@ def odoo_diagnose(version: str, use_sudo=False):
                 issues.append({
                     'id': f'odoo{version}_db_not_running',
                     'component': f'Odoo {version}',
-                    'title': f'حاوية PostgreSQL {PG_IMAGES[version].split(":")[1]} غير عاملة',
-                    'description': f"حالة الحاوية: {status}",
+                    'title': f'PostgreSQL container {PG_IMAGES[version].split(":")[1]} not running',
+                    'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
                     'fix_command': ['start', f'odoo{version}-db'],
-                    'fix_description': f'تشغيل حاوية قاعدة بيانات أودو {version}.',
+                    'fix_description': f'Start Odoo {version} database container.',
                 })
-                repairs.append((f'تشغيل قاعدة بيانات أودو {version}', ['docker', 'start', f'odoo{version}-db']))
+                repairs.append((f'Start Odoo {version} database', ['docker', 'start', f'odoo{version}-db']))
             else:
                 db_running = True
         if f'odoo{version}' in names and '-db' not in names:
@@ -136,23 +136,23 @@ def odoo_diagnose(version: str, use_sudo=False):
                 issues.append({
                     'id': f'odoo{version}_container_not_running',
                     'component': f'Odoo {version}',
-                    'title': f'حاوية أودو {version} غير عاملة',
-                    'description': f"حالة الحاوية: {status}",
+                    'title': f'Odoo {version} container not running',
+                    'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
                     'fix_command': ['start', f'odoo{version}'],
-                    'fix_description': f'تشغيل حاوية أودو {version}.',
+                    'fix_description': f'Start Odoo {version} container.',
                 })
-                repairs.append((f'تشغيل أودو {version}', ['docker', 'start', f'odoo{version}']))
+                repairs.append((f'Start Odoo {version}', ['docker', 'start', f'odoo{version}']))
             else:
                 odoo_running = True
 
-    # فحص المنافذ
+    # Check ports
     http_port = ODOO_HTTP_PORTS[version]
     chat_port = ODOO_CHAT_PORTS[version]
     for port, issue_id, title, desc in (
-        (http_port, f'odoo{version}_port_http_in_use', f'المنفذ {http_port} (Odoo HTTP) مستخدم', f'المنفذ {http_port} مرتبط بعملية أخرى.'),
-        (chat_port, f'odoo{version}_port_chat_in_use', f'المنفذ {chat_port} (Odoo Livechat) مستخدم', f'المنفذ {chat_port} مرتبط بعملية أخرى.'),
+        (http_port, f'odoo{version}_port_http_in_use', f'Port {http_port} (Odoo HTTP) in use', f'Port {http_port} is bound by another process.'),
+        (chat_port, f'odoo{version}_port_chat_in_use', f'Port {chat_port} (Odoo Livechat) in use', f'Port {chat_port} is bound by another process.'),
     ):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(0.2)
@@ -165,58 +165,58 @@ def odoo_diagnose(version: str, use_sudo=False):
                     'severity': 'medium',
                     'auto_fix': False,
                     'fix_command': None,
-                    'fix_description': 'أوقف الخدمة القائمة على المنفذ أو اختر منفذاً آخر.',
+                    'fix_description': 'Stop the service on the port or choose another port.',
                 })
 
-    # فحص مجلد المثبت
+    # Check installation directory
     destination = f'/opt/odoo-infrastructure/odoo{version}'
     if not os.path.exists(destination):
         issues.append({
             'id': f'odoo{version}_dir_missing',
             'component': f'Odoo {version}',
-            'title': f'مجلد تثبيت أودو {version} غير موجود',
-            'description': f'المجلد {destination} غير موجود.',
+            'title': f'Odoo {version} installation directory not found',
+            'description': f'Directory {destination} not found.',
             'severity': 'medium',
             'auto_fix': True,
             'fix_command': ['mkdir', '-p', destination],
-            'fix_description': f'إنشاء مجلد التثبيت {destination}.',
+            'fix_description': f'Create installation directory {destination}.',
         })
-        repairs.append((f'إنشاء مجلد {destination}', ['mkdir', '-p', destination]))
+        repairs.append((f'Create directory {destination}', ['mkdir', '-p', destination]))
 
-    # فحص ملف .env
+    # Check .env file
     env_file = f'{destination}/.env'
     if os.path.exists(destination) and not os.path.exists(env_file):
         issues.append({
             'id': f'odoo{version}_env_missing',
             'component': f'Odoo {version}',
-            'title': f'ملف .env لأودو {version} غير موجود',
-            'description': 'ملف الإعدادات(instance .env) غير موجود، يحتاج إلى إعادة التكوين.',
+            'title': f'Odoo {version} .env file not found',
+            'description': 'Configuration instance .env file not found, reconfiguration needed.',
             'severity': 'medium',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'أعد تشغيل تثبيت أودو لإنشاء ملف الإعدادات.',
+            'fix_description': 'Re-run Odoo installation to create the configuration file.',
         })
 
     return issues, repairs
 
 
 def odoo_repair(issue: Dict, use_sudo=False):
-    """تنفيذ إصلاح واحد لمشكلة أودو."""
+    """Execute a single fix for an Odoo issue."""
     fix_cmd = issue.get('fix_command')
     if not fix_cmd:
-        return False, 'لا يوجد أمر إصلاح تلقائي لهذه المشكلة.'
+        return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
     full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
     try:
         run_step(full_cmd)
-        return True, 'تم التنفيذ بنجاح.'
+        return True, 'Executed successfully.'
     except Exception as exc:
         return False, str(exc)
 
 
 def build_odoo_install_plan(profile, version: str, use_sudo=False, with_traefik: bool = False):
-    """بناء خطة تثبيت أودو (تشغيل install-odoo.sh)."""
+    """Build Odoo installation plan (run install-odoo.sh)."""
     destination = f"{profile.paths.data_root}/odoo{version}"
     command = [
         "bash",
@@ -236,25 +236,25 @@ def build_odoo_install_plan(profile, version: str, use_sudo=False, with_traefik:
 
 def install_odoo(profile, version: str, dry_run: bool = False, use_sudo: bool = False,
                  with_traefik: bool = False):
-    """تنصيب إصدار أودو إن لم يكن مثبتًا. إذا مثبت، لا يُنفذ أي تغيير."""
+    """Install Odoo version if not installed. If installed, no changes are made."""
     try:
         if platform.system() != 'Linux':
-            raise ValueError('هذا المثبت مخصص لنظام Linux.')
+            raise ValueError('This installer is for Linux systems only.')
         if version not in ODOO_VERSIONS:
-            raise ValueError(f'إصدار غير مدعوم: {version}')
+            raise ValueError(f'Unsupported version: {version}')
 
         report = inspect_odoo(version, use_sudo=use_sudo)
         if report['status'] == 'installed':
-            print(f'أودو {version} مثبت بالفعل. حالة الحاويات موضحة أعلاه. لن يعاد التثبيت.')
+            print(f'Odoo {version} is already installed. Container status shown above. Will not reinstall.')
             return True
         if report['status'] == 'conflict':
-            print(f'اسم حاوية أودو {version} مستخدم من حاوية أخرى. لم تُجرَ تغييرات.')
+            print(f'Odoo {version} container name is used by another container. No changes made.')
             return False
         if report['status'] == 'error':
             print(report['error'])
             return False
 
-        # فحص المنافذ قبل التثبيت
+        # Check ports before installation
         http_port = ODOO_HTTP_PORTS[version]
         chat_port = ODOO_CHAT_PORTS[version]
         for port in (http_port, chat_port):
@@ -262,33 +262,33 @@ def install_odoo(profile, version: str, dry_run: bool = False, use_sudo: bool = 
                 sock.bind(('0.0.0.0', port))
 
         if dry_run:
-            print(f'[DRY-RUN] سيُثبت أودو {version} مع PostgreSQL {PG_IMAGES[version].split(":")[1]}')
-            print(f'[DRY-RUN] المجلد: {profile.paths.data_root}/odoo{version}')
-            print(f'[DRY-RUN] المنفذ HTTP: {http_port} | منفذ الدردشة: {chat_port}')
-            print(f'[DRY-RUN] شبكة داخلية: {ODOO_INTERNAL_NETWORKS[version]}')
-            print(f'[DRY-RUN] مع ترافيك: {"نعم" if with_traefik else "لا"}')
+            print(f'[DRY-RUN] Will install Odoo {version} with PostgreSQL {PG_IMAGES[version].split(":")[1]}')
+            print(f'[DRY-RUN] Directory: {profile.paths.data_root}/odoo{version}')
+            print(f'[DRY-RUN] HTTP port: {http_port} | Chat port: {chat_port}')
+            print(f'[DRY-RUN] Internal network: {ODOO_INTERNAL_NETWORKS[version]}')
+            print(f'[DRY-RUN] With Traefik: {"yes" if with_traefik else "no"}')
             return True
 
         commands = build_odoo_install_plan(profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
         for command in commands:
             run_step(command)
 
-        # التحقق من حالة الحاويات بعد التثبيت
+        # Check container status after installation
         code, state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', f'odoo{version}'])
         if code or state != 'running':
-            print(f'تم إنشاء حاوية أودو {version} لكنها ليست في حالة running: {state}. راجع السجلات.')
+            print(f'Odoo {version} container created but not in running state: {state}. Check logs.')
             return False
         code, db_state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', f'odoo{version}-db'])
         if code or db_state != 'running':
-            print(f'تم إنشاء حاوية قاعدة بيانات أودو {version} لكنها ليست في حالة running: {db_state}. راجع السجلات.')
+            print(f'Odoo {version} database container created but not in running state: {db_state}. Check logs.')
             return False
 
         run_step(docker_command(use_sudo) + ['ps', '-a'])
-        print(f'أودو {version} يعمل بنجاح مع PostgreSQL {PG_IMAGES[version].split(":")[1]}.')
-        print(f'العنوان: http://localhost:{http_port} (أو عبر ترافيك على HTTPS)')
-        print(f'البيانات: {profile.paths.data_root}/odoo{version}/postgresql')
-        print(f'الإعدادات: {profile.paths.data_root}/odoo{version}/etc/odoo.conf')
+        print(f'Odoo {version} running successfully with PostgreSQL {PG_IMAGES[version].split(":")[1]}.')
+        print(f'Address: http://localhost:{http_port} (or via Traefik on HTTPS)')
+        print(f'Data: {profile.paths.data_root}/odoo{version}/postgresql')
+        print(f'Config: {profile.paths.data_root}/odoo{version}/etc/odoo.conf')
         return True
     except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'توقف تثبيت أودو {version}: {exc}. لم تُحذف بيانات أو حاويات قائمة؛ راجع المخرجات.')
+        print(f'Odoo {version} installation stopped: {exc}. No existing data or containers were deleted; check output.')
         return False

@@ -1,6 +1,4 @@
-"""
-Ansible automation service for baseline Ubuntu server configuration.
-"""
+"""Ansible automation service for baseline Ubuntu server configuration."""
 import json
 import os
 import platform
@@ -62,9 +60,9 @@ def ansible_command(use_sudo=False):
 
 
 def inspect_ansible(use_sudo=False):
-    """فحص حالة أنsible على النظام (مثبت / مفقود / خطأ)."""
+    """Check Ansible status on the system (installed / missing / error)."""
     if not shutil.which('ansible-playbook'):
-        return {'status': 'missing', 'version': None, 'error': 'أنsible غير مثبت على النظام.'}
+        return {'status': 'missing', 'version': None, 'error': 'Ansible is not installed on the system.'}
     code, output = probe(['ansible-playbook', '--version'])
     if code:
         return {'status': 'error', 'version': None, 'error': output}
@@ -81,7 +79,7 @@ def probe(command):
 
 
 def build_ansible_install_plan(use_sudo=False):
-    """بناء خطة تثبيت أنsible (إنشاء السكربت وتشغيله)."""
+    """Build Ansible installation plan (create script and run it)."""
     docker = ['sudo'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []
     prefix = docker
     install_script = '/tmp/install-ansible.sh'
@@ -93,11 +91,11 @@ def build_ansible_install_plan(use_sudo=False):
         'echo " Installing Ansible on Ubuntu Server"\n'
         'echo "======================================"\n'
         '\n'
-        '# تحديث النظام\n'
+        '# Update system\n'
         'apt-get update\n'
         'apt-get upgrade -y\n'
         '\n'
-        '# تثبيت المتطلبات\n'
+        '# Install requirements\n'
         'apt-get install -y \\\n'
         '    python3 \\\n'
         '    python3-pip \\\n'
@@ -109,7 +107,7 @@ def build_ansible_install_plan(use_sudo=False):
         '    nano \\\n'
         '    rsync\n'
         '\n'
-        '# إعداد pipx\n'
+        '# Setup pipx\n'
         'USER_HOME=$(getent passwd "${SUDO_USER:-$USER}" | cut -d: -f6)\n'
         'USER_NAME="${SUDO_USER:-$USER}"\n'
         '\n'
@@ -117,15 +115,15 @@ def build_ansible_install_plan(use_sudo=False):
         '    USER_HOME="/root"\n'
         'fi\n'
         '\n'
-        '# تثبيت Ansible باستخدام pipx\n'
+        '# Install Ansible using pipx\n'
         'sudo -u "$USER_NAME" -H pipx ensurepath\n'
         'sudo -u "$USER_NAME" -H pipx install --include-deps ansible\n'
         '\n'
-        '# إنشاء مجلدات المشروع\n'
+        '# Create project directories\n'
         f'mkdir -p {ANSIBLE_DIR}/{{inventory,playbooks,roles,group_vars,host_vars,files,templates}}\n'
         f'chown -R "$USER_NAME":"$USER_NAME" {ANSIBLE_DIR}\n'
         '\n'
-        '# إنشاء ملف الإعدادات\n'
+        '# Create config file\n'
         f'cat > {ANSIBLE_CFG_FILE} <<\'EOF\'\n'
         '[defaults]\n'
         f'inventory = {ANSIBLE_INVENTORY_DIR}/hosts.ini\n'
@@ -141,7 +139,7 @@ def build_ansible_install_plan(use_sudo=False):
         'become_ask_pass = False\n'
         'EOF\n'
         '\n'
-        '# إعداد Inventory محلي\n'
+        '# Setup local Inventory\n'
         f'cat > {ANSIBLE_HOSTS_FILE} <<\'EOF\'\n'
         '[local]\n'
         'localhost ansible_connection=local\n'
@@ -150,7 +148,7 @@ def build_ansible_install_plan(use_sudo=False):
         'ansible_python_interpreter=/usr/bin/python3\n'
         'EOF\n'
         '\n'
-        '# إنشاء Playbook للاختبار\n'
+        '# Create test Playbook\n'
         f'cat > {ANSIBLE_SITE_PLAYBOOK} <<\'EOF\'\n'
         '---\n'
         '- name: Verify Ubuntu server\n'
@@ -171,7 +169,7 @@ def build_ansible_install_plan(use_sudo=False):
         '        msg: "Docker service information collected"\n'
         'EOF\n'
         '\n'
-        '# تثبيت Collections\n'
+        '# Install Collections\n'
         f'sudo -u "$USER_NAME" -H ansible-galaxy collection install \\\n'
         '    community.docker ansible.posix\n'
         '\n'
@@ -193,13 +191,13 @@ def build_ansible_install_plan(use_sudo=False):
 
 
 def install_ansible(dry_run=False, use_sudo=False):
-    """تنصيب أنsible إن لم يكن مثبتًا. إذا مثبت، لا يُنفذ أي تغيير."""
+    """Install Ansible if not installed. If installed, no changes are made."""
     try:
         if platform.system() != 'Linux':
-            raise ValueError('هذا المثبت مخصص لنظام Linux.')
+            raise ValueError('This installer is for Linux systems only.')
         report = inspect_ansible(use_sudo=use_sudo)
         if report['status'] == 'installed':
-            print(f'أنsible مثبت بالفعل: {report["version"]}. لن يعاد التثبيت.')
+            print(f'Ansible is already installed: {report["version"]}. Will not reinstall.')
             return True
         if report['status'] == 'error':
             print(report['error'])
@@ -225,18 +223,18 @@ def install_ansible(dry_run=False, use_sudo=False):
 
         code, version = probe(['ansible-playbook', '--version'])
         if code:
-            print(f'تثبيت أنsible اكتمل لكن التحقق من الإصدار فشل: {version}')
+            print(f'Ansible installation completed but version check failed: {version}')
             return False
-        print(f'تم تثبيت أنsible بنجاح: {version.splitlines()[0]}')
-        print(f'المشروع: {ANSIBLE_DIR}')
-        print('الخطوة التالية: تسجيل الخروج والدخول مرة أخرى، ثم تشغيل:')
-        f'  cd {ANSIBLE_DIR}\n'
-        f'  ansible --version\n'
-        f'  ansible local -m ping\n'
-        f'  ansible-playbook playbooks/site.yml\n'
+        print(f'Ansible installed successfully: {version.splitlines()[0]}')
+        print(f'Project: {ANSIBLE_DIR}')
+        print('Next step: Log out and log in again, then run:')
+        print(f'  cd {ANSIBLE_DIR}')
+        print('  ansible --version')
+        print('  ansible local -m ping')
+        print('  ansible-playbook playbooks/site.yml')
         return True
     except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'توقف تثبيت أنsible: {exc}. لم تُحذف بيانات أو حاويات قائمة؛ راجع المخرجات.')
+        print(f'Ansible installation stopped: {exc}. No existing data or containers were deleted; check output.')
         return False
 
 
@@ -247,7 +245,7 @@ ANSIBLE_ISSUE_INVENTORY_MISSING = 'ansible_inventory_missing'
 
 
 def ansible_diagnose(use_sudo=False):
-    """تشخيص أخطاء أنsible المحتملة وقائمة بالإصلاحات المقترحة."""
+    """Diagnose potential Ansible errors and list suggested fixes."""
     issues = []
     repairs = []
 
@@ -255,20 +253,20 @@ def ansible_diagnose(use_sudo=False):
         issues.append({
             'id': ANSIBLE_ISSUE_NOT_INSTALLED,
             'component': 'Ansible',
-            'title': 'أنsible غير مثبت',
-            'description': 'أمر ansible-playbook غير موجود في PATH.',
+            'title': 'Ansible is not installed',
+            'description': 'ansible-playbook command not found in PATH.',
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'ثبت أنsible عبر خيار التثبيت في القائمة.',
+            'fix_description': 'Install Ansible via the installation menu option.',
         })
         return issues, repairs
 
-    # فحص مجلدات المشروع
+    # Check project directories
     for path, issue_id, title, desc, fix_cmd, fix_desc in (
-        (ANSIBLE_DIR, ANSIBLE_ISSUE_DIR_MISSING, 'مجلد /opt/ansible غير موجود', 'مجلد مشروع أنsible غير موجود.', ['mkdir', '-p', ANSIBLE_DIR], 'إنشاء مجلد /opt/ansible.'),
-        (ANSIBLE_CFG_FILE, ANSIBLE_ISSUE_CFG_MISSING, 'ملف ansible.cfg غير موجود', 'ملف الإعدادات الأساسي مفقود.', None, ' أعد تشغيل تثبيت أنsible لإنشاء ملف الإعدادات.'),
-        (ANSIBLE_HOSTS_FILE, ANSIBLE_ISSUE_INVENTORY_MISSING, 'ملف inventory/hosts.ini غير موجود', 'ملف الجرد غير موجود.', None, ' أعد تشغيل تثبيت أنsible لإنشاء ملف الجرد.'),
+        (ANSIBLE_DIR, ANSIBLE_ISSUE_DIR_MISSING, 'Directory /opt/ansible not found', 'Ansible project directory is missing.', ['mkdir', '-p', ANSIBLE_DIR], 'Create directory /opt/ansible.'),
+        (ANSIBLE_CFG_FILE, ANSIBLE_ISSUE_CFG_MISSING, 'File ansible.cfg not found', 'Main config file is missing.', None, ' Run Ansible installation again to create the config file.'),
+        (ANSIBLE_HOSTS_FILE, ANSIBLE_ISSUE_INVENTORY_MISSING, 'File inventory/hosts.ini not found', 'Inventory file is missing.', None, ' Run Ansible installation again to create the inventory file.'),
     ):
         if not os.path.exists(path):
             issues.append({
@@ -284,29 +282,29 @@ def ansible_diagnose(use_sudo=False):
             if fix_cmd:
                 repairs.append((title, fix_cmd))
 
-    # فحص متغيرات البيئة
+    # Check environment variables
     if not os.path.expanduser('~/.local/bin/ansible-playbook'):
         issues.append({
             'id': 'ansible_path_missing',
             'component': 'Ansible',
-            'title': 'أنsible ليس في PATH المستخدم',
-            'description': 'قد يحتاج المستخدم إلى تسجيل الخروج والدخول لتفعيل PATH.',
+            'title': 'Ansible not in user PATH',
+            'description': 'User may need to log out and back in to activate PATH.',
             'severity': 'low',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'سجل الخروج والدخول مرة أخرى أو أضف ~/.local/bin إلى PATH.',
+            'fix_description': 'Log out and log in again, or add ~/.local/bin to PATH.',
         })
 
     return issues, repairs
 
 
 def ansible_repair(issue, use_sudo=False):
-    """تنفيذ إصلاح واحد لمشكلة أنsible."""
+    """Execute a single fix for an Ansible issue."""
     fix_cmd = issue.get('fix_command')
     if not fix_cmd:
-        return False, 'لا يوجد أمر إصلاح تلقائي لهذه المشكلة.'
+        return False, 'No automatic repair command for this issue.'
     try:
         run_step(fix_cmd)
-        return True, 'تم التنفيذ بنجاح.'
+        return True, 'Executed successfully.'
     except Exception as exc:
         return False, str(exc)

@@ -10,7 +10,7 @@ SUPPORTED_VERSIONS = ("15", "16", "17", "18")
 
 def build_plan(version, with_pgvector=False, privileged=False):
     if version not in SUPPORTED_VERSIONS:
-        raise ValueError("الإصدارات المتاحة: PostgreSQL 15 و16 و17 و18.")
+        raise ValueError("Available versions: PostgreSQL 15, 16, 17, 18.")
     prefix = [] if privileged else ["sudo"]
     commands = [
         prefix + ["apt-get", "update"],
@@ -42,10 +42,10 @@ def install_postgresql(version, with_pgvector=False, dry_run=False):
     except OSError:
         release = {}
     if release.get("ID") != "ubuntu":
-        print("التثبيت المباشر متاح على Ubuntu فقط.")
+        print("Direct installation is available on Ubuntu only.")
         return False
     if not shutil.which("apt-get") or (not privileged and not shutil.which("sudo")):
-        print("يلزم apt-get وصلاحيات root أو sudo.")
+        print("apt-get and root or sudo privileges are required.")
         return False
     # Keep the terminal attached for sudo and the official interactive PGDG script.
     for command in commands:
@@ -53,15 +53,15 @@ def install_postgresql(version, with_pgvector=False, dry_run=False):
         try:
             result = subprocess.run(command, check=False)
         except (OSError, KeyboardInterrupt) as exc:
-            print(f"توقف التنفيذ: {exc}")
+            print(f"Execution stopped: {exc}")
             return False
         if result.returncode:
-            print(f"فشل الأمر برمز {result.returncode}. قد تكون بعض الحزم ثُبتت؛ راجع المخرجات أعلاه.")
+            print(f"Command failed with code {result.returncode}. Some packages may have been installed; see output above.")
             return False
-    print(f"اكتمل تثبيت PostgreSQL {version}. راجع حالة كل cluster ومنفذه في الجدول أعلاه.")
-    print("حالة خدمة postgresql العامة وحدها لا تثبت جاهزية كل قاعدة بيانات.")
+    print(f"PostgreSQL {version} installation completed. Check each cluster status and port in the table above.")
+    print("postgresql service status alone does not prove every database is ready.")
     if with_pgvector:
-        print("ثُبتت حزمة pgvector. بعد إنشاء قاعدة Odoo، اتصل بها ونفذ:")
+        print("pgvector package installed. After creating the Odoo database, connect to it and run:")
         print("CREATE EXTENSION IF NOT EXISTS vector;")
-        print("لم يُنفذ SQL تلقائيًا على أي قاعدة بيانات.")
+        print("No SQL was executed automatically on any database.")
     return True

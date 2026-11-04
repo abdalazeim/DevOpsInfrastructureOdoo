@@ -38,12 +38,12 @@ RESET = "\033[0m"
 DIM = "\033[2m"
 
 class TerminalUI:
-    """Interactive TUI for terminal execution with Arabic and English support."""
+    """Interactive TUI for terminal execution."""
 
     def __init__(self, profile_path: str = "profiles/example.yaml"):
         self.profile_path = profile_path
         self.profile = self.load_profile(profile_path)
-        self.is_arabic = True
+        self.is_arabic = False
 
     def load_profile(self, path: str) -> InfrastructureProfile:
         """Loads and parses a profile from YAML or JSON-compatible format."""
@@ -73,7 +73,7 @@ class TerminalUI:
         print(f"{CYAN}{BOLD}")
         print("╔══════════════════════════════════════════════════════════════════════════════╗")
         print("║                     ODOO INFRASTRUCTURE MANAGER                              ║")
-        print("║               مدير البنية التحتية لنظام أودو متعدد الإصدارات                 ║")
+        print("║               Odoo Multi-Version Infrastructure Manager                 ║")
         print("║   Ubuntu (Server & Desktop 22.04+) | Docker | Traefik v3.7 | Odoo 17/18/19  ║")
         print("╚══════════════════════════════════════════════════════════════════════════════╝")
         print(f"{RESET}")
@@ -141,11 +141,11 @@ class TerminalUI:
             print(f" {BOLD}13.{RESET} Configuration Profiles")
             print(f" {BOLD}14.{RESET} Troubleshooting")
             print(f" {BOLD}15.{RESET} Generate Infrastructure Report")
-            print(f" {BOLD}16.{RESET} Python / PostgreSQL / Docker / Compose / Portainer — فحص المكونات")
-            print(f" {BOLD}17.{RESET} Install Ansible & Baseline Config / تثبيت أنsible والإعداد الأساسي")
-            print(f" {BOLD}18.{RESET} Install Jenkins CI/CD / تثبيت جينكينز للتكامل والنشر المستمر")
-            print(f" {BOLD}19.{RESET} تشخيص وإصلاح الأخطاء المحتملة / Error Diagnosis & Auto-Repair")
-            print(f" {BOLD}20.{RESET} تشخيص وإصلاح أودو (17 / 18 / 19) / Odoo Diagnosis & Repair")
+            print(f" {BOLD}16.{RESET} Python / PostgreSQL / Docker / Compose / Portainer — Component Inspection")
+            print(f" {BOLD}17.{RESET} Install Ansible & Baseline Config")
+            print(f" {BOLD}18.{RESET} Install Jenkins CI/CD")
+            print(f" {BOLD}19.{RESET} Error Diagnosis & Auto-Repair")
+            print(f" {BOLD}20.{RESET} Odoo Diagnosis & Repair (17 / 18 / 19)")
             print("")
             print(f"  {BOLD}0.{RESET} Exit")
             print(f"{CYAN}=================================================={RESET}")
@@ -195,7 +195,7 @@ class TerminalUI:
             elif choice == "20":
                 self.handle_odoo_diagnosis()
             elif choice == "0":
-                print(f"{CYAN}Exiting Odoo Infrastructure Manager. Goodbye! / إلى اللقاء!{RESET}")
+                print(f"{CYAN}Exiting Odoo Infrastructure Manager. Goodbye!{RESET}")
                 break
             else:
                 print(f"{RED}Invalid selection. Please choose an option from 0 to 20.{RESET}")
@@ -205,8 +205,8 @@ class TerminalUI:
     def handle_runtime_setup(self, dry_run=False):
         from app.services.runtime_inspector import VERSIONS, inspect_host, inspect_docker
 
-        print("\n1. Python\n2. PostgreSQL\n3. Docker Engine\n4. Docker Compose\n5. Portainer\n0. رجوع")
-        component = {"1": "python", "2": "postgresql", "3": "docker", "4": "compose", "5": "portainer"}.get(input("اختر المكون: ").strip())
+        print("\n1. Python\n2. PostgreSQL\n3. Docker Engine\n4. Docker Compose\n5. Portainer\n0. Back")
+        component = {"1": "python", "2": "postgresql", "3": "docker", "4": "compose", "5": "portainer"}.get(input("Choose component: ").strip())
         if not component:
             return
         if component == "docker":
@@ -218,8 +218,8 @@ class TerminalUI:
         if component == "portainer":
             self.handle_portainer_setup(dry_run=dry_run)
             return
-        print("\n1. على الجهاز\n2. داخل Docker\n0. رجوع")
-        location = {"1": "host", "2": "docker"}.get(input("اختر مكان التثبيت: ").strip())
+        print("\n1. Host\n2. Inside Docker\n0. Back")
+        location = {"1": "host", "2": "docker"}.get(input("Choose installation location: ").strip())
         if not location:
             return
         report = inspect_host(component) if location == "host" else inspect_docker(component)
@@ -228,64 +228,64 @@ class TerminalUI:
         if report.get("details"):
             print(report["details"])
         for error in report["errors"]:
-            print(f"تعذر إكمال الفحص: {error}")
+            print(f"Failed to complete inspection: {error}")
         if not report["records"]:
-            print("لم يُكتشف تثبيت في المسارات والصور المفحوصة؛ هذا لا يستبعد تثبيتًا مخصصًا.")
+            print("No installation detected in checked paths and images; this does not exclude a custom installation.")
         if location == "docker":
-            print("وسم الصورة ليس تحققًا من الإصدار داخلها. الصور المخصصة قد لا تظهر؛ وجود صورة لا يعني تشغيل حاوية.")
+            print("Image tag is not a version check inside it. Custom images may not appear; image presence does not mean a running container.")
         if report["records"]:
-            if input("هل ترغب باختيار إصدار إضافي؟ [y/N]: ").strip().lower() != "y":
+            if input("Would you like to choose an additional version? [y/N]: ").strip().lower() != "y":
                 return
         versions = VERSIONS[component]
         # Project recommendations supplied by the operator, not a compatibility gate.
         python_recommendations = {
             "3.10": "Odoo 17",
-            "3.11": "Odoo 17 وOdoo 18 (الموصى به لـ18)",
-            "3.12": "Odoo 19 (موصى به بشدة)",
+            "3.11": "Odoo 17 and Odoo 18 (recommended for 18)",
+            "3.12": "Odoo 19 (highly recommended)",
         }
         if component == "python":
-            print("توصيات المشروع لاختيار Python حسب Odoo:")
+            print("Project Python recommendations by Odoo version:")
         for index, version in enumerate(versions, 1):
             recommendation = f" — {python_recommendations[version]}" if component == "python" else ""
             print(f"{index}. {version}{recommendation}")
         if component == "python":
-            print("4. إصدار أحدث من 3.12 (إدخال يدوي؛ خارج توصيات المشروع الحالية)")
-        print("0. رجوع")
-        selected = input("اختر الإصدار: ").strip()
+            print("4. Version newer than 3.12 (manual entry; outside current project recommendations)")
+        print("0. Back")
+        selected = input("Select version: ").strip()
         if component == "python" and selected == "4":
             import re
-            version = input("الإصدار بصيغة 3.x: ").strip()
+            version = input("Version in format 3.x: ").strip()
             if not re.fullmatch(r"3\.[0-9]+", version) or int(version.split(".")[1]) <= 12:
-                print("إصدار غير صالح؛ أدخل 3.13 أو أحدث بصيغة 3.x.")
+                print("Invalid version; enter 3.13 or newer in format 3.x.")
                 return
         elif selected.isdigit() and 1 <= int(selected) <= len(versions):
             version = versions[int(selected) - 1]
         else:
             return
-        print(f"الخيار: {component} {version} | {'على الجهاز' if location == 'host' else 'Docker'}")
+        print(f"Option: {component} {version} | {'Host' if location == 'host' else 'Docker'}")
         if component == "python" and location == "host":
             from app.services.python_installer import SUPPORTED_VERSIONS, install_python
             if version not in SUPPORTED_VERSIONS:
-                print("طريقة تثبيت هذا الإصدار لم تُضف بعد؛ المتاح حاليًا 3.10 و3.11 و3.12.")
+                print("Installation method for this version has not been added yet; currently available: 3.10, 3.11, and 3.12.")
                 return
-            print("خطة التثبيت:")
+            print("Installation plan:")
             install_python(version, dry_run=True)
             if dry_run:
                 return
-            if input("تنفيذ هذه الأوامر على الجهاز؟ [y/N]: ").strip().lower() == "y":
+            if input("Run these commands on the machine? [y/N]: ").strip().lower() == "y":
                 install_python(version)
             return
         if component == "postgresql" and location == "host":
             from app.services.postgresql_installer import install_postgresql
-            with_pgvector = input("تثبيت pgvector أيضًا لميزات Odoo 19؟ [y/N]: ").strip().lower() == "y"
-            print("خطة التثبيت عبر مستودع PGDG الرسمي:")
+            with_pgvector = input("Install pgvector too for Odoo 19 features? [y/N]: ").strip().lower() == "y"
+            print("Installation plan via official PGDG repository:")
             install_postgresql(version, with_pgvector=with_pgvector, dry_run=True)
             if dry_run:
                 return
-            if input("تنفيذ هذه الأوامر على الجهاز؟ [y/N]: ").strip().lower() == "y":
+            if input("Run these commands on the machine? [y/N]: ").strip().lower() == "y":
                 install_postgresql(version, with_pgvector=with_pgvector)
             return
-        print("التثبيت غير منفذ: بانتظار إضافة طريقة التثبيت التي سيحددها صاحب المشروع.")
+        print("Installation not executed: waiting for the installation method to be determined by the project owner.")
 
     def handle_portainer_setup(self, dry_run=False):
         from app.services.portainer_service import inspect_portainer, install_portainer
@@ -293,93 +293,93 @@ class TerminalUI:
         report = inspect_portainer()
         if report['status'] == 'error' and not dry_run and hasattr(os, 'geteuid') and os.geteuid() != 0:
             print(report['error'])
-            print("إعادة الفحص بصلاحيات sudo وفق طريقة التثبيت المختارة.")
+            print("Re-inspecting with sudo privileges according to selected installation method.")
             try:
                 subprocess.run(['sudo', '-v'], check=True)
             except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                print("تعذر الحصول على صلاحيات sudo؛ لم يتم التثبيت.")
+                print("Unable to obtain sudo privileges; installation not performed.")
                 return
             use_sudo = True
             report = inspect_portainer(use_sudo=True)
-        print("\nPortainer — فحص المحرك المحلي")
+        print("\nPortainer — Local Engine Inspection")
         for item in report['containers']:
             for key in ('Names', 'Image', 'ID', 'Status', 'Ports'):
                 print(f"{key}: {item.get(key, '-')}")
         if report['status'] == 'installed':
-            print("Portainer موجود؛ حالة التشغيل موضحة أعلاه. لن يعاد تثبيته. وسم الصورة ليس إصدارًا متحققًا منه.")
+            print("Portainer exists; running status shown above. Will not be reinstalled. Image tag is not a verified version.")
             return
         if report['status'] == 'conflict':
-            print("اسم portainer تستخدمه حاوية أخرى؛ لم تُجرَ تغييرات.")
+            print("Portainer name is used by another container; no changes were made.")
             return
         if report['status'] != 'missing':
             print(report['error'])
-            print("راجع تثبيت Docker وصلاحية الوصول إلى المقبس المحلي قبل المتابعة.")
+            print("Review Docker installation and socket access permissions before proceeding.")
             return
-        print("لم تُكتشف حاوية Portainer. التثبيت المقترح: portainer/portainer-ce (الوسم الافتراضي latest).")
-        print("الحاوية ستدير Docker عبر المقبس، وتعرض لوحة ويب HTTP على المنفذ المختار. تبقى إدارة هذا المشروع عبر Terminal.")
-        print("التخزين الدائم: /srv/portainer على الجهاز؛ ستُستخدم بياناته الحالية إن وجدت.")
+        print("No Portainer container detected. Proposed installation: portainer/portainer-ce (default tag latest).")
+        print("The container will manage Docker via the socket and expose an HTTP web panel on the selected port. Project management remains via Terminal.")
+        print("Persistent storage: /srv/portainer on the host; existing data will be used if found.")
         try:
-            port = int(input("منفذ HTTP على السيرفر [9000]: ").strip() or '9000')
+            port = int(input("HTTP port on server [9000]: ").strip() or '9000')
         except ValueError:
-            print("أدخل رقم منفذ صالحًا.")
+            print("Enter a valid port number.")
             return
-        edge = input("نشر منفذ 8000 لاستخدام Edge Agents؟ [Y/n]: ").strip().lower() != 'n'
+        edge = input("Publish port 8000 for Edge Agents? [Y/n]: ").strip().lower() != 'n'
         if not install_portainer(port, edge, dry_run=True, use_sudo=use_sudo):
             return
-        if not dry_run and input("تنفيذ التثبيت ونشر المنافذ المعروضة؟ [y/N]: ").strip().lower() == 'y':
+        if not dry_run and input("Execute installation and publish displayed ports? [y/N]: ").strip().lower() == 'y':
             install_portainer(port, edge, use_sudo=use_sudo)
 
     def handle_compose_setup(self, dry_run=False):
         from app.services.compose_installer import inspect_compose, install_compose
         report = inspect_compose()
-        print("\nDocker Compose — فحص الإضافة")
+        print("\nDocker Compose — Extension Inspection")
         if report['path']:
-            print(f"الأمر: {report['path']} compose version")
+            print(f"Command: {report['path']} compose version")
         print(report['details'])
         if report['status'] == 'installed':
-            print("الإضافة مثبتة وتعمل؛ لا حاجة لإعادة التثبيت.")
+            print("The extension is installed and working; no need to reinstall.")
             return
         if report['status'] == 'docker_missing':
-            print("اختر 3 من قائمة المكونات لإعداد Docker Engine.")
+            print("Select 3 from the components list to set up Docker Engine.")
             return
-        print("الإضافة غير متاحة أو تعذر تشغيلها؛ تفاصيل الخطأ معروضة أعلاه.")
-        print("تحتاج الحزمة إلى مستودع Docker الرسمي الذي يجهزه مسار Docker Engine.")
+        print("The extension is not available or could not be run; error details are shown above.")
+        print("The package requires the official Docker repository prepared by the Docker Engine path.")
         install_compose(dry_run=True)
-        if not dry_run and input("تثبيت docker-compose-plugin على Ubuntu؟ [y/N]: ").strip().lower() == 'y':
+        if not dry_run and input("Install docker-compose-plugin on Ubuntu? [y/N]: ").strip().lower() == 'y':
             install_compose()
 
     def handle_docker_inspection(self, dry_run=False):
         from app.services.docker_inspector import inspect_engine, STATUS_TEXT
         report = inspect_engine()
-        print("\nDocker Engine — فحص التثبيت والتشغيل")
+        print("\nDocker Engine — Installation and Operation Inspection")
         print(STATUS_TEXT[report["status"]])
-        for key, label in (("path", "مسار العميل"), ("daemon_path", "مسار dockerd المحلي"),
-                           ("client_version", "إصدار العميل"), ("server_version", "إصدار المحرك"),
+        for key, label in (("path", "Client path"), ("daemon_path", "Local dockerd path"),
+                           ("client_version", "Client version"), ("server_version", "Engine version"),
                            ("context", "Docker context"), ("compose", "Docker Compose")):
             if report[key]:
                 print(f"{label}: {report[key]}")
         for key, value in report["details"].items():
             print(f"{key}: {value}")
         for error in report["errors"]:
-            print(f"تفاصيل الفحص: {error}")
+            print(f"Inspection details: {error}")
         if report["status"] == "missing":
-            print("الإجراء المقترح: تثبيت Docker Engine من مستودع Docker الرسمي.")
+            print("Recommended action: Install Docker Engine from the official Docker repository.")
         elif report["status"] != "running":
-            print("راجع الاتصال والصلاحيات وحالة الخدمة قبل التفكير في إعادة التثبيت.")
-        print("الفحص للقراءة فقط. الاتصال الحالي قد يشير إلى محرك بعيد أو Docker Desktop.")
-        if input("فتح خطة تثبيت/تحديث Docker Engine على جهاز Ubuntu المحلي؟ [y/N]: ").strip().lower() != "y":
+            print("Review connectivity, permissions, and service status before considering reinstallation.")
+        print("Inspection is read-only. The current connection may refer to a remote engine or Docker Desktop.")
+        if input("Open Docker Engine installation/update plan on local Ubuntu machine? [y/N]: ").strip().lower() != "y":
             return
         from app.services.docker_installer import install_docker
-        choose_version = input("1. أحدث إصدار مستقر\n2. اختيار إصدار من المستودع\nاختر [1/2]: ").strip()
+        choose_version = input("1. Latest stable version\n2. Select version from repository\nChoose [1/2]: ").strip()
         if choose_version not in ("1", "2"):
             return
-        hello_world = input("تشغيل اختبار hello-world بعد التثبيت (ينزل صورة)؟ [y/N]: ").strip().lower() == "y"
+        hello_world = input("Run hello-world test after installation (pulls image)? [y/N]: ").strip().lower() == "y"
         group_user = ""
-        print("اختياري: عضوية مجموعة docker تمنح صلاحيات واسعة تعادل root.")
-        if input("إضافة مستخدم إلى مجموعة docker؟ [y/N]: ").strip().lower() == "y":
-            group_user = input("اسم المستخدم المحلي: ").strip()
+        print("Optional: docker group membership grants broad privileges equivalent to root.")
+        if input("Add user to docker group? [y/N]: ").strip().lower() == "y":
+            group_user = input("Local username: ").strip()
             if not group_user:
-                print("لم تحدد مستخدمًا؛ لن تتغير عضوية المجموعة.")
+                print("No user specified; group membership will not change.")
         install_docker(dry_run=dry_run, choose_version=choose_version == "2",
                        hello_world=hello_world, group_user=group_user)
 
@@ -404,7 +404,7 @@ class TerminalUI:
 
         print(f"\n{BOLD}{CYAN}=============================================================================={RESET}")
         print(f"{BOLD}{CYAN}             PRE-FLIGHT INTELLIGENT INSPECTION & AUDIT REPORT                 {RESET}")
-        print(f"{BOLD}{CYAN}                 فحص المتطلبات والتثبيت الذكي والحزم الأساسية                 {RESET}")
+        print(f"{BOLD}{CYAN}                 Requirements Inspection & Basic Package Installation                 {RESET}")
         print(f"{BOLD}{CYAN}=============================================================================={RESET}\n")
 
         report = SmartInspectorService.run_full_inspection()
@@ -414,7 +414,7 @@ class TerminalUI:
         print(f"{BOLD}Compliance Status:{RESET} {'Compliant (Ubuntu 22.04+)' if report.is_supported_ubuntu else 'Warning: OS Needs Update'}\n")
 
         print("┌───────────────────────────────────┬──────────────┬────────────────────────┬──────────────────────┐")
-        print("│ Component / المكون                 │ Status / الحالة │ Detected Version       │ Path / Details       │")
+        print("│ Component                              │ Status        │ Detected Version       │ Path / Details       │")
         print("├───────────────────────────────────┼──────────────┼────────────────────────┼──────────────────────┤")
 
         for c in report.components:
@@ -433,7 +433,7 @@ class TerminalUI:
                 status_text = "ISSUES [?]"
                 status_color = YELLOW
 
-            comp_name = (c.name_ar if self.is_arabic else c.name)[:33]
+            comp_name = c.name[:33]
             ver = (c.detected_version or "N/A")[:22]
             path_info = (c.binary_path or c.details or "N/A")[:20]
 
@@ -445,8 +445,8 @@ class TerminalUI:
         if missing_comps:
             print(f"\n{YELLOW}{BOLD}Missing Required Components ({len(missing_comps)}):{RESET}")
             for mc in missing_comps:
-                print(f"  • {BOLD}{mc.name}{RESET}: {mc.why_needed_ar if self.is_arabic else mc.why_needed}")
-                print(f"    Action: {mc.recommended_action_ar if self.is_arabic else mc.recommended_action}")
+                print(f"  • {BOLD}{mc.name}{RESET}: {mc.why_needed}")
+                print(f"    Action: {mc.recommended_action}")
 
             ans = input(f"\n{CYAN}Would you like to create a safety snapshot and install missing packages? [y/N]: {RESET}").strip().lower()
             if ans == "y":
@@ -499,7 +499,7 @@ class TerminalUI:
     def handle_system_information(self):
         import shutil, socket, datetime
         import platform
-        print(f"\n{BOLD}{CYAN}=== 1. SYSTEM INFORMATION / معلومات النظام ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 1. SYSTEM INFORMATION ==={RESET}")
         try:
             actual_hostname = socket.gethostname()
         except Exception:
@@ -565,7 +565,7 @@ class TerminalUI:
             print(f"{YELLOW}! Odoo {version} is not installed under {self.profile.paths.data_root}.{RESET}")
 
     def handle_docker_management(self):
-        print(f"\n{BOLD}{CYAN}=== 4. DOCKER MANAGEMENT / إدارة الحاويات ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 4. DOCKER MANAGEMENT ==={RESET}")
         print(" [1] List all containers (docker ps -a)")
         print(" [2] Start all stopped services")
         print(" [3] Stop all running services (Safe: volumes preserved)")
@@ -596,7 +596,7 @@ class TerminalUI:
         from app.services.traefik_manager import DEFAULT_CONFIG_DIR, TraefikDockerManager, TraefikConfig, inspect_traefik, install_traefik, setup_traefik_ufw
 
         print(f"\n{BOLD}{CYAN}=============================================================================={RESET}")
-        print(f"{BOLD}{CYAN}             TRAEFIK DOCKER MANAGEMENT MODULE / إدارة ترافيك                  {RESET}")
+        print(f"{BOLD}{CYAN}             TRAEFIK DOCKER MANAGEMENT MODULE                  {RESET}")
         print(f"{BOLD}{CYAN}      Ubuntu Server/Desktop • Docker Engine • Traefik v3.7 • Proxy Network    {RESET}")
         print(f"{BOLD}{CYAN}=============================================================================={RESET}\n")
 
@@ -644,34 +644,34 @@ class TerminalUI:
             report = inspect_traefik()
             if report['status'] == 'error' and not dry_run and hasattr(os, 'geteuid') and os.geteuid() != 0:
                 print(report['error'])
-                print("إعادة الفحص بصلاحيات sudo وفق طريقة التثبيت المختارة.")
+                print("Re-inspecting with sudo privileges according to selected installation method.")
                 try:
                     subprocess.run(['sudo', '-v'], check=True)
                 except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                    print("تعذر الحصول على صلاحيات sudo؛ لم يتم التثبيت.")
+                    print("Unable to obtain sudo privileges; installation not performed.")
                     return
                 use_sudo = True
                 report = inspect_traefik(use_sudo=True)
-            print("\nTraefik — فحص المحرك المحلي")
+            print("\nTraefik — Local Engine Inspection")
             for item in report['containers']:
                 for key in ('Names', 'Image', 'ID', 'Status', 'Ports'):
                     print(f"{key}: {item.get(key, '-')}")
             if report['status'] == 'installed':
-                print("Traefik مثبت بالفعل. حالة الحاوية موضحة أعلاه. لن يعاد التثبيت.")
+                print("Traefik is already installed. Container status shown above. Will not be reinstalled.")
                 return
             if report['status'] == 'conflict':
-                print("اسم traefik مستخدم من حاوية أخرى. لم تُجرَ تغييرات.")
+                print("Traefik name is used by another container. No changes were made.")
                 return
             if report['status'] != 'missing':
                 print(report['error'])
-                print("راجع تثبيت Docker وصلاحية الوصول إلى المقبس المحلي قبل المتابعة.")
+print("Review Docker installation and socket access permissions before proceeding.")
                 return
-            print("لم تُكتشف حاوية ترافيك. التثبيت المقترح: traefik:v3.7 على المنفذين 80 و443.")
-            print("المجلدات: /opt/traefik/{config,letsencrypt} و /data/traefik/logs، والملف acme.json بصلاحية 0600.")
-            print("سيتم إنشاء شبكة Docker باسم proxy إن لم تكن موجودة.")
+            print("No Traefik container detected. Proposed installation: traefik:v3.7 on ports 80 and 443.")
+            print("Directories: /opt/traefik/{config,letsencrypt} and /data/traefik/logs, and acme.json file with 0600 permissions.")
+            print("A Docker network named proxy will be created if it does not exist.")
             if not install_traefik(dry_run=True, use_sudo=use_sudo):
                 return
-            if not dry_run and input("تنفيذ تثبيت ترافيك ونشر المنافذ 80/443؟ [y/N]: ").strip().lower() == 'y':
+            if not dry_run and input("Execute Traefik installation and publish ports 80/443? [y/N]: ").strip().lower() == 'y':
                 install_traefik(use_sudo=use_sudo)
 
         elif sub == "3":
@@ -771,15 +771,15 @@ class TerminalUI:
         elif sub == "10":
             use_sudo = False
             if not shutil.which('ufw'):
-                print(f"\n{YELLOW}UFW غير مثبت على النظام. لم يتم فتح أي منافذ.{RESET}")
-                print("يمكنك تثبيته عبر: sudo apt-get install ufw")
+                print(f"\n{YELLOW}UFW is not installed on the system. No ports were opened.{RESET}")
+                print("You can install it via: sudo apt-get install ufw")
             else:
                 print(f"\n{BOLD}Opening Traefik firewall ports via UFW...{RESET}")
                 try:
                     subprocess.run(['sudo', '-v'], check=True)
                     use_sudo = True
                 except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                    print("تعذر الحصول على صلاحيات sudo؛ تم التخطي.")
+                    print("Unable to obtain sudo privileges; skipped.")
                 if use_sudo:
                     ok = setup_traefik_ufw(use_sudo=True)
                     if ok:
@@ -797,34 +797,34 @@ class TerminalUI:
         report = inspect_ansible()
         if report['status'] == 'error' and hasattr(os, 'geteuid') and os.geteuid() != 0:
             print(report['error'])
-            print("إعادة الفحص بصلاحيات sudo وفق طريقة التثبيت المختارة.")
+            print("Re-inspecting with sudo privileges according to selected installation method.")
             try:
                 subprocess.run(['sudo', '-v'], check=True)
             except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                print("تعذر الحصول على صلاحيات sudo؛ لم يتم التثبيت.")
+                print("Unable to obtain sudo privileges; installation not performed.")
                 return
             use_sudo = True
             report = inspect_ansible(use_sudo=True)
-        print(f"\n{BOLD}{CYAN}=== ANSIBLE INSTALLATION / تثبيت أنsible ==={RESET}")
-        print(f"الحالة الحالية: {report['status']}")
+        print(f"\n{BOLD}{CYAN}=== ANSIBLE INSTALLATION ==={RESET}")
+        print(f"Current status: {report['status']}")
         if report.get('version'):
-            print(f"الإصدار: {report['version']}")
+            print(f"Version: {report['version']}")
         if report['status'] == 'installed':
-            print("أنsible مثبت بالفعل. لن يعاد التثبيت.")
+            print("Ansible is already installed. Will not reinstall.")
             return
         if report['status'] == 'error':
             print(report['error'])
             return
-        print("لم يُكتشف تثبيت أنsible. التثبيت المقترح:")
-        print("  • تحديث النظام وتثبيت المتطلبات (python3, pipx, git, curl, إلخ)")
-        print("  • تثبيت Ansible عبر pipx للمستخدم الحالي")
-        print(f"  • إنشاء هيكل المشروع في {ANSIBLE_DIR}")
-        print("  • إنشاء ansible.cfg و inventory/hosts.ini و playbook اختبار")
-        print("  • تثبيت collections: community.docker, ansible.posix")
+        print("No Ansible installation detected. Proposed installation:")
+        print("  • System update and requirement installation (python3, pipx, git, curl, etc.)")
+        print("  • Install Ansible via pipx for current user")
+        print(f"  • Create project structure in {ANSIBLE_DIR}")
+        print("  • Create ansible.cfg, inventory/hosts.ini, and test playbook")
+        print("  • Install collections: community.docker, ansible.posix")
         print()
         if not install_ansible(dry_run=True, use_sudo=use_sudo):
             return
-        if input("تنفيذ تثبيت أنsible على هذا الجهاز؟ [y/N]: ").strip().lower() == 'y':
+        if input("Execute Ansible installation on this machine? [y/N]: ").strip().lower() == 'y':
             install_ansible(use_sudo=use_sudo)
 
     def handle_jenkins_install(self):
@@ -833,50 +833,50 @@ class TerminalUI:
         report = inspect_jenkins()
         if report['status'] == 'error' and hasattr(os, 'geteuid') and os.geteuid() != 0:
             print(report['error'])
-            print("إعادة الفحص بصلاحيات sudo وفق طريقة التثبيت المختارة.")
+            print("Re-inspecting with sudo privileges according to selected installation method.")
             try:
                 subprocess.run(['sudo', '-v'], check=True)
             except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                print("تعذر الحصول على صلاحيات sudo؛ لم يتم التثبيت.")
+                print("Unable to obtain sudo privileges; installation not performed.")
                 return
             use_sudo = True
             report = inspect_jenkins(use_sudo=True)
-        print(f"\n{BOLD}{CYAN}=== JENKINS CI/CD INSTALLATION / تثبيت جينكينز ==={RESET}")
-        print(f"الحالة الحالية: {report['status']}")
+        print(f"\n{BOLD}{CYAN}=== JENKINS CI/CD INSTALLATION ==={RESET}")
+        print(f"Current status: {report['status']}")
         if report['status'] == 'installed':
-            print("جينكينز مثبت بالفعل. لن يعاد التثبيت.")
+            print("Jenkins is already installed. Will not reinstall.")
             return
         if report['status'] == 'error':
             print(report['error'])
             return
 
-        # فحص مسبق للنظام
-        print(f"\n{BOLD}فحص مسبق للنظام قبل التثبيت:{RESET}")
+        # Pre-installation system inspection
+        print(f"\n{BOLD}Pre-installation system inspection:{RESET}")
         preflight = system_preflight_check()
         for key, value in preflight.items():
             print(f"  [{key}] {value}")
         print()
 
-        print("لم يُكتشف تثبيت جينكينز. التثبيت المقترح:")
-        print(f"  • صورة Docker: {IMAGE if 'IMAGE' in dir() else 'jenkins/jenkins:lts-jdk21'}")
-        print(f"  • تخزين البيانات: /data/jenkins (UID 1000:1000)")
-        print(f"  • ملف الإعدادات: /opt/jenkins/docker-compose.yml")
-        print(f"  • المنطقة الزمنية: {JENKINS_TIMEZONE if 'JENKINS_TIMEZONE' in dir() else 'Africa/Tripoli'}")
-        print("  • الربط بشبكة Traefik (proxy) للوصول عبر HTTPS فقط")
-        print("  • مقبس Docker غير مرتبط بالحاوية (أمان)")
-        print("  • إعادة تشغيل تلقائية (--restart=always)")
+        print("No Jenkins installation detected. Proposed installation:")
+        print(f"  • Docker image: {IMAGE if 'IMAGE' in dir() else 'jenkins/jenkins:lts-jdk21'}")
+        print(f"  • Data storage: /data/jenkins (UID 1000:1000)")
+        print(f"  • Configuration file: /opt/jenkins/docker-compose.yml")
+        print(f"  • Timezone: {JENKINS_TIMEZONE if 'JENKINS_TIMEZONE' in dir() else 'Africa/Tripoli'}")
+        print("  • Connect to Traefik network (proxy) for HTTPS access only")
+        print("  • Docker socket not mounted inside container (security)")
+        print("  • Automatic restart (--restart=always)")
         print()
 
-        domain = input(f"نطاق الوصول [افتراضي {JENKINS_DOMAIN}]: ").strip() or JENKINS_DOMAIN
-        certsresolver = input(f"مثبت شهادة Traefik [افتراضي {JENKINS_CERTSRESOLVER}]: ").strip() or JENKINS_CERTSRESOLVER
-        print(f"\nالنطاق المختار: {domain}")
-        print(f"مثبت الشهادة: {certsresolver}")
-        print("تأكد من أن النطاق يشير إلى عنوان IP الخادم عبر سجل A في DNS.")
-        print("تأكد من أن اسم مثبت الشهادة يتطابق مع إعداد Traefik (على سبيل المثال 'letsencrypt' أو 'le').")
+        domain = input(f"Access domain [default {JENKINS_DOMAIN}]: ").strip() or JENKINS_DOMAIN
+        certsresolver = input(f"Traefik certificate resolver [default {JENKINS_CERTSRESOLVER}]: ").strip() or JENKINS_CERTSRESOLVER
+        print(f"\nSelected domain: {domain}")
+        print(f"Certificate resolver: {certsresolver}")
+        print("Ensure the domain points to the server IP via an A record in DNS.")
+        print("Ensure the certificate resolver name matches Traefik settings (e.g. 'letsencrypt' or 'le').")
 
         if not install_jenkins(dry_run=True, use_sudo=use_sudo, domain=domain, certsresolver=certsresolver):
             return
-        if input("تنفيذ تثبيت جينكينز على هذا الجهاز؟ [y/N]: ").strip().lower() == 'y':
+        if input("Execute Jenkins installation on this machine? [y/N]: ").strip().lower() == 'y':
             install_jenkins(use_sudo=use_sudo, domain=domain, certsresolver=certsresolver)
 
     def handle_error_diagnosis(self):
@@ -885,14 +885,14 @@ class TerminalUI:
         from app.services.ansible_service import ansible_diagnose, ansible_repair
         from app.services.jenkins_service import jenkins_diagnose, jenkins_repair
 
-        print(f"\n{BOLD}{CYAN}=== تشخيص وإصلاح الأخطاء المحتملة / Error Diagnosis & Auto-Repair ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== Error Diagnosis & Auto-Repair ==={RESET}")
         print("  [1] Portainer")
         print("  [2] Traefik")
         print("  [3] Ansible")
         print("  [4] Jenkins")
-        print("  [0] رجوع")
+        print("  [0] Back")
 
-        sub = input(f"{BOLD}اختر المكون [0-4]: {RESET}").strip()
+        sub = input(f"{BOLD}Choose component [0-4]: {RESET}").strip()
 
         if sub == "1":
             self._diagnose_and_repair_component("Portainer", portainer_diagnose, portainer_repair)
@@ -905,7 +905,7 @@ class TerminalUI:
         elif sub == "0":
             return
         else:
-            print(f"{RED}اختيار غير صحيح.{RESET}")
+            print(f"{RED}Invalid selection.{RESET}")
 
     def _diagnose_and_repair_component(self, name, diagnose_fn, repair_fn):
         use_sudo = False
@@ -914,31 +914,31 @@ class TerminalUI:
                 subprocess.run(['sudo', '-v'], check=True)
                 use_sudo = True
             except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                print(f"{YELLOW}لا يمكن الحصول على صلاحيات sudo؛ سيكون التشخيص للقراءة فقط.{RESET}")
+                print(f"{YELLOW}Unable to obtain sudo privileges; diagnosis will be read-only.{RESET}")
 
         issues, repairs = diagnose_fn(use_sudo=use_sudo)
 
         if not issues:
-            print(f"\n{GREEN}✓ لم تُكتشف أي أخطاء في {name}.{RESET}")
+            print(f"\n{GREEN}✓ No errors detected in {name}.{RESET}")
             return
 
-        print(f"\n{BOLD}الأخطاء المكتشفة في {name}:{RESET}")
+        print(f"\n{BOLD}Detected errors in {name}:{RESET}")
         for idx, issue in enumerate(issues, 1):
             severity_color = RED if issue['severity'] == 'critical' else YELLOW if issue['severity'] == 'high' else CYAN
             print(f"\n  {idx}. {severity_color}[{issue['severity'].upper()}]{RESET} {issue['title']}")
-            print(f"     المكون: {issue['component']}")
-            print(f"     الوصف: {issue['description']}")
+            print(f"     Component: {issue['component']}")
+            print(f"     Description: {issue['description']}")
             if issue.get('auto_fix'):
-                print(f"     الإصلاح التلقائي: متاح ({issue['fix_description']})")
+                print(f"     Automatic repair: Available ({issue['fix_description']})")
             else:
-                print(f"     الإصلاح التلقائي: غير متاح ({issue['fix_description']})")
+                print(f"     Automatic repair: Not available ({issue['fix_description']})")
 
-        print(f"\n{BOLD}خيارات الإصلاح:{RESET}")
-        print("  [a] إصلاح تلقائي لجميع المشاكل المتاحة")
-        print("  [m] اختيار المشاكل للإصلاح يدوياً")
-        print("  [0] رجوع")
+        print(f"\n{BOLD}Repair options:{RESET}")
+        print("  [a] Automatic repair for all available issues")
+        print("  [m] Select issues for manual repair")
+        print("  [0] Back")
 
-        sub = input(f"{BOLD}اختر [a/m/0]: {RESET}").strip().lower()
+        sub = input(f"{BOLD}Choose [a/m/0]: {RESET}").strip().lower()
 
         if sub == "a":
             auto_count = 0
@@ -946,25 +946,25 @@ class TerminalUI:
                 if issue.get('auto_fix'):
                     success, msg = repair_fn(issue, use_sudo=use_sudo)
                     if success:
-                        print(f"  ✓ تم: {issue['title']}")
+                        print(f"  ✓ Done: {issue['title']}")
                         auto_count += 1
                     else:
-                        print(f"  ✗ فشل: {issue['title']} - {msg}")
+                        print(f"  ✗ Failed: {issue['title']} - {msg}")
                 else:
-                    print(f"  ⊘ تم تخطي: {issue['title']} (لا يدعم الإصلاح التلقائي)")
-            print(f"\n{GREEN}تم إصلاح {auto_count} مشكلة تلقائياً.{RESET}")
+                    print(f"  ⊘ Skipped: {issue['title']} (automatic repair not supported)")
+            print(f"\n{GREEN}{auto_count} issues repaired automatically.{RESET}")
         elif sub == "m":
             for idx, issue in enumerate(issues, 1):
                 if not issue.get('auto_fix'):
-                    print(f"  {idx}. ⊘ {issue['title']} - غير متاح للإصلاح التلقائي")
+                    print(f"  {idx}. ⊘ {issue['title']} - Not available for automatic repair")
                     continue
-                choice = input(f"  {idx}. إصلاح '{issue['title']}'؟ [y/N]: ").strip().lower()
+                choice = input(f"  {idx}. Repair '{issue['title']}'? [y/N]: ").strip().lower()
                 if choice == 'y':
                     success, msg = repair_fn(issue, use_sudo=use_sudo)
                     if success:
-                        print(f"    ✓ تم بنجاح.")
+                        print(f"    ✓ Success.")
                     else:
-                        print(f"    ✗ فشل: {msg}")
+                        print(f"    ✗ Failed: {msg}")
 
     def handle_odoo_diagnosis(self):
         from app.services.odoo_service import odoo_diagnose, odoo_repair, install_odoo, inspect_odoo, ODOO_VERSIONS, ODOO_HTTP_PORTS, ODOO_CHAT_PORTS, ODOO_INTERNAL_NETWORKS, PG_IMAGES
@@ -974,15 +974,15 @@ class TerminalUI:
                 subprocess.run(['sudo', '-v'], check=True)
                 use_sudo = True
             except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
-                print(f"{YELLOW}لا يمكن الحصول على صلاحيات sudo؛ سيكون التشخيص للقراءة فقط.{RESET}")
+                print(f"{YELLOW}Unable to obtain sudo privileges; diagnosis will be read-only.{RESET}")
 
-        print(f"\n{BOLD}{CYAN}=== تشخيص وإصلاح أودو (17 / 18 / 19) / Odoo Diagnosis & Repair ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== Odoo Diagnosis & Repair (17 / 18 / 19) ==={RESET}")
         print("  [1] Odoo 17 (PostgreSQL 16)")
         print("  [2] Odoo 18 (PostgreSQL 17)")
         print("  [3] Odoo 19 (PostgreSQL 18)")
-        print("  [0] رجوع")
+        print("  [0] Back")
 
-        sub = input(f"{BOLD}اختر إصدار أودو [0-3]: {RESET}").strip()
+        sub = input(f"{BOLD}Choose Odoo version [0-3]: {RESET}").strip()
         version_map = {"1": "17", "2": "18", "3": "19"}
         version = version_map.get(sub)
         if not version:
@@ -991,39 +991,39 @@ class TerminalUI:
         issues, repairs = odoo_diagnose(version, use_sudo=use_sudo)
 
         if not issues:
-            print(f"\n{GREEN}✓ لم تُكتشف أي أخطاء في أودو {version}.{RESET}")
+            print(f"\n{GREEN}✓ No errors detected in Odoo {version}.{RESET}")
             report = inspect_odoo(version, use_sudo=use_sudo)
             if report['status'] == 'missing':
-                print(f"\n{YELLOW}أودو {version} غير مثبت. هل ترغب في تثبيته؟{RESET}")
-                print(f"  • الصورة: odoo:{version}")
-                print(f"  • قاعدة البيانات: PostgreSQL {PG_IMAGES[version].split(':')[1]}")
-                print(f"  • المنفذ HTTP: {ODOO_HTTP_PORTS[version]}")
-                print(f"  • منفذ الدردشة: {ODOO_CHAT_PORTS[version]}")
-                print(f"  • الشبكة الداخلية: {ODOO_INTERNAL_NETWORKS[version]}")
-                print(f"  • المجلد: {self.profile.paths.data_root}/odoo{version}")
-                if input(f"تنفيذ تثبيت أودو {version}؟ [y/N]: ").strip().lower() == 'y':
+                print(f"\n{YELLOW}Odoo {version} is not installed. Would you like to install it?{RESET}")
+                print(f"  • Image: odoo:{version}")
+                print(f"  • Database: PostgreSQL {PG_IMAGES[version].split(':')[1]}")
+                print(f"  • HTTP port: {ODOO_HTTP_PORTS[version]}")
+                print(f"  • Chat port: {ODOO_CHAT_PORTS[version]}")
+                print(f"  • Internal network: {ODOO_INTERNAL_NETWORKS[version]}")
+                print(f"  • Directory: {self.profile.paths.data_root}/odoo{version}")
+                if input(f"Execute Odoo {version} installation? [y/N]: ").strip().lower() == 'y':
                     with_traefik = bool(self.profile.traefik.enabled and self.profile.security.enforce_https)
                     install_odoo(self.profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
             return
 
-        print(f"\n{BOLD}الأخطاء المكتشفة في أودو {version}:{RESET}")
+        print(f"\n{BOLD}Detected errors in Odoo {version}:{RESET}")
         for idx, issue in enumerate(issues, 1):
             severity_color = RED if issue['severity'] == 'critical' else YELLOW if issue['severity'] == 'high' else CYAN
             print(f"\n  {idx}. {severity_color}[{issue['severity'].upper()}]{RESET} {issue['title']}")
-            print(f"     المكون: {issue['component']}")
-            print(f"     الوصف: {issue['description']}")
+            print(f"     Component: {issue['component']}")
+            print(f"     Description: {issue['description']}")
             if issue.get('auto_fix'):
-                print(f"     الإصلاح التلقائي: متاح ({issue['fix_description']})")
+                print(f"     Automatic repair: Available ({issue['fix_description']})")
             else:
-                print(f"     الإصلاح التلقائي: غير متاح ({issue['fix_description']})")
+                print(f"     Automatic repair: Not available ({issue['fix_description']})")
 
-        print(f"\n{BOLD}خيارات الإصلاح:{RESET}")
-        print("  [a] إصلاح تلقائي لجميع المشاكل المتاحة")
-        print("  [m] اختيار المشاكل للإصلاح يدوياً")
-        print("  [i] تثبيت أودو (إذا غير مثبت)")
-        print("  [0] رجوع")
+        print(f"\n{BOLD}Repair options:{RESET}")
+        print("  [a] Automatic repair for all available issues")
+        print("  [m] Select issues for manual repair")
+        print("  [i] Install Odoo (if not installed)")
+        print("  [0] Back")
 
-        sub2 = input(f"{BOLD}اختر [a/m/i/0]: {RESET}").strip().lower()
+        sub2 = input(f"{BOLD}Choose [a/m/i/0]: {RESET}").strip().lower()
 
         if sub2 == "a":
             auto_count = 0
@@ -1031,35 +1031,35 @@ class TerminalUI:
                 if issue.get('auto_fix'):
                     success, msg = odoo_repair(issue, use_sudo=use_sudo)
                     if success:
-                        print(f"  ✓ تم: {issue['title']}")
+                        print(f"  ✓ Done: {issue['title']}")
                         auto_count += 1
                     else:
-                        print(f"  ✗ فشل: {issue['title']} - {msg}")
+                        print(f"  ✗ Failed: {issue['title']} - {msg}")
                 else:
-                    print(f"  ⊘ تم تخطي: {issue['title']} (لا يدعم الإصلاح التلقائي)")
-            print(f"\n{GREEN}تم إصلاح {auto_count} مشكلة تلقائياً.{RESET}")
+                    print(f"  ⊘ Skipped: {issue['title']} (automatic repair not supported)")
+            print(f"\n{GREEN}{auto_count} issues repaired automatically.{RESET}")
         elif sub2 == "m":
             for idx, issue in enumerate(issues, 1):
                 if not issue.get('auto_fix'):
-                    print(f"  {idx}. ⊘ {issue['title']} - غير متاح للإصلاح التلقائي")
+                    print(f"  {idx}. ⊘ {issue['title']} - Not available for automatic repair")
                     continue
-                choice = input(f"  {idx}. إصلاح '{issue['title']}'؟ [y/N]: ").strip().lower()
+                choice = input(f"  {idx}. Repair '{issue['title']}'? [y/N]: ").strip().lower()
                 if choice == 'y':
                     success, msg = odoo_repair(issue, use_sudo=use_sudo)
                     if success:
-                        print(f"    ✓ تم بنجاح.")
+                        print(f"    ✓ Success.")
                     else:
-                        print(f"    ✗ فشل: {msg}")
+                        print(f"    ✗ Failed: {msg}")
         elif sub2 == "i":
             report = inspect_odoo(version, use_sudo=use_sudo)
             if report['status'] != 'missing':
-                print(f"أودو {version} مثبت بالفعل (الحالة: {report['status']}). لا حاجة للتثبيت.")
+                print(f"Odoo {version} is already installed (status: {report['status']}). No need to install.")
                 return
             with_traefik = bool(self.profile.traefik.enabled and self.profile.security.enforce_https)
             install_odoo(self.profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
 
     def handle_network_management(self):
-        print(f"\n{BOLD}{CYAN}=== 6. DOCKER NETWORK MANAGEMENT / إدارة الشبكات ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 6. DOCKER NETWORK MANAGEMENT ==={RESET}")
         print(" [1] Inspect shared 'proxy' network (172.28.0.0/16)")
         print(" [2] Inspect internal 'odoo17_internal' isolated network")
         print(" [3] Inspect internal 'odoo18_internal' isolated network")
@@ -1075,8 +1075,8 @@ class TerminalUI:
             subprocess.run(["docker", "network", "inspect", "odoo19_internal"], check=False)
 
     def handle_odoo_management(self):
-        print(f"\n{BOLD}{CYAN}=== 7. ODOO MANAGEMENT / إدارة أودو ==={RESET}")
-        print(" Select Odoo version / اختر إصدار أودو:")
+        print(f"\n{BOLD}{CYAN}=== 7. ODOO MANAGEMENT ==={RESET}")
+        print(" Select Odoo version:")
         print("  [1] Odoo 17 (PostgreSQL 16)")
         print("  [2] Odoo 18 (PostgreSQL 17)")
         print("  [3] Odoo 19 (PostgreSQL 18)")
@@ -1084,7 +1084,7 @@ class TerminalUI:
         version = {"1": "17", "2": "18", "3": "19"}.get(choice, "19")
         pg = {"17": "16", "18": "17", "19": "18"}[version]
 
-        print(f"\n{BOLD}Odoo {version} Management / إدارة أودو {version}:{RESET}")
+        print(f"\n{BOLD}Odoo {version} Management:{RESET}")
         print(f" [1] Deploy Odoo {version} & PostgreSQL {pg} stack")
         print(f" [2] View Odoo {version} logs")
         print(f" [3] Restart Odoo {version} container")
@@ -1117,7 +1117,7 @@ class TerminalUI:
                 print(f"  Run: ./automation/scripts/install-odoo.sh {version}")
 
     def handle_postgresql_management(self):
-        print(f"\n{BOLD}{CYAN}=== 9. POSTGRESQL MANAGEMENT / إدارة قواعد البيانات ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 9. POSTGRESQL MANAGEMENT ==={RESET}")
         print(" [1] Probe PostgreSQL 16 connection (Odoo 17, pg_isready)")
         print(" [2] Probe PostgreSQL 17 connection (Odoo 18, pg_isready)")
         print(" [3] Probe PostgreSQL 18 connection (Odoo 19, pg_isready)")
@@ -1133,7 +1133,7 @@ class TerminalUI:
             print(f"{GREEN}✓ Verified: odoo17-db, odoo18-db and odoo19-db keep port 5432 on the internal network only.{RESET}")
 
     def handle_dns_ssl_verification(self):
-        print(f"\n{BOLD}{CYAN}=== 10. DNS & SSL VERIFICATION / التحقق من النطاقات والتشفير ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 10. DNS & SSL VERIFICATION ==={RESET}")
         domains = [
             self.profile.traefik.dashboard_domain,
             self.profile.odoo17.domain,
@@ -1149,7 +1149,7 @@ class TerminalUI:
 
     def handle_backup_management(self):
         from app.services.system_backup import SystemBackupService
-        print(f"\n{BOLD}{CYAN}=== 11. BACKUP MANAGEMENT / إدارة النسخ الاحتياطي ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 11. BACKUP MANAGEMENT ==={RESET}")
         print(" [1] Backup Odoo 17 database & filestore")
         print(" [2] Backup Odoo 18 database & filestore")
         print(" [3] Backup Odoo 19 database & filestore")
@@ -1169,11 +1169,11 @@ class TerminalUI:
             print(f"{GREEN}✓ Full Infrastructure Snapshot saved: {snap['archive_file']} (SHA256: {snap['sha256'][:16]}...){RESET}")
 
     def handle_restore_management(self):
-        print(f"\n{BOLD}{CYAN}=== 12. RESTORE MANAGEMENT / استعادة النسخ الاحتياطية ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 12. RESTORE MANAGEMENT ==={RESET}")
         self.handle_interactive_restore()
 
     def handle_monitoring_logs(self):
-        print(f"\n{BOLD}{CYAN}=== 13. MONITORING & LOGS / مراقبة السجلات ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 13. MONITORING & LOGS ==={RESET}")
         print(" [1] Traefik Logs")
         print(" [2] Odoo 17 Logs")
         print(" [3] Odoo 18 Logs")
@@ -1183,12 +1183,12 @@ class TerminalUI:
         subprocess.run(["docker", "logs", "--tail", "50", "-f", svc], check=False)
 
     def handle_configuration_profiles(self):
-        print(f"\n{BOLD}{CYAN}=== 14. CONFIGURATION PROFILES / ملفات الإعداد ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 14. CONFIGURATION PROFILES ==={RESET}")
         print(f"Active Profile: {self.profile.profile_name} (Version: {self.profile.version})")
         self.validate_current_profile()
 
     def handle_troubleshooting(self):
-        print(f"\n{BOLD}{CYAN}=== 15. TROUBLESHOOTING / استكشاف الأعطال وحلها ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 15. TROUBLESHOOTING ==={RESET}")
         print("Checking port 80 & 443 bindings...")
         subprocess.run(["ss", "-tuln"], check=False)
         print("\nChecking container exit statuses...")
@@ -1196,7 +1196,7 @@ class TerminalUI:
 
     def handle_generate_infrastructure_report(self):
         import datetime
-        print(f"\n{BOLD}{CYAN}=== 16. GENERATE INFRASTRUCTURE REPORT / توليد التقرير الشامل ==={RESET}")
+        print(f"\n{BOLD}{CYAN}=== 16. GENERATE INFRASTRUCTURE REPORT ==={RESET}")
         ts = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         report = f"""# ODOO INFRASTRUCTURE MANAGER AUDIT REPORT
 Date: {ts}

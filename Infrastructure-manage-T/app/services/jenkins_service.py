@@ -18,7 +18,7 @@ JENKINS_HTTP_PORT = 8080
 JENKINS_AGENT_PORT = 50000
 JENKINS_NETWORK = 'proxy'
 JENKINS_DOMAIN = 'jenkins.devops-odoo.com'
-JENKINS_TIMEZONE = 'Africa/Tripoli'
+JENKINS_TIMEZONE = 'UTC'
 JENKINS_CERTSRESOLVER = 'letsencrypt'
 
 
@@ -27,9 +27,9 @@ def docker_command(use_sudo=False):
 
 
 def inspect_jenkins(use_sudo=False):
-    """فحص حالة جينكينز على المحرك المحلي (مثبت / مفقود / تضارب / خطأ)."""
+    """Check Jenkins status on the local engine (installed / missing / conflict / error)."""
     if not shutil.which('docker'):
-        return {'status': 'docker_missing', 'containers': [], 'error': 'جهّز Docker Engine أولًا.'}
+        return {'status': 'docker_missing', 'containers': [], 'error': 'Docker Engine is not installed.'}
     code, output = probe(docker_command(use_sudo) + ['ps', '-a', '--format', '{{json .}}'])
     if code:
         return {'status': 'error', 'containers': [], 'error': output}
@@ -44,43 +44,43 @@ def inspect_jenkins(use_sudo=False):
                 containers.append(item)
                 collision |= not is_jenkins
     except (ValueError, AttributeError):
-        return {'status': 'error', 'containers': [], 'error': 'تعذر قراءة استجابة Docker.'}
+        return {'status': 'error', 'containers': [], 'error': 'Failed to read Docker response.'}
     return {'status': 'conflict' if collision else 'installed' if containers else 'missing',
             'containers': containers, 'error': ''}
 
 
 def system_preflight_check():
-    """فحص مسبق للنظام قبل التثبيت (نظام، دوكرب، شبكة، تخزين، ذاكرة)."""
+    """Pre-installation system check (OS, Docker, network, storage, memory)."""
     results = {}
     try:
         res = subprocess.run(['lsb_release', '-a'], capture_output=True, text=True, check=False)
         results['os'] = res.stdout.strip() or res.stderr.strip()
     except FileNotFoundError:
-        results['os'] = 'lsb_release غير متوفر'
+        results['os'] = 'lsb_release not available'
     for cmd in (['docker', '--version'], ['docker', 'compose', 'version']):
         code, out = probe(cmd)
-        results[cmd[0]] = out if code == 0 else f'خطأ: {out}'
+        results[cmd[0]] = out if code == 0 else f'Error: {out}'
     code, out = probe(['docker', 'ps'])
-    results['docker_ps'] = out if code == 0 else f'خطأ: {out}'
+    results['docker_ps'] = out if code == 0 else f'Error: {out}'
     code, out = probe(['docker', 'network', 'ls'])
-    results['network_ls'] = out if code == 0 else f'خطأ: {out}'
+    results['network_ls'] = out if code == 0 else f'Error: {out}'
     for path in ('/opt', '/data'):
         try:
             st = os.stat(path)
-            results[path] = f'موجود (UID: {st.st_uid}, GID: {st.st_gid})'
+            results[path] = f'Exists (UID: {st.st_uid}, GID: {st.st_gid})'
         except FileNotFoundError:
-            results[path] = 'غير موجود'
+            results[path] = 'Not found'
     try:
         total, used, free = shutil.disk_usage('/')
-        results['disk'] = f'المجموع: {total // (2**30)} GB، المستخدم: {used // (2**30)} GB، الحر: {free // (2**30)} GB'
+        results['disk'] = f'Total: {total // (2**30)} GB, used: {used // (2**30)} GB, free: {free // (2**30)} GB'
     except Exception as exc:
-        results['disk'] = f'خطأ في قراءة القرص: {exc}'
+        results['disk'] = f'Disk read error: {exc}'
     return results
 
 
 def build_jenkins_plan(use_sudo=False, domain=None, certsresolver=None):
-    """بناء خطة إعداد وتثبيت جينكينز (mkdir, compose up).
-    لا يربط مقبس Docker تلقائيًا بأمان (تجنب صلاحيات واسعة على المضيف).
+    """Build Jenkins setup and installation plan (mkdir, compose up).
+    Does not bind the Docker socket automatically (avoid broad host permissions).
     """
     domain = domain or JENKINS_DOMAIN
     certsresolver = certsresolver or JENKINS_CERTSRESOLVER
@@ -97,7 +97,7 @@ def build_jenkins_plan(use_sudo=False, domain=None, certsresolver=None):
         "      - \"8080\"\n"
         "\n"
         "    volumes:\n"
-        f"      - {JENKINS_HOST_DATA_DIR}:{JENKINS_DIR}\n"
+        f"      - {JENKINS_HOST_DATA_DIR}:{JENKINS_HOST_DATA_DIR}\n"
         "\n"
         "    environment:\n"
         f"      TZ: {JENKINS_TIMEZONE}\n"
@@ -134,16 +134,16 @@ def _write_file(path, content, use_sudo=False):
 
 
 def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=None):
-    """تنصيب جينكينز إن لم يكن مثبتًا. إذا مثبت أو هناك تضارب، لا يُنفذ أي تغيير."""
+    """Install Jenkins if not installed. If installed or conflict exists, no changes are made."""
     try:
         if platform.system() != 'Linux':
-            raise ValueError('هذا المثبت مخصص لنظام Linux.')
+            raise ValueError('This installer is for Linux systems only.')
         report = inspect_jenkins(use_sudo=use_sudo)
         if report['status'] == 'installed':
-            print(f'جينكينز مثبت بالفعل. حالة الحاوية موضحة أعلاه. لن يعاد التثبيت.')
+            print(f'Jenkins is already installed. Container status shown above. Will not reinstall.')
             return True
         if report['status'] == 'conflict':
-            print('اسم jenkins مستخدم من حاوية أخرى. لم تُجرَ تغييرات.')
+            print('Name jenkins is used by another container. No changes made.')
             return False
         if report['status'] == 'error':
             print(report['error'])
@@ -154,13 +154,13 @@ def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=No
                 sock.bind(('0.0.0.0', candidate))
 
         if dry_run:
-            print(f'[DRY-RUN] سيُنشئ المجلدات: {JENKINS_HOST_DATA_DIR}, {JENKINS_HOST_CONFIG_DIR}')
-            print(f'[DRY-RUN] سيتم ضبط المالك: 1000:1000 على {JENKINS_HOST_DATA_DIR}')
-            print(f'[DRY-RUN] سيتم كتابة ملف الإعدادات: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
-            print(f'[DRY-RUN] سيتم التحقق من شبكة {JENKINS_NETWORK} وإنشاؤها إن لم تكن موجودة')
-            print(f'[DRY-RUN] سيتم تشغيل docker compose up -d باستخدام الصورة {IMAGE}')
-            print(f'[DRY-RUN] النطاق: {domain or JENKINS_DOMAIN} | مثبت الشهادة: {certsresolver or JENKINS_CERTSRESOLVER}')
-            print(f'[DRY-RUN] الوصول عبر Traefik فقط (HTTPS)، لن يُنشر المنفذ 8080 للعامة')
+            print(f'[DRY-RUN] Will create directories: {JENKINS_HOST_DATA_DIR}, {JENKINS_HOST_CONFIG_DIR}')
+            print(f'[DRY-RUN] Will set owner: 1000:1000 on {JENKINS_HOST_DATA_DIR}')
+            print(f'[DRY-RUN] Will write config file: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
+            print(f'[DRY-RUN] Will verify network {JENKINS_NETWORK} and create if missing')
+            print(f'[DRY-RUN] Will run docker compose up -d using image {IMAGE}')
+            print(f'[DRY-RUN] Domain: {domain or JENKINS_DOMAIN} | Certificate resolver: {certsresolver or JENKINS_CERTSRESOLVER}')
+            print(f'[DRY-RUN] Access via Traefik only (HTTPS), port 8080 will not be published publicly')
             return True
 
         commands = build_jenkins_plan(use_sudo=use_sudo, domain=domain, certsresolver=certsresolver)
@@ -180,17 +180,17 @@ def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=No
         run_step(docker_command(use_sudo) + ['compose', '-f', f'{JENKINS_HOST_CONFIG_DIR}/docker-compose.yml', 'up', '-d'])
         code, state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', JENKINS_CONTAINER])
         if code or state != 'running':
-            print(f'أُنشئت الحاوية لكن الفحص لم يؤكد تشغيلها: {state}. راجع docker logs jenkins.')
+            print(f'Container created but status check did not confirm running: {state}. Check docker logs jenkins.')
             return False
         run_step(docker_command(use_sudo) + ['ps', '-a'])
-        print(f'حاوية جينكينز تعمل. الوصول عبر Traefik: https://{domain or JENKINS_DOMAIN}')
-        print(f'بيانات جينكينز: {JENKINS_HOST_DATA_DIR}')
-        print(f'ملف الإعدادات: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
-        print('كلمة مرور المسؤول الأولية: sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword')
-        print('ملاحظة: مقبس Docker غير مرتبط بالحاوية لأسباب أمنية. استخدم وكيل بناء خارجي إذا لزم الأمر.')
+        print(f'Jenkins container is running. Access via Traefik: https://{domain or JENKINS_DOMAIN}')
+        print(f'Jenkins data: {JENKINS_HOST_DATA_DIR}')
+        print(f'Config file: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
+        print('Initial admin password: sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword')
+        print('Note: Docker socket is not mounted into the container for security reasons. Use an external build agent if needed.')
         return True
     except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'توقف تثبيت جينكينز: {exc}. لم تُحذف بيانات أو حاويات قائمة؛ راجع المخرجات.')
+        print(f'Jenkins installation stopped: {exc}. No existing data or containers were deleted; check output.')
         return False
 
 
@@ -202,7 +202,7 @@ JENKINS_ISSUE_DATA_DIR_MISSING = 'jenkins_data_dir_missing'
 
 
 def jenkins_diagnose(use_sudo=False):
-    """تشخيص أخطاء جينكينز المحتملة وقائمة بالإصلاحات المقترحة."""
+    """Diagnose potential Jenkins errors and list suggested fixes."""
     issues = []
     repairs = []
 
@@ -210,12 +210,12 @@ def jenkins_diagnose(use_sudo=False):
         issues.append({
             'id': 'jenkins_docker_missing',
             'component': 'Jenkins',
-            'title': 'Docker Engine غير مثبت',
-            'description': 'لا يمكن تشغيل جينكينز دون Docker Engine.',
+            'title': 'Docker Engine is not installed',
+            'description': 'Jenkins cannot run without Docker Engine.',
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'ثبت Docker Engine أولاً عبر القائمة.',
+            'fix_description': 'Install Docker Engine first from the menu.',
         })
         return issues, repairs
 
@@ -225,12 +225,12 @@ def jenkins_diagnose(use_sudo=False):
         issues.append({
             'id': 'jenkins_daemon_error',
             'component': 'Jenkins',
-            'title': 'خطأ في التواصل مع Docker daemon',
-            'description': report.get('error', 'غير معلوم'),
+            'title': 'Error communicating with Docker daemon',
+            'description': report.get('error', 'Unknown'),
             'severity': 'critical',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'تحقق من تشغيل Docker وصلاحيات المستخدم.',
+            'fix_description': 'Check Docker is running and user permissions.',
         })
         return issues, repairs
 
@@ -238,19 +238,19 @@ def jenkins_diagnose(use_sudo=False):
         issues.append({
             'id': 'jenkins_name_conflict',
             'component': 'Jenkins',
-            'title': 'تضارب باسم الحاوية jenkins',
-            'description': 'اسم jenkins مستخدم من حاوية أخرى.',
+            'title': 'Container name conflict jenkins',
+            'description': 'Name jenkins is used by another container.',
             'severity': 'high',
             'auto_fix': False,
             'fix_command': None,
-            'fix_description': 'غير اسم الحاوية الأخرى أو احذفها قبل التثبيت.',
+            'fix_description': 'Rename the other container or remove it before installing.',
         })
         return issues, repairs
 
-    # فحص المنافذ
+    # Check ports
     for port, issue_id, title, desc in (
-        (JENKINS_HTTP_PORT, JENKINS_ISSUE_PORT_8080, 'المنفذ 8080 (Jenkins HTTP) مستخدم', 'المنفذ 8080 مرتبط بعملية أخرى.'),
-        (JENKINS_AGENT_PORT, JENKINS_ISSUE_PORT_50000, 'المنفذ 50000 (Jenkins Agent) مستخدم', 'المنفذ 50000 مرتبط بعملية أخرى.'),
+        (JENKINS_HTTP_PORT, JENKINS_ISSUE_PORT_8080, 'Port 8080 (Jenkins HTTP) in use', 'Port 8080 is bound by another process.'),
+        (JENKINS_AGENT_PORT, JENKINS_ISSUE_PORT_50000, 'Port 50000 (Jenkins Agent) in use', 'Port 50000 is bound by another process.'),
     ):
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
             s.settimeout(0.2)
@@ -263,24 +263,24 @@ def jenkins_diagnose(use_sudo=False):
                     'severity': 'medium',
                     'auto_fix': False,
                     'fix_command': None,
-                    'fix_description': 'أوقف الخدمة القائمة على المنفذ أو اختر منفذاً آخر.',
+                    'fix_description': 'Stop the service on the port or choose another port.',
                 })
 
-    # فحص مجلد البيانات
+    # Check data directory
     if not os.path.exists(JENKINS_HOST_DATA_DIR):
         issues.append({
             'id': JENKINS_ISSUE_DATA_DIR_MISSING,
             'component': 'Jenkins',
-            'title': 'مجلد بيانات جينكينز غير موجود',
-            'description': f'المجلد {JENKINS_HOST_DATA_DIR} غير موجود.',
+            'title': 'Jenkins data directory not found',
+            'description': f'Directory {JENKINS_HOST_DATA_DIR} not found.',
             'severity': 'medium',
             'auto_fix': True,
             'fix_command': ['mkdir', '-p', JENKINS_HOST_DATA_DIR],
-            'fix_description': f'إنشاء مجلد {JENKINS_HOST_DATA_DIR}.',
+            'fix_description': f'Create directory {JENKINS_HOST_DATA_DIR}.',
         })
-        repairs.append((f'إنشاء مجلد {JENKINS_HOST_DATA_DIR}', ['mkdir', '-p', JENKINS_HOST_DATA_DIR]))
+        repairs.append((f'Create directory {JENKINS_HOST_DATA_DIR}', ['mkdir', '-p', JENKINS_HOST_DATA_DIR]))
 
-    # فحص حالة الحاوية
+    # Check container status
     if report['status'] == 'installed':
         for c in report['containers']:
             status = c.get('Status', '')
@@ -288,29 +288,29 @@ def jenkins_diagnose(use_sudo=False):
                 issues.append({
                     'id': JENKINS_ISSUE_CONTAINER_NOT_RUNNING,
                     'component': 'Jenkins',
-                    'title': 'حاوية جينكينز غير عاملة',
-                    'description': f"حالة الحاوية: {status}",
+                    'title': 'Jenkins container not running',
+                    'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
                     'fix_command': ['start', 'jenkins'],
-                    'fix_description': 'تشغيل حاوية جينكينز المتوقفة.',
+                    'fix_description': 'Start the stopped Jenkins container.',
                 })
-                repairs.append(('تشغيل حاوية جينكينز', ['docker', 'start', 'jenkins']))
+                repairs.append(('Start Jenkins container', ['docker', 'start', 'jenkins']))
             break
 
     return issues, repairs
 
 
 def jenkins_repair(issue, use_sudo=False):
-    """تنفيذ إصلاح واحد لمشكلة جينكينز."""
+    """Execute a single fix for a Jenkins issue."""
     fix_cmd = issue.get('fix_command')
     if not fix_cmd:
-        return False, 'لا يوجد أمر إصلاح تلقائي لهذه المشكلة.'
+        return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
     full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
     try:
         run_step(full_cmd)
-        return True, 'تم التنفيذ بنجاح.'
+        return True, 'Executed successfully.'
     except Exception as exc:
         return False, str(exc)

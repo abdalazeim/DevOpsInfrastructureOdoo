@@ -13,26 +13,22 @@ from typing import Dict, List, Optional
 from enum import Enum
 
 class ComponentStatus(str, Enum):
-    INSTALLED = "INSTALLED"          # مثبت ويعمل
-    MISSING = "MISSING"              # غير مثبت
-    NEEDS_UPDATE = "NEEDS_UPDATE"    # يحتاج تحديث
-    MISCONFIGURED = "MISCONFIGURED"  # به مشكلة أو غير مضبوط
+    INSTALLED = "INSTALLED"
+    MISSING = "MISSING"
+    NEEDS_UPDATE = "NEEDS_UPDATE"
+    MISCONFIGURED = "MISCONFIGURED"
 
 @dataclass
 class InspectedComponent:
     id: str
     name: str
-    name_ar: str
     status: ComponentStatus
     detected_version: Optional[str] = None
     binary_path: Optional[str] = None
     config_path: Optional[str] = None
     why_needed: str = ""
-    why_needed_ar: str = ""
     details: str = ""
-    details_ar: str = ""
     recommended_action: str = ""
-    recommended_action_ar: str = ""
     install_command: Optional[List[str]] = None
 
 @dataclass
@@ -75,16 +71,12 @@ class SmartInspectorService:
         return InspectedComponent(
             id="ubuntu_os",
             name="Ubuntu Operating System",
-            name_ar="نظام تشغيل أوبونتو (Server / Desktop)",
             status=status,
             detected_version=pretty_name,
             binary_path="/etc/os-release",
             why_needed="Base operating system supported for running modern Docker Engine, Ansible, and systemd.",
-            why_needed_ar="النظام الأساسي المعتمد لتشغيل محرك دوكر وترافيك وحزم الأتمتة.",
             details=f"Detected: {pretty_name} (Architecture: {platform.machine()})",
-            details_ar=f"النظام المكتشف: {pretty_name} (المعمارية: {platform.machine()})",
             recommended_action="None (OS is compliant)" if is_supported else "Upgrade to Ubuntu 22.04 LTS or newer",
-            recommended_action_ar="لا يلزم إجراء (النظام متوافق)" if is_supported else "الترقية إلى Ubuntu 22.04 LTS أو أحدث",
         )
 
     @staticmethod
@@ -98,16 +90,13 @@ class SmartInspectorService:
         if report["errors"]:
             details += " " + " | ".join(report["errors"])
         return InspectedComponent(
-            id="docker_engine", name="Docker Engine", name_ar="محرك دوكر (Docker Engine)",
-            status=status, binary_path=report["path"],
+            id="docker_engine", name="Docker Engine", status=status,
+            binary_path=report["path"],
             detected_version=report["server_version"] or report["client_version"] or None,
             why_needed="Runs and isolates application containers.",
-            why_needed_ar="تشغيل وعزل الحاويات البرمجية.",
-            details=details, details_ar=details,
+            details=details,
             recommended_action="Install Docker Engine" if status == ComponentStatus.MISSING else
                                "None" if status == ComponentStatus.INSTALLED else "Check connection and permissions",
-            recommended_action_ar="تثبيت Docker Engine" if status == ComponentStatus.MISSING else
-                                  "لا يلزم إجراء" if status == ComponentStatus.INSTALLED else "فحص الاتصال والصلاحيات والخدمة",
         )
 
     @staticmethod
@@ -116,16 +105,14 @@ class SmartInspectorService:
         report = inspect_compose()
         installed = report['status'] == 'installed'
         return InspectedComponent(
-            id="docker_compose", name="Docker Compose Plugin", name_ar="إضافة Docker Compose",
+            id="docker_compose", name="Docker Compose Plugin",
             status=ComponentStatus.INSTALLED if installed else
                    ComponentStatus.MISSING if report['status'] == 'docker_missing' else ComponentStatus.MISCONFIGURED,
             binary_path=report['path'] or None,
             detected_version=report['details'] if installed else None,
-            details=report['details'], details_ar=report['details'],
+            details=report['details'],
             why_needed="Orchestrates multi-container stacks.",
-            why_needed_ar="إدارة الخدمات متعددة الحاويات.",
             recommended_action="None" if installed else "Use component menu 16 -> 4",
-            recommended_action_ar="لا يلزم إجراء" if installed else "استخدم قائمة المكونات 16 ثم 4 للفحص والتثبيت",
         )
 
     @staticmethod
@@ -133,7 +120,6 @@ class SmartInspectorService:
         docker_bin = shutil.which("docker")
         is_running = False
         details = "Traefik container not launched yet."
-        details_ar = "حاوية ترافيك لم يتم إطلاقها بعد."
         status = ComponentStatus.MISSING
 
         if docker_bin:
@@ -143,7 +129,6 @@ class SmartInspectorService:
                     is_running = True
                     status = ComponentStatus.INSTALLED
                     details = f"Traefik container running: {res.stdout.strip()}"
-                    details_ar = f"حاوية ترافيك تعمل حالياً: {res.stdout.strip()}"
             except Exception:
                 pass
 
@@ -154,16 +139,12 @@ class SmartInspectorService:
         return InspectedComponent(
             id="traefik_proxy",
             name="Traefik v3.7 Reverse Proxy",
-            name_ar="موجه ترافيك (Traefik v3.7 Reverse Proxy)",
             status=status,
             detected_version="v3.7 (Container)" if is_running else "Not running",
             config_path="deployment/traefik/config/traefik.yml",
             why_needed="Routes HTTP/HTTPS subdomains, terminates Let's Encrypt TLS, and handles WebSocket livechat.",
-            why_needed_ar="توجيه النطاقات الفرعية، إدارة شهادات SSL التلقائية، وتمرير حركة الشات الحي.",
             details=f"{details} (acme.json permissions: {acme_perm})",
-            details_ar=f"{details_ar} (صلاحيات acme.json: {acme_perm})",
             recommended_action="Deploy Traefik from operations menu" if not is_running else "None",
-            recommended_action_ar="نشر ترافيك من قائمة العمليات" if not is_running else "لا يلزم إجراء",
         )
 
     @staticmethod
@@ -173,14 +154,10 @@ class SmartInspectorService:
             return InspectedComponent(
                 id="ansible",
                 name="Ansible Automation Tool",
-                name_ar="أداة الأتمتة أنسيبل (Ansible)",
                 status=ComponentStatus.MISSING,
                 why_needed="Automates idempotent baseline server configuration, sysctl tuning, and package dependencies.",
-                why_needed_ar="أتمتة إعداد الخادم وضبط النواة وتثبيت الحزم المطلوبة بشكل متكرر وآمن.",
                 details="ansible-playbook executable not found.",
-                details_ar="أمر ansible-playbook غير متوفر في مسارات النظام.",
                 recommended_action="Install ansible via pip or apt: apt-get install -y ansible",
-                recommended_action_ar="تثبيت أنسيبل: apt-get install -y ansible",
                 install_command=["apt-get", "install", "-y", "ansible"],
             )
 
@@ -190,22 +167,17 @@ class SmartInspectorService:
             return InspectedComponent(
                 id="ansible",
                 name="Ansible Automation Tool",
-                name_ar="أداة الأتمتة أنسيبل (Ansible)",
                 status=ComponentStatus.INSTALLED,
                 detected_version=ver_first_line,
                 binary_path=ansible_bin,
                 why_needed="Automates baseline server provisioning.",
-                why_needed_ar="أتمتة تجهيز وضبط خادم أوبونتو.",
                 details="Ansible is ready for baseline orchestration.",
-                details_ar="أداة أنسيبل جاهزة لتنفيذ كتب التشغيل.",
                 recommended_action="None",
-                recommended_action_ar="لا يلزم إجراء",
             )
         except Exception as e:
             return InspectedComponent(
                 id="ansible",
                 name="Ansible",
-                name_ar="أداة أنسيبل",
                 status=ComponentStatus.MISCONFIGURED,
                 details=str(e),
             )
@@ -213,42 +185,34 @@ class SmartInspectorService:
     @staticmethod
     def inspect_utility_packages() -> List[InspectedComponent]:
         tools = [
-            ("curl", "Data Transfer Tool", "أداة تنزيل وفحص استجابة الويب curl", "Used for health checks and API requests.", "فحص صحة استجابة الويب وتنزيل المفاتيح"),
-            ("jq", "JSON Processing Utility", "معالج ملفات جيسون jq", "Parses Docker and API telemetry output.", "قراءة وتحليل مخرجات الحاويات بصيغة JSON"),
-            ("ufw", "Uncomplicated Firewall", "جدار الحماية ufw", "Secures incoming ports (22, 80, 443).", "تأمين المنافذ المسموحة وإغلاق المنافذ الحساسة"),
-            ("tar", "Archive Utility", "أداة الأرشفة tar", "Packages Odoo filestore for backups and restores.", "أرشفة وتجميع ملفات مرفقات أودو"),
-            ("gzip", "Compression Utility", "أداة الضغط gzip", "Compresses database SQL dumps safely.", "ضغط تفريغ قواعد البيانات لتوفير المساحة"),
+            ("curl", "Data Transfer Tool", "Used for health checks and API requests."),
+            ("jq", "JSON Processing Utility", "Parses Docker and API telemetry output."),
+            ("ufw", "Uncomplicated Firewall", "Secures incoming ports (22, 80, 443)."),
+            ("tar", "Archive Utility", "Packages Odoo filestore for backups and restores."),
+            ("gzip", "Compression Utility", "Compresses database SQL dumps safely."),
         ]
 
         results = []
-        for cmd, name_en, name_ar, why_en, why_ar in tools:
+        for cmd, name_en, why_en in tools:
             path = shutil.which(cmd)
             if path:
                 results.append(InspectedComponent(
                     id=f"pkg_{cmd}",
                     name=name_en,
-                    name_ar=name_ar,
                     status=ComponentStatus.INSTALLED,
                     binary_path=path,
                     why_needed=why_en,
-                    why_needed_ar=why_ar,
                     details=f"Installed at {path}",
-                    details_ar=f"مثبت في {path}",
                     recommended_action="None",
-                    recommended_action_ar="لا يلزم إجراء",
                 ))
             else:
                 results.append(InspectedComponent(
                     id=f"pkg_{cmd}",
                     name=name_en,
-                    name_ar=name_ar,
                     status=ComponentStatus.MISSING,
                     why_needed=why_en,
-                    why_needed_ar=why_ar,
                     details=f"Command '{cmd}' not found in PATH",
-                    details_ar=f"الأمر '{cmd}' غير موجود في النظام",
                     recommended_action=f"Install: apt-get install -y {cmd}",
-                    recommended_action_ar=f"تثبيت عبر: apt-get install -y {cmd}",
                     install_command=["apt-get", "install", "-y", cmd],
                 ))
         return results

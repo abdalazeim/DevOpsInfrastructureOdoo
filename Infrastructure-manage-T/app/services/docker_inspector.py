@@ -27,7 +27,7 @@ def inspect_engine():
     else:
         report["errors"].append(output)
     code, output = probe([path, "compose", "version"])
-    report["compose"] = output if code == 0 else "غير متاح أو تعذر تشغيله"
+    report["compose"] = output if code == 0 else "unavailable or could not be run"
     if code:
         report["errors"].append(output)
     code, output = probe([path, "info", "--format", "{{json .}}"])
@@ -41,7 +41,7 @@ def inspect_engine():
             raise ValueError("Missing Docker server version")
     except ValueError:
         report["status"] = "invalid_response"
-        report["errors"].append("تعذر قراءة تفاصيل المحرك من نتيجة docker info.")
+        report["errors"].append("Could not read engine details from docker info output.")
         return report
     report["status"] = "running"
     report["server_version"] = data["ServerVersion"]
@@ -53,11 +53,11 @@ def inspect_engine():
 
 
 STATUS_TEXT = {
-    "missing": "لم يُعثر على docker أو dockerd في PATH؛ التثبيت غير مكتشف.",
-    "client_missing": "dockerd موجود، لكن عميل docker غير موجود في PATH.",
-    "client_error": "عميل Docker موجود لكن تعذر تشغيله.",
-    "permission_denied": "عميل Docker مثبت، لكن الوصول إلى المحرك مرفوض بسبب الصلاحيات.",
-    "unreachable": "عميل Docker مثبت، لكن المحرك غير متاح: قد تكون الخدمة متوقفة أو الاتصال غير صحيح.",
-    "invalid_response": "عميل Docker مثبت، لكن تفاصيل المحرك غير صالحة.",
-    "running": "عميل Docker مثبت والمحرك المحدد بالاتصال الحالي يعمل ويستجيب.",
+    "missing": "docker or dockerd not found in PATH; installation not detected.",
+    "client_missing": "dockerd exists, but docker client is not found in PATH.",
+    "client_error": "Docker client exists but could not be run.",
+    "permission_denied": "Docker client is installed, but access to the engine is denied due to permissions.",
+    "unreachable": "Docker client is installed, but the engine is unavailable; service may be stopped or connection is incorrect.",
+    "invalid_response": "Docker client is installed, but engine details are invalid.",
+    "running": "Docker client is installed and the specified connection engine is running and responding.",
 }

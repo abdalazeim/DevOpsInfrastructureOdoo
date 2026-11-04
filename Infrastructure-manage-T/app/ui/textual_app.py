@@ -11,7 +11,7 @@ try:
     from textual.app import App, ComposeResult
     from textual.containers import Container, Horizontal, Vertical, Grid
     from textual.widgets import (
-        Header, Footer, Static, Button, DataTable, 
+        Header, Footer, Static, Button, DataTable,
         Label, Input, TabbedContent, TabPane, Log, ProgressBar
     )
     from textual.reactive import reactive
@@ -116,10 +116,10 @@ class OdooTextualApp(App if TEXTUAL_AVAILABLE else object):
     """Textual interactive Terminal User Interface for DevOps operators."""
     CSS = TEXTUAL_CSS if TEXTUAL_AVAILABLE else ""
     BINDINGS = [
-        ("q", "quit", "خروج / Quit"),
-        ("d", "toggle_dry_run", "تبديل المعاينة / Toggle Dry-Run"),
-        ("r", "refresh_inspection", "إعادة الفحص / Re-scan"),
-        ("b", "trigger_snapshot", "نسخة شاملة / Snapshot"),
+        ("q", "quit", "Quit"),
+        ("d", "toggle_dry_run", "Toggle Dry-Run"),
+        ("r", "refresh_inspection", "Re-scan"),
+        ("b", "trigger_snapshot", "Snapshot"),
     ]
 
     dry_run = reactive(False)
@@ -140,7 +140,7 @@ class OdooTextualApp(App if TEXTUAL_AVAILABLE else object):
         with Vertical():
             # Top Banner
             with Container(id="top-banner"):
-                yield Label("🚀 ODOO INFRASTRUCTURE MANAGER — مدير البنية التحتية لنظام أودو", classes="banner-title")
+                yield Label("🚀 ODOO INFRASTRUCTURE MANAGER", classes="banner-title")
                 yield Label("Ubuntu (Server & Desktop 22.04+) • Docker Engine • Traefik v3.7 • Odoo 17 / 18 / 19", classes="banner-subtitle")
 
             # Status cards
@@ -163,33 +163,33 @@ class OdooTextualApp(App if TEXTUAL_AVAILABLE else object):
 
             # Main Tabbed Content
             with TabbedContent():
-                with TabPane("العمليات الرئيسية / Operations", id="tab-ops"):
+                with TabPane("Operations", id="tab-ops"):
                     with Grid(id="operations-box"):
-                        yield Button("1. إعداد الخادم / Server Prep", id="btn-prep", variant="primary", classes="op-btn")
-                        yield Button("2. نشر ترافيك / Deploy Traefik", id="btn-traefik", variant="primary", classes="op-btn")
-                        yield Button("3. نشر أودو 17 / Deploy Odoo 17", id="btn-o17", variant="primary", classes="op-btn")
-                        yield Button("4. نشر أودو 18 / Deploy Odoo 18", id="btn-o18", variant="primary", classes="op-btn")
-                        yield Button("5. نشر أودو 19 / Deploy Odoo 19", id="btn-o19", variant="primary", classes="op-btn")
-                        yield Button("6. النشر الكامل / Full Deploy", id="btn-full", variant="success", classes="op-btn")
-                        yield Button("7. فحص الصحة / Health Sweep", id="btn-health", variant="default", classes="op-btn")
-                        yield Button("8. نسخة احتياطية / Backup DB", id="btn-backup", variant="default", classes="op-btn")
-                        yield Button("9. نسخة شاملة / Full Snapshot", id="btn-snap", variant="warning", classes="op-btn")
+                        yield Button("1. Server Prep", id="btn-prep", variant="primary", classes="op-btn")
+                        yield Button("2. Deploy Traefik", id="btn-traefik", variant="primary", classes="op-btn")
+                        yield Button("3. Deploy Odoo 17", id="btn-o17", variant="primary", classes="op-btn")
+                        yield Button("4. Deploy Odoo 18", id="btn-o18", variant="primary", classes="op-btn")
+                        yield Button("5. Deploy Odoo 19", id="btn-o19", variant="primary", classes="op-btn")
+                        yield Button("6. Full Deploy", id="btn-full", variant="success", classes="op-btn")
+                        yield Button("7. Health Sweep", id="btn-health", variant="default", classes="op-btn")
+                        yield Button("8. Backup DB", id="btn-backup", variant="default", classes="op-btn")
+                        yield Button("9. Full Snapshot", id="btn-snap", variant="warning", classes="op-btn")
 
-                with TabPane("جدول الفحص المسبق / Pre-flight", id="tab-preflight"):
+                with TabPane("Pre-flight Inspection", id="tab-preflight"):
                     yield DataTable(id="audit-table")
 
-                with TabPane("سجلات التنفيذ الحية / Live Logs", id="tab-logs"):
+                with TabPane("Live Logs", id="tab-logs"):
                     yield Log(id="terminal-log", highlight=True)
 
         yield Footer()
 
     def on_mount(self) -> None:
         table = self.query_one(DataTable)
-        table.add_columns("المكون / Component", "الحالة / Status", "الإصدار / Version", "المسار / Path")
+        table.add_columns("Component", "Status", "Version", "Path")
         report = SmartInspectorService.run_full_inspection()
         for c in report.components:
             status_symbol = "✓ INSTALLED" if c.status.value == "INSTALLED" else "✗ " + c.status.value
-            table.add_row(c.name_ar, status_symbol, c.detected_version or "-", c.binary_path or "-")
+            table.add_row(c.name, status_symbol, c.detected_version or "-", c.binary_path or "-")
 
         log = self.query_one(Log)
         log.write_line(">>> Odoo Infrastructure Manager Textual Session Ready.")

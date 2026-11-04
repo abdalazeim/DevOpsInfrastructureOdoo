@@ -23,7 +23,6 @@ def repository_plan(codename, architecture, conflicts=(), privileged=False):
     prefix = [] if privileged else ['sudo']
     steps = []
     if conflicts:
-        # Keep apt's removal confirmation visible, including dependency removals.
         steps.append((prefix + ['apt-get', 'remove', *conflicts], None))
     steps += [(prefix + command, None) for command in (
         ['apt-get', 'update'], ['apt-get', 'install', '-y', 'ca-certificates', 'curl'],
@@ -49,7 +48,7 @@ def package_command(version='', privileged=False):
 
 
 def run_step(command, content=None, dry_run=False):
-    print(('** معاينة ** ' if dry_run else '==> ') + ' '.join(command), flush=True)
+    print(('** Preview ** ' if dry_run else '==> ') + ' '.join(command), flush=True)
     if content:
         print(content)
     if not dry_run:
@@ -62,31 +61,31 @@ def install_docker(dry_run=False, choose_version=False, hello_world=False, group
         privileged = hasattr(os, 'geteuid') and os.geteuid() == 0
         prefix = [] if privileged else ['sudo']
         if group_user and not re.fullmatch(r'[a-z_][a-z0-9_-]*[$]?', group_user):
-            raise ValueError('اسم المستخدم غير صالح')
+            raise ValueError('Invalid username')
         release = platform.freedesktop_os_release()
         if release.get('ID') != 'ubuntu':
-            raise ValueError('التثبيت المباشر متاح على Ubuntu فقط.')
+            raise ValueError('Direct installation is available on Ubuntu only.')
         codename = release.get('UBUNTU_CODENAME') or release.get('VERSION_CODENAME', '')
         architecture = subprocess.run(['dpkg', '--print-architecture'], capture_output=True,
                                       text=True, check=True).stdout.strip()
         conflicts = installed_conflicts()
         steps = repository_plan(codename, architecture, conflicts, privileged)
-        print('الحزم المتعارضة المكتشفة: ' + (', '.join(conflicts) or 'لا توجد'))
+        print('Conflicting packages detected: ' + (', '.join(conflicts) or 'None'))
         if conflicts:
-            print('إزالة الحزم قد توقف خدمات تستخدمها. سيعرض apt تفاصيل الإزالة ويطلب التأكيد.')
+            print('Removing packages may stop services that depend on them. apt will display removal details and request confirmation.')
         for command, content in steps:
             run_step(command, content, dry_run=True)
         run_step(package_command(privileged=privileged), dry_run=True)
-        print('بعد التثبيت: تشغيل الخدمة والتحقق من المحرك المحلي وCompose وBuildx.')
+        print('After installation: start service and verify local engine, Compose, and Buildx.')
         if dry_run:
             if choose_version:
-                print('سيتم عرض الإصدارات المتاحة واختيار إصدار لكل من docker-ce وdocker-ce-cli بعد إعداد المستودع.')
+                print('Available versions will be displayed and a version selected for each of docker-ce and docker-ce-cli after repository setup.')
             if hello_world:
-                print('اختبار hello-world: مفعّل')
+                print('hello-world test: enabled')
             if group_user:
-                print(f'إضافة المستخدم إلى docker: {group_user}')
+                print(f'Add user to docker group: {group_user}')
             return True
-        if input('تنفيذ خطة التثبيت على هذا الجهاز؟ [y/N]: ').strip().lower() != 'y':
+        if input('Execute installation plan on this machine? [y/N]: ').strip().lower() != 'y':
             return False
         for command, content in steps:
             run_step(command, content)
@@ -99,16 +98,15 @@ def install_docker(dry_run=False, choose_version=False, hello_world=False, group
                 available.append({line.split('|')[1].strip() for line in result.stdout.splitlines() if '|' in line})
             versions = sorted(available[0] & available[1], reverse=True)
             if not versions:
-                raise ValueError('لا توجد إصدارات مشتركة للمحرك والعميل في المستودع.')
+                raise ValueError('No common versions for engine and client in the repository.')
             print('\n'.join(versions))
-            version = input('انسخ VERSION_STRING المطلوب، أو 0 للإلغاء: ').strip()
+            version = input('Copy the required VERSION_STRING, or 0 to cancel: ').strip()
             if version not in versions:
-                print('ألغي تثبيت الحزم؛ إعداد المستودع تم بالفعل.')
+                print('Package installation cancelled; repository setup has already been done.')
                 return False
         run_step(package_command(version, privileged))
         run_step(prefix + ['systemctl', 'start', 'docker'])
         run_step(prefix + ['systemctl', '--no-pager', '--full', 'status', 'docker'])
-        # Explicit local socket prevents verification or hello-world on a remote context.
         docker = prefix + ['docker', '--host', 'unix:///var/run/docker.sock']
         run_step(docker + ['info'])
         run_step(docker + ['compose', 'version'])
@@ -117,9 +115,9 @@ def install_docker(dry_run=False, choose_version=False, hello_world=False, group
             run_step(docker + ['run', '--rm', 'hello-world'])
         if group_user:
             run_step(prefix + ['usermod', '-aG', 'docker', group_user])
-            print('سجل الخروج ثم الدخول لتفعيل عضوية المجموعة.')
-        print('اكتمل تثبيت Docker Engine والتحقق من المحرك المحلي والإضافات.')
+            print('Log out and log in again to activate group membership.')
+        print('Docker Engine installation completed and local engine, Compose, and extensions verified.')
         return True
     except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'توقف التثبيت: {exc}. قد تكون بعض الخطوات نُفذت؛ راجع المخرجات.')
+        print(f'Installation stopped: {exc}. Some steps may have been executed; check output.')
         return False

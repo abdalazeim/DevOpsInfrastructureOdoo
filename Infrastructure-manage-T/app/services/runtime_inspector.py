@@ -50,7 +50,7 @@ def inspect_docker(component):
     if component not in VERSIONS:
         raise ValueError("Unknown component")
     if not shutil.which("docker"):
-        return {"records": [], "errors": ["Docker غير مثبت أو غير موجود في PATH."]}
+        return {"records": [], "errors": ["Docker is not installed or not in PATH."]}
     repository = "python" if component == "python" else "postgres"
     records, errors = [], []
     for kind, command in (
@@ -65,7 +65,7 @@ def inspect_docker(component):
             try:
                 item = json.loads(line)
             except ValueError:
-                errors.append("تعذر قراءة نتيجة Docker.")
+                errors.append("Failed to read Docker output.")
                 continue
             image = item.get("Image", item.get("Repository", ""))
             name = image.split("/")[-1].split(":")[0].split("@")[0]

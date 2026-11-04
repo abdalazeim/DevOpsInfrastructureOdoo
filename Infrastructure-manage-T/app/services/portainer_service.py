@@ -19,125 +19,13 @@ ISSUE_CONTAINER_NOT_RUNNING = 'container_not_running'
 ISSUE_BIND_MOUNT_MISSING = 'bind_mount_missing'
 
 
-def portainer_diagnose(use_sudo=False):
-    """تشخيص أخطاء Portainer المحتملة وقائمة بالإصلاحات المقترحة."""
-    issues = []
-    repairs = []
-
-    if not shutil.which('docker'):
-        issues.append({
-            'id': ISSUE_DOCKER_MISSING,
-            'component': 'Portainer',
-            'title': 'Docker Engine غير مثبت',
-            'description': 'لا يمكن تشغيل Portainer دون Docker Engine.',
-            'severity': 'critical',
-            'auto_fix': False,
-            'fix_command': None,
-            'fix_description': 'ثبت Docker Engine أولاً عبر القائمة.',
-        })
-        return issues, repairs
-
-    report = inspect_portainer(use_sudo=use_sudo)
-
-    if report['status'] == 'error':
-        issues.append({
-            'id': 'portainer_daemon_error',
-            'component': 'Portainer',
-            'title': 'خطأ في التواصل مع Docker daemon',
-            'description': report.get('error', 'غير معلوم'),
-            'severity': 'critical',
-            'auto_fix': False,
-            'fix_command': None,
-            'fix_description': 'تحقق من تشغيل Docker وصلاحيات المستخدم.',
-        })
-        return issues, repairs
-
-    if report['status'] == 'conflict':
-        issues.append({
-            'id': 'portainer_name_conflict',
-            'component': 'Portainer',
-            'title': 'تضارب باسم الحاوية portainer',
-            'description': 'اسم portainer مستخدم من حاوية أخرى.',
-            'severity': 'high',
-            'auto_fix': False,
-            'fix_command': None,
-            'fix_description': 'غير اسم الحاوية الأخرى أو احذفها قبل التثبيت.',
-        })
-        return issues, repairs
-
-    if report['status'] == 'installed':
-        for c in report['containers']:
-            status = c.get('Status', '')
-            if 'Exited' in status or 'Created' in status:
-                issues.append({
-                    'id': 'portainer_container_not_running',
-                    'component': 'Portainer',
-                    'title': 'حاوية Portainer غير عاملة',
-                    'description': f"حالة الحاوية: {status}",
-                    'severity': 'high',
-                    'auto_fix': True,
-                    'fix_command': ['docker', 'start', 'portainer'],
-                    'fix_description': 'تشغيل حاوية Portainer المتوقفة.',
-                })
-                repairs.append(('تشغيل حاوية Portainer', ['docker', 'start', 'portainer']))
-            break
-
-    # فحص المنافذ
-    for port, issue_id, title in ((9000, PORT_ISSUE_PORT_9000, 'المنفذ 9000 مستخدم'),
-                                   (8000, PORT_ISSUE_PORT_8000, 'المنفذ 8000 مستخدم')):
-        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.settimeout(0.2)
-            if s.connect_ex(('127.0.0.1', port)) == 0:
-                issues.append({
-                    'id': issue_id,
-                    'component': 'Portainer',
-                    'title': title,
-                    'description': f'المنفذ {port} مرتبط بعملية أخرى.',
-                    'severity': 'medium',
-                    'auto_fix': False,
-                    'fix_command': None,
-                    'fix_description': 'أوقف الخدمة القائمة على المنفذ أو اختر منفذاً آخر.',
-                })
-
-    # فحص مجلد البيانات
-    if not os.path.exists('/srv/portainer'):
-        issues.append({
-            'id': 'portainer_bind_mount_missing',
-            'component': 'Portainer',
-            'title': 'مجلد البيانات /srv/portainer غير موجود',
-            'description': 'سينشئ المثبت المجلد تلقائياً.',
-            'severity': 'low',
-            'auto_fix': True,
-            'fix_command': ['mkdir', '-p', '/srv/portainer'],
-            'fix_description': 'إنشاء مجلد البيانات لنجاح الربط.',
-        })
-        repairs.append(('إنشاء مجلد /srv/portainer', ['mkdir', '-p', '/srv/portainer']))
-
-    return issues, repairs
-
-
-def portainer_repair(issue, use_sudo=False):
-    """تنفيذ إصلاح واحد لمشكلة Portainer."""
-    fix_cmd = issue.get('fix_command')
-    if not fix_cmd:
-        return False, 'لا يوجد أمر إصلاح تلقائي لهذه المشكلة.'
-    docker = docker_command(use_sudo)
-    prefix = docker[:-len(DOCKER)]
-    full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
-    try:
-        run_step(full_cmd)
-        return True, 'تم التنفيذ بنجاح.'
-    except Exception as exc:
-        return False, str(exc)
-
-
 def docker_command(use_sudo=False):
     return (['sudo', '-n'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []) + DOCKER
 
 
 def inspect_portainer(use_sudo=False):
     if not shutil.which('docker'):
-        return {'status': 'docker_missing', 'containers': [], 'error': 'جهّز Docker Engine أولًا.'}
+        return {'status': 'docker_missing', 'containers': [], 'error': 'Docker Engine is not installed.'}
     code, output = probe(docker_command(use_sudo) + ['ps', '-a', '--format', '{{json .}}'])
     if code:
         return {'status': 'error', 'containers': [], 'error': output}
@@ -152,14 +40,126 @@ def inspect_portainer(use_sudo=False):
                 containers.append(item)
                 collision |= not is_portainer
     except (ValueError, AttributeError):
-        return {'status': 'error', 'containers': [], 'error': 'تعذر قراءة استجابة Docker.'}
+        return {'status': 'error', 'containers': [], 'error': 'Failed to read Docker response.'}
     return {'status': 'conflict' if collision else 'installed' if containers else 'missing',
             'containers': containers, 'error': ''}
 
 
+def portainer_diagnose(use_sudo=False):
+    """Diagnose potential Portainer errors and list suggested fixes."""
+    issues = []
+    repairs = []
+
+    if not shutil.which('docker'):
+        issues.append({
+            'id': ISSUE_DOCKER_MISSING,
+            'component': 'Portainer',
+            'title': 'Docker Engine is not installed',
+            'description': 'Portainer cannot run without Docker Engine.',
+            'severity': 'critical',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'Install Docker Engine first from the menu.',
+        })
+        return issues, repairs
+
+    report = inspect_portainer(use_sudo=use_sudo)
+
+    if report['status'] == 'error':
+        issues.append({
+            'id': 'portainer_daemon_error',
+            'component': 'Portainer',
+            'title': 'Error communicating with Docker daemon',
+            'description': report.get('error', 'Unknown'),
+            'severity': 'critical',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'Check Docker is running and user permissions.',
+        })
+        return issues, repairs
+
+    if report['status'] == 'conflict':
+        issues.append({
+            'id': 'portainer_name_conflict',
+            'component': 'Portainer',
+            'title': 'Container name conflict portainer',
+            'description': 'Name portainer is used by another container.',
+            'severity': 'high',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'Rename the other container or remove it before installing.',
+        })
+        return issues, repairs
+
+    if report['status'] == 'installed':
+        for c in report['containers']:
+            status = c.get('Status', '')
+            if 'Exited' in status or 'Created' in status:
+                issues.append({
+                    'id': 'portainer_container_not_running',
+                    'component': 'Portainer',
+                    'title': 'Portainer container not running',
+                    'description': f'Container status: {status}',
+                    'severity': 'high',
+                    'auto_fix': True,
+                    'fix_command': ['docker', 'start', 'portainer'],
+                    'fix_description': 'Start the stopped Portainer container.',
+                })
+                repairs.append(('Start Portainer container', ['docker', 'start', 'portainer']))
+            break
+
+    # Check ports
+    for port, issue_id, title in ((9000, PORT_ISSUE_PORT_9000, 'Port 9000 in use'),
+                                   (8000, PORT_ISSUE_PORT_8000, 'Port 8000 in use')):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.2)
+            if s.connect_ex(('127.0.0.1', port)) == 0:
+                issues.append({
+                    'id': issue_id,
+                    'component': 'Portainer',
+                    'title': title,
+                    'description': f'Port {port} is bound by another process.',
+                    'severity': 'medium',
+                    'auto_fix': False,
+                    'fix_command': None,
+                    'fix_description': 'Stop the service on the port or choose another port.',
+                })
+
+    # Check data directory
+    if not os.path.exists('/srv/portainer'):
+        issues.append({
+            'id': 'portainer_bind_mount_missing',
+            'component': 'Portainer',
+            'title': 'Data directory /srv/portainer not found',
+            'description': 'The installer will create the directory automatically.',
+            'severity': 'low',
+            'auto_fix': True,
+            'fix_command': ['mkdir', '-p', '/srv/portainer'],
+            'fix_description': 'Create the data directory for mounting.',
+        })
+        repairs.append(('Create directory /srv/portainer', ['mkdir', '-p', '/srv/portainer']))
+
+    return issues, repairs
+
+
+def portainer_repair(issue, use_sudo=False):
+    """Execute a single fix for a Portainer issue."""
+    fix_cmd = issue.get('fix_command')
+    if not fix_cmd:
+        return False, 'No automatic repair command for this issue.'
+    docker = docker_command(use_sudo)
+    prefix = docker[:-len(DOCKER)]
+    full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
+    try:
+        run_step(full_cmd)
+        return True, 'Executed successfully.'
+    except Exception as exc:
+        return False, str(exc)
+
+
 def build_plan(port=9000, edge=True, use_sudo=False):
     if type(port) is not int or not 1 <= port <= 65535 or (edge and port == 8000):
-        raise ValueError('منفذ HTTP غير صالح أو يتعارض مع منفذ Edge 8000.')
+        raise ValueError('Invalid HTTP port or conflicts with Edge port 8000.')
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
     command = docker + ['run', '-d', '-p', f'{port}:9000']
@@ -179,10 +179,10 @@ def install_portainer(port=9000, edge=True, dry_run=False, use_sudo=False):
                 run_step(command, dry_run=True)
             return True
         if platform.system() != 'Linux':
-            raise ValueError('هذا المثبت مخصص لمحرك Docker المحلي على Linux.')
+            raise ValueError('This installer is for the local Docker engine on Linux.')
         report = inspect_portainer(use_sudo=use_sudo)
         if report['status'] != 'missing':
-            print('لم يُنفذ التثبيت: توجد حاوية أو تعارض أو تعذر الفحص. لن تتم إزالة حاوية قائمة.')
+            print('Installation not executed: a container or conflict exists or inspection failed. No existing container will be removed.')
             print(report['error'])
             return False
         for candidate in ([port, 8000] if edge else [port]):
@@ -192,13 +192,13 @@ def install_portainer(port=9000, edge=True, dry_run=False, use_sudo=False):
             run_step(command)
         code, state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', 'portainer'])
         if code or state != 'running':
-            print(f'أُنشئت الحاوية لكن لم يؤكد الفحص تشغيلها: {state}. راجع docker logs portainer.')
+            print(f'Container created but status check did not confirm running: {state}. Check docker logs portainer.')
             return False
         run_step(docker_command(use_sudo) + ['ps', '-a'])
-        print(f'حاوية Portainer تعمل. افتح http://<SERVER-IP>:{port} لإكمال الإعداد الأولي.')
-        print('هذا تحقق من تشغيل الحاوية؛ جاهزية واجهة HTTP لم تُختبر بعد.')
-        print('قد تحتاج إلى رمز الإعداد من sudo docker logs portainer.')
+        print(f'Portainer container is running. Open http://<SERVER-IP>:{port} to complete initial setup.')
+        print('This verifies container is running; HTTP UI readiness has not been tested yet.')
+        print('You may need a setup code from sudo docker logs portainer.')
         return True
     except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'توقف تثبيت Portainer: {exc}. لم تُحذف بيانات أو حاويات قائمة؛ راجع المخرجات.')
+        print(f'Portainer installation stopped: {exc}. No existing data or containers were deleted; check output.')
         return False
