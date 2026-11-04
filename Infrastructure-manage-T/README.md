@@ -274,15 +274,23 @@ odoo_instances:
     container_name: odoo19-instance2
 ```
 
-### كلمات مرورferred الافتراضية (قبل الإنتاج)
+### 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
 
-| الإصدار | Odoo Admin Password | PostgreSQL Password |
-|---------|---------------------|---------------------|
-| Odoo 17 | `odoo17` | `odoo17` |
-| Odoo 18 | `odoo18` | `odoo18` |
-| Odoo 19 | `odoo19` | `odoo19` |
+| الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
+|---------|---------------------|---------------------|----------------|
+| **Odoo 17** | `odoo17` | `odoo17` | `odoo17` |
+| **Odoo 18** | `odoo18` | `odoo18` | `odoo18` |
+| **Odoo 19** | `odoo19` | `odoo19` | `odoo19` |
 
-> ⚠️ **يجب استبدال هذه الكلمات المرور قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins credentials أو ملف `.env`.
+> ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر:
+> - **Jenkins Credentials** (في واجهة Jenkins)
+> - **ملف `.env`** (بصلاحيات `0600`)
+> - **Ansible Vault** (لتشفير الأسرار)
+
+> 📋 **كيفية التغيير**:
+> 1. عدّل ملف `versions/odoo17.yml` / `odoo18.yml` / `odoo19.yml`
+> 2. أو مرّر متغيرات البيئة: `ODOO_ADMIN_PASSWORD` و `POSTGRES_PASSWORD`
+> 3. أو استخدم واجهة Jenkins لإدخال كلمات مرور مخصصة قبل بدء البناء
 
 ---
 

@@ -87,6 +87,14 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 * Log file: **etc/odoo-server.log**
 * Default database password (**admin_passwd**) is set via `vault_odoo_admin_password` in Ansible vault, update it in [etc/odoo.conf](/etc/odoo.conf) or via Jenkins credentials.
 
+## 🔑 كلمات مرور المشرف الافتراضية (before production)
+
+| الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
+|---------|---------------------|---------------------|----------------|
+| **Odoo 19** | `odoo19` | `odoo19` | `odoo19` |
+
+> ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins Credentials أو ملف `.env` أو Ansible Vault.
+
 ## Odoo container management
 
 **Run Odoo**:

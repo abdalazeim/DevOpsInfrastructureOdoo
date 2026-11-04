@@ -275,6 +275,16 @@ ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 
 ---
 
+## 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
+
+| الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
+|---------|---------------------|---------------------|----------------|
+| **Odoo 17** | `odoo17` | `odoo17` | `odoo17` |
+
+> ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins Credentials أو ملف `.env` أو Ansible Vault.
+
+---
+
 ## 📚 المراجع | References
 
 - [Odoo 17 Documentation](https://www.odoo.com/documentation/17.0/)
