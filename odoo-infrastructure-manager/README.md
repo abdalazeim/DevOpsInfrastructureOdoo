@@ -1,6 +1,18 @@
-# Django Enterprise Starter
+# Odoo Infrastructure Manager
 
-قالب Django معياري يصلح كنقطة بداية لمشاريع متعددة المجالات. يستخدم Modular Monolith، مع فصل النواة والحسابات والوحدات الاختيارية. المثال الافتراضي محايد ويعرض CRUD من واجهة الويب وREST API.
+منصة Django لإدارة جرد البنية التحتية ومراقبتها وتشغيل مهام Semaphore المعتمدة. تجمع واجهة تشغيل مرئية مع أدوات CLI/TUI القديمة.
+
+## خريطة المشروع
+
+- `config/`: إعدادات Django والمسارات وطبقة الأمان.
+- `apps/`: تطبيقات الويب ووحدات المجال: اللوحة، الجرد، المشاريع، قواعد البيانات، الأتمتة، النسخ الاحتياطي والمراقبة.
+- `infrastructure_engine/`: نماذج التشغيل والخدمات وسير العمل وواجهات الطرفية لمحرك البنية التحتية.
+- `profiles/`, `infra_templates/`, `infra_deployment/`, `automation_files/`: ملفات تعريف البيئات وقوالب وملفات التشغيل الآلي.
+- `templates/`, `static/`: واجهة الويب وأصولها.
+- `data/`, `logs/`, `media/`, `staticfiles/`: بيانات التشغيل والملفات المولدة محليًا.
+- `requirements/`: اعتماديات الأساس والتطوير والإنتاج والاختبار. تبقى `requirements.txt` و`requirements-dev.txt` كمدخلي تثبيت للتوافق.
+
+تظل الاستيرادات القديمة من `app.models` و`app.services` و`app.workflows` صالحة عبر طبقة توافق؛ التنفيذ الأساسي لهذه الحزم موجود في `infrastructure_engine/`.
 
 ## المكونات
 
@@ -10,6 +22,7 @@
 - مصادقة الجلسات للويب وJWT للتطبيقات.
 - مثال CRUD في `apps/modules/example`.
 - وحدة النقل القديمة معزولة في `examples/transport` ولا تدخل التطبيق أو الترحيلات الافتراضية.
+- Docker read-only اختياري، Prometheus للمقاييس، Semaphore للقوالب المعتمدة، وسجل تدقيق للإجراءات.
 
 ## التشغيل المحلي
 
@@ -25,7 +38,7 @@ python manage.py createsuperuser
 python manage.py runserver
 ```
 
-افتح `http://127.0.0.1:8000/` للواجهة، و`http://127.0.0.1:8000/admin/` لإدارة Django. لا يُنشأ حساب افتراضي تلقائيًا. يمكن تفعيل إنشاء حساب ابتدائي صراحةً عبر `DJANGO_SEED_ADMIN=True` مع تعيين كلمة مرور قوية في متغير محلي غير محفوظ في Git.
+افتح `http://127.0.0.1:8000/` للوحة، ثم استخدم صفحات الإدارة داخل النظام. واجهة Django Admin معطلة ومحذوفة من المسارات. أنشئ حساب دخول عبر `python manage.py createsuperuser`. راجع [دليل Infrastructure Manager](docs/INFRASTRUCTURE_MANAGER.md) لإعداد موفري البيانات والأتمتة.
 
 ## البيئات والإعدادات
 

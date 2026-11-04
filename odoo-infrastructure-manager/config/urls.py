@@ -2,7 +2,6 @@ import sys
 from pathlib import Path
 
 from django.conf import settings
-from django.contrib import admin
 from django.urls import include, path
 from django.views.static import serve
 from drf_spectacular.views import (
@@ -16,6 +15,7 @@ from apps.accounts.views.jwt import (
     EnvelopeTokenObtainPairView,
     EnvelopeTokenRefreshView,
 )
+from apps.dashboard.views import index as infrastructure_dashboard
 
 
 def is_frozen():
@@ -35,7 +35,8 @@ def get_app_dir():
 
 
 urlpatterns = [
-    path("admin/", admin.site.urls),
+    path("", infrastructure_dashboard, name="dashboard-home"),
+    path("dashboard/", include("apps.dashboard.urls")),
     # Pages (non-API)
     path("", include("apps.core.urls")),
     path("infrastructure/", include("apps.infrastructure.urls")),

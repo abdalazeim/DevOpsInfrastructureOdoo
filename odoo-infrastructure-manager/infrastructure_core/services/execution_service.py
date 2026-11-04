@@ -10,7 +10,7 @@ import subprocess
 import threading
 from typing import Callable, List, Optional
 
-from app.models.operation import OperationStatus, WorkflowStep
+from infrastructure_engine.models.operation import OperationStatus, WorkflowStep
 
 
 DEFAULT_TIMEOUT_SECONDS = 300

@@ -7,9 +7,9 @@ addons/, etc/, entrypoint.sh, direct ports 10017/20017) while reading
 secrets from the protected .env file.
 """
 from typing import List
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, WorkflowStep
-from app.services.docker_service import DockerService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, WorkflowStep
+from infrastructure_engine.services.docker_service import DockerService
 
 
 def _installer_command(profile: InfrastructureProfile, version: str, with_traefik: bool) -> List[str]:

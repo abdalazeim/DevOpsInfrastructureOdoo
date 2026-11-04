@@ -2,9 +2,9 @@
 Workflow: Database Backup, Restore, and Maintenance Operations.
 """
 from typing import List, Optional
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, WorkflowStep
-from app.services.backup_service import BackupService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, WorkflowStep
+from infrastructure_engine.services.backup_service import BackupService
 
 class DatabaseOpsWorkflow:
     """Orchestrates database backups, retention cleanup, and safe restores."""

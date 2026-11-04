@@ -1,0 +1,32 @@
+Before implementing any module, produce a detailed implementation specification containing:
+
+1. Module purpose.
+2. Internal components.
+3. Django models and fields.
+4. Database relationships.
+5. Services and business logic.
+6. APIs and endpoints.
+7. User permissions.
+8. Background tasks.
+9. Infrastructure adapters.
+10. Events and notifications.
+11. Dependencies on other modules.
+12. Test scenarios.
+
+Then implement the module completely.
+
+After implementation:
+
+- Run migrations.
+- Run automated tests.
+- Verify API endpoints.
+- Verify permissions.
+- Verify frontend integration.
+- Verify relationships with existing modules.
+- Update architecture documentation.
+
+Do not proceed to the next module until the current module passes its acceptance tests.
+
+Maintain a central architecture document describing every module and its dependencies.
+
+Never implement placeholder functionality merely to make a page appear complete.

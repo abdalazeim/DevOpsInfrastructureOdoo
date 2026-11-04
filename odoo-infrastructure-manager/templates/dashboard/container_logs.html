@@ -1,0 +1,5 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Logs · {{ container.name }}{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+{% block app_content %}<main class="infra-dashboard"><header class="infra-heading"><div><div class="eyebrow">READ ONLY · LAST 100 LINES</div><h1>{{ container.name }}</h1><p>{{ container.image }} · {{ container.status }}</p></div><a class="infra-button secondary" href="{% url 'dashboard:containers' %}"><i class="fas fa-arrow-left"></i> Containers</a></header><section class="infra-panel logs-panel"><pre class="infra-logs">{{ logs|default:"No output returned." }}</pre></section><footer class="infra-footnote"><i class="fas fa-shield-halved"></i> Output is bounded and common secret patterns are redacted. No commands can be entered from this view.</footer></main>{% endblock %}

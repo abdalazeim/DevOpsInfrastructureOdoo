@@ -15,7 +15,7 @@ import time
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Any
 
-from app.services.archive_utils import safe_extractall
+from infrastructure_engine.services.archive_utils import safe_extractall
 
 
 DEFAULT_CONFIG_DIR = "/opt/odoo-infrastructure/traefik"

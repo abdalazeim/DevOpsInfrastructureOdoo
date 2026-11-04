@@ -20,19 +20,19 @@ except ImportError:
     TEXTUAL_AVAILABLE = False
     App = object
 
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, OperationStatus
-from app.services.smart_inspector import SmartInspectorService
-from app.services.system_backup import SystemBackupService
-from app.workflows.server_prep import ServerPrepWorkflow
-from app.workflows.deploy_traefik import DeployTraefikWorkflow
-from app.workflows.deploy_odoo17 import DeployOdoo17Workflow
-from app.workflows.deploy_odoo18 import DeployOdoo18Workflow
-from app.workflows.deploy_odoo19 import DeployOdoo19Workflow
-from app.workflows.database_ops import DatabaseOpsWorkflow
-from app.workflows.full_deploy import FullDeployWorkflow
-from app.services.health_service import HealthService
-from app.services.execution_service import ExecutionService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, OperationStatus
+from infrastructure_engine.services.smart_inspector import SmartInspectorService
+from infrastructure_engine.services.system_backup import SystemBackupService
+from infrastructure_engine.workflows.server_prep import ServerPrepWorkflow
+from infrastructure_engine.workflows.deploy_traefik import DeployTraefikWorkflow
+from infrastructure_engine.workflows.deploy_odoo17 import DeployOdoo17Workflow
+from infrastructure_engine.workflows.deploy_odoo18 import DeployOdoo18Workflow
+from infrastructure_engine.workflows.deploy_odoo19 import DeployOdoo19Workflow
+from infrastructure_engine.workflows.database_ops import DatabaseOpsWorkflow
+from infrastructure_engine.workflows.full_deploy import FullDeployWorkflow
+from infrastructure_engine.services.health_service import HealthService
+from infrastructure_engine.services.execution_service import ExecutionService
 
 TEXTUAL_CSS = """
 Screen {

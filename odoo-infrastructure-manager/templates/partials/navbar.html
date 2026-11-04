@@ -17,7 +17,7 @@
     <div class="top-nav-center">
       <div class="top-nav-search">
         <i class="fas fa-search top-nav-search-icon"></i>
-        <input type="text" class="top-nav-search-input" placeholder="بحث..." id="globalSearchInput" oninput="handleGlobalSearch(this.value)">
+        <input type="text" class="top-nav-search-input" placeholder="Search..." id="globalSearchInput" oninput="handleGlobalSearch(this.value)">
       </div>
     </div>
 
@@ -26,34 +26,23 @@
         <i class="fas fa-calendar-alt"></i>
         <span id="topNavDateText"></span>
       </div>
-      <div class="top-nav-lang" onclick="toggleLanguage()" title="تغيير اللغة">
-        {% if html_lang == 'ar' %}
-        <span id="langLabel">EN</span>
-        {% else %}
-        <span id="langLabel">عربي</span>
-        {% endif %}
-      </div>
-      <div class="top-nav-notif" onclick="showNotifications()" title="الإشعارات">
-        <i class="fas fa-bell"></i>
-        <span class="top-nav-notif-badge" id="notifBadge">0</span>
-      </div>
-      <div class="top-nav-profile" onclick="toggleProfileDropdown()" title="الملف الشخصي">
+      <div class="top-nav-profile" onclick="toggleProfileDropdown()" title="Profile">
         <div class="top-nav-avatar" id="nav-user-avatar">
-          <span id="nav-user-initials">مد</span>
+          <span id="nav-user-initials">{{ user.username|slice:":2"|upper }}</span>
         </div>
         <div class="top-nav-profile-info">
-          <div class="top-nav-profile-name" id="nav-user-name">مدير النظام</div>
-          <div class="top-nav-profile-role" id="nav-user-role">Admin</div>
+          <div class="top-nav-profile-name" id="nav-user-name">{{ user.get_full_name|default:user.username }}</div>
+          <div class="top-nav-profile-role" id="nav-user-role">{% if user.is_superuser %}Superuser{% else %}Operator{% endif %}</div>
         </div>
         <i class="fas fa-chevron-down top-nav-arrow"></i>
       </div>
       <div class="top-nav-dropdown" id="profileDropdown">
         <div class="top-nav-dropdown-header">
           <div class="top-nav-dropdown-avatar" id="dropdown-user-avatar">
-            <span id="dropdown-user-initials">مد</span>
+            <span id="dropdown-user-initials">{{ user.username|slice:":2"|upper }}</span>
           </div>
           <div class="top-nav-dropdown-userinfo">
-            <div class="top-nav-dropdown-username" id="dropdown-user-name">مدير النظام</div>
+            <div class="top-nav-dropdown-username" id="dropdown-user-name">{{ user.get_full_name|default:user.username }}</div>
             <div class="top-nav-dropdown-job" id="dropdown-user-job"></div>
             <div class="top-nav-dropdown-dept" id="dropdown-user-dept"></div>
           </div>
@@ -65,9 +54,7 @@
         </a>
         {% endfor %}
         <div class="top-nav-dropdown-divider"></div>
-        <a class="top-nav-dropdown-item text-danger" onclick="logout()">
-          <i class="fas fa-sign-out-alt"></i> تسجيل الخروج
-        </a>
+        <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="top-nav-dropdown-item text-danger" type="submit"><i class="fas fa-sign-out-alt"></i> Sign out</button></form>
       </div>
     </div>
   </div>

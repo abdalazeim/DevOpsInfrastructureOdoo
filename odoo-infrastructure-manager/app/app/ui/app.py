@@ -10,19 +10,19 @@ from typing import Optional, List
 import json
 import subprocess
 
-from app.models.profile import InfrastructureProfile
-from app.models.operation import OperationRecord, OperationStatus, WorkflowStep
-from app.validators.config_validator import ConfigValidator
-from app.validators.system_validator import SystemValidator
-from app.workflows.server_prep import ServerPrepWorkflow
-from app.workflows.deploy_traefik import DeployTraefikWorkflow
-from app.workflows.deploy_odoo17 import DeployOdoo17Workflow
-from app.workflows.deploy_odoo18 import DeployOdoo18Workflow
-from app.workflows.deploy_odoo19 import DeployOdoo19Workflow
-from app.workflows.database_ops import DatabaseOpsWorkflow
-from app.workflows.full_deploy import FullDeployWorkflow
-from app.services.execution_service import ExecutionService
-from app.services.health_service import HealthService
+from infrastructure_engine.models.profile import InfrastructureProfile
+from infrastructure_engine.models.operation import OperationRecord, OperationStatus, WorkflowStep
+from infrastructure_engine.validators.config_validator import ConfigValidator
+from infrastructure_engine.validators.system_validator import SystemValidator
+from infrastructure_engine.workflows.server_prep import ServerPrepWorkflow
+from infrastructure_engine.workflows.deploy_traefik import DeployTraefikWorkflow
+from infrastructure_engine.workflows.deploy_odoo17 import DeployOdoo17Workflow
+from infrastructure_engine.workflows.deploy_odoo18 import DeployOdoo18Workflow
+from infrastructure_engine.workflows.deploy_odoo19 import DeployOdoo19Workflow
+from infrastructure_engine.workflows.database_ops import DatabaseOpsWorkflow
+from infrastructure_engine.workflows.full_deploy import FullDeployWorkflow
+from infrastructure_engine.services.execution_service import ExecutionService
+from infrastructure_engine.services.health_service import HealthService
 
 # Repository root (this file lives in <root>/app/ui/app.py).
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -202,8 +202,8 @@ class TerminalUI:
                 print(f"  {YELLOW}• {warn}{RESET}")
 
     def run_preflight_checks(self):
-        from app.services.smart_inspector import SmartInspectorService, ComponentStatus
-        from app.services.system_backup import SystemBackupService
+        from infrastructure_engine.services.smart_inspector import SmartInspectorService, ComponentStatus
+        from infrastructure_engine.services.system_backup import SystemBackupService
 
         print(f"\n{BOLD}{CYAN}=============================================================================={RESET}")
         print(f"{BOLD}{CYAN}             PRE-FLIGHT INTELLIGENT INSPECTION & AUDIT REPORT                 {RESET}")
@@ -396,7 +396,7 @@ class TerminalUI:
             subprocess.run(["docker", "info"], check=False)
 
     def handle_traefik_management(self):
-        from app.services.traefik_manager import DEFAULT_CONFIG_DIR, TraefikDockerManager, TraefikConfig
+        from infrastructure_engine.services.traefik_manager import DEFAULT_CONFIG_DIR, TraefikDockerManager, TraefikConfig
 
         print(f"\n{BOLD}{CYAN}=============================================================================={RESET}")
         print(f"{BOLD}{CYAN}             TRAEFIK DOCKER MANAGEMENT MODULE / إدارة ترافيك                  {RESET}")
@@ -661,7 +661,7 @@ class TerminalUI:
                 print(f"{YELLOW}! Domain {d} does not resolve in local DNS (Add A-Record to Public IP){RESET}")
 
     def handle_backup_management(self):
-        from app.services.system_backup import SystemBackupService
+        from infrastructure_engine.services.system_backup import SystemBackupService
         print(f"\n{BOLD}{CYAN}=== 11. BACKUP MANAGEMENT / إدارة النسخ الاحتياطي ==={RESET}")
         print(" [1] Backup Odoo 17 database & filestore")
         print(" [2] Backup Odoo 18 database & filestore")

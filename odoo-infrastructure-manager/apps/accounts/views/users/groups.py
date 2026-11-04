@@ -4,6 +4,7 @@ from apps.core.services.audit_service import log_audit
 from apps.core.utils.decorators import api_login_required, api_permission_required
 from apps.core.utils.http import parse_json_body
 from ...models import UserGroup
+from ...permissions.validation import actor_can_grant, permission_codes_from_payload
 
 
 @api_login_required
@@ -24,9 +25,16 @@ def list_groups(request):
                 {"success": False, "error": "المجموعة موجودة مسبقاً"}, status=400
             )
 
+        permissions, error = permission_codes_from_payload(data.get("permissions", []))
+        if error:
+            return JsonResponse({"success": False, "error": error}, status=400)
+        if not actor_can_grant(request.user, permissions):
+            return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+
         group = UserGroup.objects.create(
             name=name,
             description=(data.get("description") or "").strip(),
+            permissions=permissions,
         )
         log_audit(
             request,
@@ -43,6 +51,7 @@ def list_groups(request):
                     "id": group.id,
                     "name": group.name,
                     "description": group.description,
+                    "permissions": group.permissions,
                     "created_at": group.created_at.isoformat(),
                 },
             },
@@ -55,6 +64,7 @@ def list_groups(request):
             "id": g.id,
             "name": g.name,
             "description": g.description,
+            "permissions": g.permissions,
             "created_at": g.created_at.isoformat(),
         }
         for g in groups
@@ -88,6 +98,13 @@ def edit_group(request, group_id):
                 group.name = name
         if "description" in data:
             group.description = data["description"].strip()
+        if "permissions" in data:
+            permissions, error = permission_codes_from_payload(data["permissions"])
+            if error:
+                return JsonResponse({"success": False, "error": error}, status=400)
+            if not actor_can_grant(request.user, permissions):
+                return JsonResponse({"success": False, "error": "You cannot grant permissions you do not hold."}, status=403)
+            group.permissions = permissions
         group.save()
 
         log_audit(
@@ -106,6 +123,7 @@ def edit_group(request, group_id):
                     "id": group.id,
                     "name": group.name,
                     "description": group.description,
+                    "permissions": group.permissions,
                     "created_at": group.created_at.isoformat(),
                 },
             }

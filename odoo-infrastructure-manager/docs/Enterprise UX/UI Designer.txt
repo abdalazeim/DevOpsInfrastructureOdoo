@@ -1,0 +1,1005 @@
+# ROLE & EXPERTISE
+
+Act as a world-class Enterprise UX/UI Designer, Senior Frontend Architect, Django Developer, DevOps Engineer, and Infrastructure Management Product Designer.
+
+Your mission is to transform the existing Infrastructure Manager project into a premium, modern, enterprise-grade Infrastructure Management Platform.
+
+The system must provide centralized control, monitoring, automation, administration, and management of Linux servers and their infrastructure through a unified, professional web interface.
+
+Use the uploaded screenshot as a visual reference for the current application, but do not simply reproduce it. Redesign and significantly improve the entire interface.
+
+The final product must look and feel like a professional enterprise infrastructure platform comparable in quality to modern server management, cloud management, and DevOps platforms.
+
+==================================================
+1. DESIGN VISION & IDENTITY
+==================================================
+
+Product Name:
+Infrastructure Manager
+
+Product Category:
+Enterprise Infrastructure Management Platform.
+
+Design Philosophy:
+- Premium Enterprise SaaS.
+- Modern DevOps Dashboard.
+- Professional Infrastructure Control Center.
+- Information-dense but visually clean.
+- Consistent design across all modules.
+- Minimal unnecessary decoration.
+- Strong visual hierarchy.
+- Fast and intuitive navigation.
+
+Create a unified design system that applies to every screen, module, component, modal, table, form, chart, and dashboard.
+
+Avoid:
+- Generic Bootstrap administration interfaces.
+- Excessive empty spaces.
+- Narrow centered content containers.
+- Oversized cards.
+- Inconsistent icons.
+- Random colors.
+- Excessive gradients.
+- Unnecessary animations.
+- Different design patterns between modules.
+
+==================================================
+2. GLOBAL APPLICATION LAYOUT
+==================================================
+
+Build a professional application shell consisting of:
+
+A. LEFT SIDEBAR
+
+Create a fixed, collapsible sidebar.
+
+Requirements:
+- Full-height navigation.
+- Expandable and collapsible menu groups.
+- Professional icons.
+- Active menu indicators.
+- Hover effects.
+- Module badges.
+- Tooltips in collapsed mode.
+- Smooth navigation.
+- Responsive mobile behavior.
+- Persistent sidebar state.
+
+Sidebar sections:
+
+1. OVERVIEW
+   - Dashboard
+   - Infrastructure Overview
+   - Global Activity
+   - System Health
+
+2. INFRASTRUCTURE
+   - Servers
+   - Server Groups
+   - Operating System
+   - System Services
+   - Processes
+   - CPU & Memory
+   - Storage & Disks
+   - Networking
+   - Firewall
+   - Users & Groups
+
+3. CONTAINER MANAGEMENT
+   - Docker Overview
+   - Containers
+   - Images
+   - Volumes
+   - Networks
+   - Docker Compose
+   - Registries
+   - Container Logs
+
+4. AUTOMATION
+   - Ansible Overview
+   - Playbooks
+   - Inventory
+   - Hosts
+   - Roles
+   - Execution Jobs
+   - Scheduled Tasks
+   - Execution History
+
+5. MONITORING
+   - Monitoring Overview
+   - CPU Monitoring
+   - Memory Monitoring
+   - Disk Monitoring
+   - Network Monitoring
+   - Service Monitoring
+   - Alerts
+   - Alert Rules
+   - Historical Metrics
+
+6. DATABASE MANAGEMENT
+   - Database Overview
+   - Database Instances
+   - Connections
+   - Database Health
+   - Backup & Restore
+   - Maintenance
+
+7. BACKUP & RECOVERY
+   - Backup Dashboard
+   - Backup Jobs
+   - Backup Schedules
+   - Backup Storage
+   - Backup History
+   - Restore Operations
+   - Retention Policies
+
+8. SECURITY
+   - Security Overview
+   - SSH Keys
+   - Credentials
+   - Secrets Management
+   - Access Policies
+   - Users & Permissions
+   - Audit Logs
+   - Security Events
+
+9. TASK CENTER
+   - Running Tasks
+   - Pending Tasks
+   - Completed Tasks
+   - Failed Tasks
+   - Execution Queue
+   - Task Logs
+
+10. REPORTS
+    - Infrastructure Reports
+    - Resource Reports
+    - Automation Reports
+    - Backup Reports
+    - Security Reports
+
+11. ADMINISTRATION
+    - General Settings
+    - Application Settings
+    - Integrations
+    - Notifications
+    - User Management
+    - System Maintenance
+    - About
+
+Use logical grouping and avoid showing every submenu expanded simultaneously.
+
+B. TOP NAVIGATION BAR
+
+Create a professional top navigation bar containing:
+
+- Application logo and name.
+- Sidebar toggle.
+- Global search.
+- Server selector.
+- Current server connection status.
+- Notifications with unread counter.
+- Background task indicator.
+- Language selector (Arabic / English).
+- Theme selector.
+- User profile menu.
+- Quick actions menu.
+
+The server selector must distinguish:
+- Local Server.
+- Remote Servers.
+- All Servers.
+
+C. MAIN CONTENT AREA
+
+The content area must:
+- Use the available screen width.
+- Avoid narrow centered panels.
+- Support responsive grids.
+- Maintain consistent page margins.
+- Use breadcrumbs.
+- Display page titles and descriptions.
+- Include contextual actions.
+- Support loading, empty, error, and success states.
+
+Use a professional content width that adapts to large desktop monitors.
+
+==================================================
+3. DESIGN SYSTEM
+==================================================
+
+Create a centralized design token system.
+
+COLOR PALETTE:
+
+Primary:
+Deep Navy: #0B1628
+Dark Sidebar: #0A172B
+Secondary Navy: #13243B
+Surface: #FFFFFF
+Light Background: #F3F6FA
+
+Accent:
+Primary Blue: #2563EB
+Cyan: #06B6D4
+
+Status Colors:
+Success: #16A34A
+Warning: #F59E0B
+Danger: #DC2626
+Information: #0EA5E9
+Neutral: #64748B
+
+Support both:
+- Light Theme.
+- Dark Theme.
+
+Dark mode must use carefully selected surface colors, readable text, and consistent borders.
+
+TYPOGRAPHY:
+
+Use:
+- Inter for English.
+- IBM Plex Sans Arabic or Cairo for Arabic.
+
+Support:
+- Arabic RTL.
+- English LTR.
+- Automatic layout direction based on selected language.
+
+ICON SYSTEM:
+
+Use Lucide Icons consistently throughout the application.
+
+Icons must:
+- Have consistent stroke width.
+- Have consistent dimensions.
+- Represent their actual functionality.
+- Avoid mixing multiple icon libraries.
+
+Use appropriate icons for servers, containers, databases, networking, monitoring, automation, security, backups, and administration.
+
+COMPONENT SYSTEM:
+
+Create reusable components:
+
+- Buttons.
+- Icon buttons.
+- Dropdown menus.
+- Search inputs.
+- Form fields.
+- Select controls.
+- Data tables.
+- Status badges.
+- Metric cards.
+- Charts.
+- Progress indicators.
+- Tabs.
+- Modals.
+- Drawers.
+- Tooltips.
+- Notifications.
+- Empty states.
+- Confirmation dialogs.
+- Pagination.
+- Breadcrumbs.
+- Filters.
+- Date pickers.
+- Terminal panels.
+- Log viewers.
+
+All components must follow the same visual system.
+
+==================================================
+4. GLOBAL DASHBOARD
+==================================================
+
+Create a professional Infrastructure Overview Dashboard.
+
+The dashboard should provide an immediate understanding of the entire infrastructure environment.
+
+TOP METRIC CARDS:
+
+- Total Servers.
+- Online Servers.
+- Offline Servers.
+- Docker Containers.
+- Running Containers.
+- Stopped Containers.
+- Active Tasks.
+- Failed Tasks.
+- CPU Usage.
+- Memory Usage.
+- Storage Usage.
+- Active Alerts.
+
+Each metric card must contain:
+- Icon.
+- Label.
+- Current value.
+- Status indicator.
+- Optional trend.
+- Relevant navigation action.
+
+DASHBOARD CHARTS:
+
+1. CPU Usage History.
+2. Memory Usage History.
+3. Network Traffic.
+4. Disk Utilization.
+5. Server Availability.
+6. Container Activity.
+7. Automation Execution Statistics.
+
+ADDITIONAL SECTIONS:
+
+- Server Health Overview.
+- Critical Alerts.
+- Recently Executed Tasks.
+- Docker Activity.
+- Recent Backups.
+- Recent Security Events.
+- Infrastructure Activity Timeline.
+
+Allow dashboard widgets to be configurable where practical.
+
+IMPORTANT:
+Never generate fake operational metrics. Use actual backend data. Display an appropriate empty or unavailable state when data is not available.
+
+==================================================
+5. INFRASTRUCTURE MANAGEMENT INTERFACE
+==================================================
+
+Create dedicated professional pages for infrastructure management.
+
+SERVERS PAGE:
+
+Display servers in both:
+- Table View.
+- Card View.
+
+Server information:
+- Server Name.
+- IP Address.
+- Hostname.
+- Operating System.
+- Environment.
+- Connection Type.
+- CPU.
+- RAM.
+- Disk.
+- Status.
+- Last Check.
+- Actions.
+
+Server actions:
+- View Details.
+- Connect.
+- Restart.
+- Shutdown.
+- Reboot.
+- Edit.
+- Remove.
+
+Server Details Page:
+
+Create a complete server control center with tabs:
+
+- Overview.
+- Hardware.
+- Operating System.
+- CPU.
+- Memory.
+- Storage.
+- Network.
+- Services.
+- Processes.
+- Docker.
+- Automation.
+- Monitoring.
+- Security.
+- Activity Logs.
+
+Include real operational information and confirmation dialogs for dangerous actions.
+
+SYSTEM SERVICES:
+
+Create a service management interface showing:
+
+- Service Name.
+- Description.
+- Current Status.
+- Startup Type.
+- Process ID.
+- Resource Consumption.
+
+Actions:
+- Start.
+- Stop.
+- Restart.
+- Enable.
+- Disable.
+- View Logs.
+
+PROCESS MANAGEMENT:
+
+Display:
+- PID.
+- Process Name.
+- User.
+- CPU Usage.
+- Memory Usage.
+- Runtime.
+
+Require confirmation and appropriate authorization before terminating processes.
+
+STORAGE MANAGEMENT:
+
+Display:
+- Filesystems.
+- Disk Devices.
+- Mount Points.
+- Total Capacity.
+- Used Space.
+- Available Space.
+- Usage Percentage.
+
+Use visual storage utilization indicators.
+
+NETWORK MANAGEMENT:
+
+Create dedicated interfaces for:
+- Network Interfaces.
+- IP Addresses.
+- Routes.
+- DNS Configuration.
+- Network Connections.
+- Open Ports.
+- Firewall Rules.
+
+Never expose destructive network configuration actions without validation and confirmation.
+
+==================================================
+6. DOCKER MANAGEMENT INTERFACE
+==================================================
+
+Build a complete Docker Management Center.
+
+DOCKER OVERVIEW:
+
+Display:
+- Docker Engine Status.
+- Docker Version.
+- Total Containers.
+- Running Containers.
+- Stopped Containers.
+- Images.
+- Volumes.
+- Networks.
+
+CONTAINERS:
+
+Professional container table containing:
+
+- Container Name.
+- Container ID.
+- Image.
+- Status.
+- Ports.
+- CPU.
+- Memory.
+- Created Date.
+
+Actions:
+- Create.
+- Start.
+- Stop.
+- Restart.
+- Pause.
+- Resume.
+- Remove.
+- View Logs.
+- Inspect.
+- Open Terminal.
+
+CONTAINER DETAILS:
+
+Use a dedicated details page with tabs:
+
+- Overview.
+- Logs.
+- Statistics.
+- Environment.
+- Ports.
+- Networks.
+- Volumes.
+- Inspect.
+- Terminal.
+
+IMAGES:
+
+- Image Repository.
+- Tag.
+- Image ID.
+- Size.
+- Created Date.
+- Pull.
+- Remove.
+- Inspect.
+
+VOLUMES:
+
+- Volume Name.
+- Driver.
+- Mount Point.
+- Size when available.
+- Attached Containers.
+
+NETWORKS:
+
+- Network Name.
+- Driver.
+- Scope.
+- Subnet.
+- Gateway.
+- Connected Containers.
+
+DOCKER COMPOSE:
+
+Create an interface for:
+- Compose Projects.
+- YAML Configuration.
+- Start Project.
+- Stop Project.
+- Restart Project.
+- View Logs.
+- Project Status.
+
+Validate Compose files before execution.
+
+==================================================
+7. ANSIBLE AUTOMATION CENTER
+==================================================
+
+Create a dedicated Ansible management interface.
+
+ANSIBLE OVERVIEW:
+
+Display:
+- Ansible Version.
+- Inventory Hosts.
+- Playbooks.
+- Successful Executions.
+- Failed Executions.
+- Scheduled Jobs.
+- Active Jobs.
+
+PLAYBOOK MANAGEMENT:
+
+Display:
+- Playbook Name.
+- Description.
+- Category.
+- Target Hosts.
+- Last Execution.
+- Execution Status.
+
+Provide:
+- Create Playbook.
+- Edit Playbook.
+- Validate YAML.
+- Run Playbook.
+- Schedule Execution.
+- View Execution History.
+
+INVENTORY MANAGEMENT:
+
+Support:
+- Host Management.
+- Host Groups.
+- Variables.
+- Connection Settings.
+- SSH Configuration.
+
+EXECUTION INTERFACE:
+
+Create a professional execution panel containing:
+
+- Playbook Selector.
+- Target Inventory.
+- Host Selection.
+- Variables.
+- Execution Options.
+- Confirmation.
+
+During execution display:
+- Live Execution Status.
+- Current Task.
+- Host Progress.
+- Standard Output.
+- Standard Error.
+- Execution Duration.
+- Final Result.
+
+Never expose private credentials or SSH keys in the interface or logs.
+
+==================================================
+8. MONITORING CENTER
+==================================================
+
+Create a comprehensive monitoring interface.
+
+SYSTEM MONITORING:
+
+- CPU Usage.
+- Memory Usage.
+- Disk Usage.
+- Disk I/O.
+- Network Traffic.
+- System Load.
+- Uptime.
+- Temperature when supported.
+
+SERVICE MONITORING:
+
+- Service Availability.
+- Service Health.
+- Response Time.
+- Last Check.
+- Failure Count.
+
+ALERT MANAGEMENT:
+
+Create:
+- Alert Overview.
+- Active Alerts.
+- Resolved Alerts.
+- Alert Rules.
+- Threshold Configuration.
+- Alert History.
+
+Support configurable thresholds.
+
+Alert severity:
+- Critical.
+- High.
+- Medium.
+- Low.
+- Informational.
+
+Use clear visual indicators without relying on color alone.
+
+==================================================
+9. DATABASE MANAGEMENT
+==================================================
+
+Create a professional Database Management Center.
+
+Support database providers through independent adapters.
+
+Initial support:
+- SQLite.
+- PostgreSQL.
+
+Future extensibility:
+- MySQL / MariaDB.
+
+Pages:
+- Database Overview.
+- Instances.
+- Connections.
+- Database Details.
+- Backup.
+- Restore.
+- Maintenance.
+- Logs.
+
+Display:
+- Database Name.
+- Engine.
+- Version.
+- Size.
+- Connection Status.
+- Last Backup.
+- Health Status.
+
+Never display database passwords or connection secrets.
+
+==================================================
+10. BACKUP & RECOVERY
+==================================================
+
+Create a complete backup management interface.
+
+Features:
+- Create Backup.
+- Backup Schedules.
+- Backup Policies.
+- Retention Rules.
+- Backup Destinations.
+- Backup History.
+- Restore Operations.
+
+Backup Types:
+- Application Backup.
+- Database Backup.
+- Docker Volume Backup.
+- Configuration Backup.
+- Infrastructure Configuration Backup.
+
+Display:
+- Backup Name.
+- Type.
+- Source.
+- Destination.
+- Size.
+- Start Time.
+- Completion Time.
+- Status.
+
+Restore operations must include confirmation and clear warnings.
+
+==================================================
+11. SECURITY CENTER
+==================================================
+
+Create a centralized security management interface.
+
+Sections:
+
+- SSH Keys.
+- Credentials.
+- Secrets.
+- Users.
+- Groups.
+- Roles.
+- Permissions.
+- Access Policies.
+- Security Events.
+- Audit Logs.
+
+Implement:
+- Role-Based Access Control.
+- Least Privilege.
+- Secure Credential Storage.
+- Masked Sensitive Values.
+- Session Management.
+- Audit Trails.
+
+All privileged actions must be authorized, validated, and recorded.
+
+==================================================
+12. TASK CENTER
+==================================================
+
+Build a centralized Task Management interface.
+
+Display:
+- Running Tasks.
+- Pending Tasks.
+- Completed Tasks.
+- Failed Tasks.
+- Cancelled Tasks.
+
+Task Details:
+- Task ID.
+- Task Name.
+- Execution Type.
+- Initiated By.
+- Target Server.
+- Start Time.
+- End Time.
+- Duration.
+- Current Status.
+- Execution Logs.
+
+Provide task filtering and searchable execution history.
+
+Support real-time status updates using appropriate technologies.
+
+==================================================
+13. REPORTS & ANALYTICS
+==================================================
+
+Create a professional reporting center.
+
+Reports:
+- Server Inventory.
+- Infrastructure Health.
+- CPU & Memory.
+- Storage Utilization.
+- Docker Inventory.
+- Automation History.
+- Backup History.
+- Security Audit.
+- Task Execution.
+
+Support:
+- Date Filters.
+- Server Filters.
+- Status Filters.
+- PDF Export.
+- CSV Export.
+- Print Layout.
+
+==================================================
+14. FORMS, TABLES & INTERACTIONS
+==================================================
+
+All forms must have:
+- Clear labels.
+- Helpful descriptions.
+- Required field indicators.
+- Validation.
+- Error messages.
+- Success notifications.
+- Save and Cancel actions.
+
+All data tables must support:
+- Search.
+- Sorting.
+- Filtering.
+- Pagination.
+- Column visibility.
+- Row selection.
+- Bulk actions where appropriate.
+- Responsive behavior.
+
+All dangerous actions must use confirmation dialogs.
+
+Provide skeleton loading, empty states, and error states.
+
+Do not use fake buttons or nonfunctional UI controls.
+
+==================================================
+15. ARABIC & ENGLISH SUPPORT
+==================================================
+
+Implement complete bilingual support.
+
+Arabic:
+- Full RTL layout.
+- Correct text alignment.
+- Proper Arabic typography.
+- Correct sidebar placement.
+- Correct table direction.
+- Proper form layouts.
+
+English:
+- Full LTR layout.
+- Correct navigation direction.
+- Proper typography.
+
+Language switching must update the entire interface consistently.
+
+Avoid hardcoded interface text. Use Django internationalization and translation files.
+
+==================================================
+16. FRONTEND TECHNOLOGY
+==================================================
+
+Use the existing project architecture and avoid unnecessary framework changes.
+
+Preferred stack:
+
+- Django Templates.
+- HTMX.
+- Tailwind CSS.
+- Vanilla JavaScript or modular JavaScript.
+- Lucide Icons.
+- Chart.js for charts.
+- Reusable UI Components.
+
+Use accessible HTML and semantic markup.
+
+Avoid unnecessary frontend complexity.
+
+Keep JavaScript modular and maintainable.
+
+==================================================
+17. RESPONSIVE DESIGN
+==================================================
+
+Support:
+
+- Large Desktop.
+- Standard Desktop.
+- Laptop.
+- Tablet.
+- Mobile.
+
+Desktop:
+- Full sidebar.
+- Multi-column dashboard.
+- Dense professional tables.
+
+Tablet:
+- Collapsible navigation.
+- Adaptive cards.
+- Responsive tables.
+
+Mobile:
+- Compact navigation.
+- Stacked cards.
+- Mobile-friendly forms.
+- Accessible actions.
+
+==================================================
+18. PERFORMANCE & ACCESSIBILITY
+==================================================
+
+Implement:
+- Optimized page rendering.
+- Efficient database queries.
+- Lazy loading where appropriate.
+- Pagination.
+- Reusable templates.
+- Accessible contrast.
+- Keyboard navigation.
+- Focus indicators.
+- Screen-reader-friendly labels.
+
+Avoid unnecessary database polling.
+
+Use HTMX polling or WebSockets only where operationally required.
+
+==================================================
+19. IMPLEMENTATION RULES
+==================================================
+
+Before development:
+
+1. Inspect the complete existing project.
+2. Understand the existing Django apps and URL structure.
+3. Inspect existing CSS, JavaScript, templates, and components.
+4. Identify reusable components.
+5. Identify incomplete or duplicated interfaces.
+6. Prepare a UI/UX implementation plan.
+
+Then implement the redesign incrementally.
+
+IMPORTANT RULES:
+
+- Do not destroy existing backend functionality.
+- Do not replace working business logic unnecessarily.
+- Do not create duplicate applications.
+- Do not introduce fake operational data.
+- Do not create decorative buttons without functionality.
+- Do not place all frontend code inside one file.
+- Do not place all styles in one giant CSS file.
+- Maintain a centralized design system.
+- Keep every module visually consistent.
+- Maintain existing APIs unless changes are necessary and documented.
+- Ensure all navigation links point to valid routes.
+- Ensure all forms connect to actual backend operations.
+- Add tests for critical interactions.
+
+==================================================
+20. FINAL ACCEPTANCE CRITERIA
+==================================================
+
+The project will be considered successfully redesigned only when:
+
+1. All modules use the same professional design system.
+2. The sidebar and top navigation work correctly.
+3. Dashboard widgets display real data.
+4. All module pages have appropriate layouts.
+5. Docker interfaces are functional.
+6. Ansible interfaces are functional.
+7. Monitoring pages display actual measurements.
+8. Backup and task interfaces connect to backend services.
+9. Arabic RTL and English LTR work correctly.
+10. Light and Dark themes work consistently.
+11. All tables, forms, filters, and dialogs are usable.
+12. The interface works on desktop, tablet, and mobile.
+13. Existing backend functionality remains intact.
+14. All critical operations enforce security permissions.
+15. No broken routes, placeholder actions, or misleading status indicators remain.
+
+FINAL OBJECTIVE:
+
+Deliver a premium, cohesive, professional Infrastructure Management Control Center that provides administrators with a complete operational view and centralized control of their infrastructure.
+
+The final interface must feel like a mature enterprise DevOps product, not a generic Django administration template.
+
+Prioritize usability, information hierarchy, operational clarity, security, maintainability, and consistency across the entire application.

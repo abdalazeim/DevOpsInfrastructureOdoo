@@ -63,7 +63,7 @@ def to_jsonable(value: Any) -> Any:
 
 def load_profile(path: str):
     import yaml
-    from app.models.profile import InfrastructureProfile
+    from infrastructure_engine.models.profile import InfrastructureProfile
 
     with open(path, "r", encoding="utf-8") as handle:
         data = yaml.safe_load(handle) or {}
@@ -78,7 +78,7 @@ def list_profiles() -> List[Dict[str, Any]]:
         except Exception:
             continue
     if not profiles:
-        from app.models.profile import InfrastructureProfile
+        from infrastructure_engine.models.profile import InfrastructureProfile
         profiles.append(InfrastructureProfile(profile_name="default"))
     return profiles
 
@@ -96,23 +96,23 @@ def api_health() -> Dict[str, Any]:
 
 
 def api_preflight() -> Any:
-    from app.services.smart_inspector import SmartInspectorService
+    from infrastructure_engine.services.smart_inspector import SmartInspectorService
     return SmartInspectorService.run_full_inspection()
 
 
 def api_traefik_discovery() -> Any:
-    from app.services.traefik_manager import TraefikDockerManager
+    from infrastructure_engine.services.traefik_manager import TraefikDockerManager
     return TraefikDockerManager.discover_environment()
 
 
 def api_traefik_snapshots() -> List[Dict[str, Any]]:
-    from app.services.traefik_manager import DEFAULT_CONFIG_DIR
+    from infrastructure_engine.services.traefik_manager import DEFAULT_CONFIG_DIR
     backups_dir = Path(DEFAULT_CONFIG_DIR) / "backups"
     return _snapshot_entries(backups_dir, "traefik")
 
 
 def api_odoo_discovery() -> Any:
-    from app.services.odoo_manager import OdooDockerManager
+    from infrastructure_engine.services.odoo_manager import OdooDockerManager
     report = OdooDockerManager.discover_odoo_env()
     report["timestamp"] = datetime.now().isoformat()
     return report
@@ -152,7 +152,7 @@ def _snapshot_entries(directory: Path, prefix: str) -> List[Dict[str, Any]]:
         stat = path.stat()
         digest = ""
         try:
-            from app.services.system_backup import SystemBackupService
+            from infrastructure_engine.services.system_backup import SystemBackupService
             digest = SystemBackupService.calculate_sha256(str(path))
         except Exception:
             pass
@@ -205,15 +205,15 @@ def api_snapshots() -> List[Dict[str, Any]]:
 # Operations
 # ------------------------------------------------------------------------------
 def build_operation(category: str, profile, payload: Dict[str, Any]):
-    from app.workflows.server_prep import ServerPrepWorkflow
-    from app.workflows.deploy_traefik import DeployTraefikWorkflow
-    from app.workflows.deploy_odoo17 import DeployOdoo17Workflow
-    from app.workflows.deploy_odoo18 import DeployOdoo18Workflow
-    from app.workflows.deploy_odoo19 import DeployOdoo19Workflow
-    from app.workflows.database_ops import DatabaseOpsWorkflow
-    from app.workflows.full_deploy import FullDeployWorkflow
-    from app.models.operation import OperationRecord
-    from app.services.health_service import HealthService
+    from infrastructure_engine.workflows.server_prep import ServerPrepWorkflow
+    from infrastructure_engine.workflows.deploy_traefik import DeployTraefikWorkflow
+    from infrastructure_engine.workflows.deploy_odoo17 import DeployOdoo17Workflow
+    from infrastructure_engine.workflows.deploy_odoo18 import DeployOdoo18Workflow
+    from infrastructure_engine.workflows.deploy_odoo19 import DeployOdoo19Workflow
+    from infrastructure_engine.workflows.database_ops import DatabaseOpsWorkflow
+    from infrastructure_engine.workflows.full_deploy import FullDeployWorkflow
+    from infrastructure_engine.models.operation import OperationRecord
+    from infrastructure_engine.services.health_service import HealthService
 
     dry_run = bool(payload.get("dryRun", True))
     version = str(payload.get("version", "17"))
@@ -281,8 +281,8 @@ def create_operation(payload: Dict[str, Any], profile_path: str) -> Dict[str, An
 
 
 def _execute_operation(record: Dict[str, Any], dry_run: bool) -> None:
-    from app.services.execution_service import ExecutionService
-    from app.models.operation import OperationStatus
+    from infrastructure_engine.services.execution_service import ExecutionService
+    from infrastructure_engine.models.operation import OperationStatus
 
     operation = record["operation"]
     record["status"] = "running"

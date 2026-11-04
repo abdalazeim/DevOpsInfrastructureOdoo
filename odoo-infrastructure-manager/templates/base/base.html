@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>{% block title %}{{ site_title }} - {{ site_subtitle }}{% endblock %}</title>
 
-  <link rel="stylesheet" href="{% static 'vendor/cairo/cairo.css' %}">
-  <link rel="stylesheet" href="{% static 'vendor/tajawal/tajawal.css' %}">
   {% if html_dir == 'ltr' %}
   <link rel="stylesheet" href="{% static 'vendor/bootstrap/bootstrap.min.css' %}">
   {% else %}
@@ -15,6 +13,7 @@
   <link rel="stylesheet" href="{% static 'vendor/fontawesome/css/all.min.css' %}">
   <link rel="stylesheet" href="{% static 'css/style.css' %}?v=6">
   {% block extra_css %}{% endblock %}
+  <link rel="stylesheet" href="{% static 'css/enterprise-shell.css' %}?v=2">
 </head>
 <body class="{% block body_class %}{% endblock %}">
   {% block body %}
@@ -24,7 +23,7 @@
   {% endblock %}
 
   <script src="{% static 'vendor/bootstrap/bootstrap.bundle.min.js' %}"></script>
-  <script src="{% static 'js/main.js' %}?v=6"></script>
+  <script src="{% static 'js/shell.js' %}?v=1"></script>
   {% block extra_js %}{% endblock %}
 </body>
 </html>

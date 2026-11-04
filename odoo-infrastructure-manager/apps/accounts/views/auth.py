@@ -7,7 +7,7 @@ from apps.core.services.audit_service import log_audit
 from apps.core.utils.decorators import api_login_required
 from apps.core.utils.http import api_error, api_response, parse_json_body
 from apps.core.utils.logging import log_security_event
-from ..services.permission_service import get_effective_permissions
+from ..services.permission_service import get_effective_permissions, is_identity_active
 
 
 def _user_profile_dict(user):
@@ -51,7 +51,7 @@ def auth_login(request):
             return api_error("كلمة المرور طويلة جداً", status=400)
         user = authenticate(request, username=username, password=password)
         if user is not None:
-            if not user.is_active:
+            if not is_identity_active(user):
                 log_security_event(
                     "login_disabled_account",
                     user=user,
@@ -124,7 +124,7 @@ def auth_logout(request):
 
 
 def auth_status(request):
-    if request.user.is_authenticated:
+    if is_identity_active(request.user):
         profile = _user_profile_dict(request.user)
         return api_response({"logged_in": True, "user": profile})
     return api_response({"logged_in": False, "user": None})

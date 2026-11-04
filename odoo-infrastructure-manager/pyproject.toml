@@ -15,5 +15,5 @@ dependencies = [
 [project.scripts]
 odoo-manager = "app.main:main"
 
-[tool.setuptools]
-packages = ["app", "apps", "config"]
+[tool.setuptools.packages.find]
+include = ["app*", "apps*", "config*", "infrastructure_engine*"]

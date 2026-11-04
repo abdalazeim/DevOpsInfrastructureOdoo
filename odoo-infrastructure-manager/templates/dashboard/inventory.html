@@ -1,0 +1,123 @@
+{% extends "layouts/app_layout.html" %}
+{% load static infrastructure_extras %}
+{% block title %}Servers & services · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard inventory-page">
+  <header class="infra-heading">
+    <div><div class="eyebrow">INFRASTRUCTURE</div><h1>Servers & services</h1><p>Maintain the canonical server inventory and service catalog used by infrastructure providers.</p></div>
+    <a class="infra-button secondary" href="{% url 'dashboard:index' %}"><i class="fas fa-arrow-left"></i> Dashboard</a>
+  </header>
+
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+  {% if can_create_servers or can_manage_infrastructure %}
+  <section class="infra-grid-two inventory-create-grid">
+    {% if can_create_servers %}
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Register server</h2><p>Use Local only when this application runs on the server.</p></div></div>
+      <form method="post" action="{% url 'dashboard:create_inventory_item' 'host' %}" class="infra-form">
+        {% csrf_token %}{{ host_form.as_p }}<button class="infra-button" type="submit">Add server</button>
+      </form>
+    </article>
+    {% endif %}
+    {% if can_manage_infrastructure %}
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Register service</h2><p>Container mappings are optional and must use exact names.</p></div></div>
+      <form method="post" action="{% url 'dashboard:create_inventory_item' 'service' %}" class="infra-form">
+        {% csrf_token %}{{ service_form.as_p }}<button class="infra-button" type="submit">Add service</button>
+      </form>
+    </article>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  {% if credential_form %}
+  <section class="infra-panel credential-panel">
+    <div class="panel-heading"><div><h2>Protected credentials</h2><p>Secrets are encrypted before storage and never returned to the browser after submission.</p></div></div>
+    {% if not credential_encryption_ready %}<p class="infra-message error">Set a valid CREDENTIAL_ENCRYPTION_KEY before saving credentials.</p>{% endif %}
+    <form method="post" action="{% url 'dashboard:create_credential' %}" class="infra-form credential-create-form">
+      {% csrf_token %}{{ credential_form.as_p }}
+      <button class="infra-button" type="submit"{% if not credential_encryption_ready %} disabled{% endif %}>Save encrypted credential</button>
+    </form>
+    {% if credentials %}
+    <div class="table-responsive"><table class="infra-table">
+      <thead><tr><th>Name</th><th>Type</th><th>Username</th><th>Status</th><th>Action</th></tr></thead>
+      <tbody>{% for credential in credentials %}
+        <tr><td>{{ credential.name }}</td><td>{{ credential.get_kind_display }}</td><td>{{ credential.username|default:"—" }}</td>
+          <td><span class="status-chip {% if credential.is_active %}connected{% else %}stopped{% endif %}">{{ credential.is_active|yesno:"Active,Disabled" }}</span></td>
+          <td><form method="post" action="{% url 'dashboard:toggle_credential' credential.id %}">{% csrf_token %}<button class="infra-button secondary small" type="submit">{% if credential.is_active %}Disable{% else %}Enable{% endif %}</button></form></td>
+        </tr>
+      {% endfor %}</tbody>
+    </table></div>
+    {% endif %}
+  </section>
+  {% endif %}
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Managed servers</h2><p>{{ hosts|length }} server(s). A connection becomes Online only after a verified SSH probe.</p></div></div>
+    {% if hosts %}<div class="service-list">
+      {% for host in hosts %}
+      <details class="inventory-record">
+        <summary><strong>{{ host.name }}</strong><span>{{ host.hostname }} · {{ host.get_server_type_display }} · {{ host.get_environment_display }} · {{ host.get_connection_status_display }}</span></summary>
+        <dl class="infra-details">
+          <dt>Connection</dt><dd>{{ host.get_connection_type_display }}{% if host.connection_type == "ssh" %} · port {{ host.ssh_port }}{% endif %}</dd>
+          <dt>Credential reference</dt><dd>{% if host.credential_id %}{{ host.credential.name }}{% else %}{{ host.credential_reference|default:"Not assigned" }}{% endif %}</dd>
+          <dt>Operating system</dt><dd>{% if host.operating_system %}{{ host.operating_system }} {{ host.os_version }}{% else %}Not discovered{% endif %}</dd>
+          <dt>Architecture</dt><dd>{{ host.architecture|default:"Not discovered" }}</dd>
+          <dt>Groups</dt><dd>{% for group in host.groups.all %}<span class="status-chip">{{ group.name }}</span> {% empty %}No group assigned{% endfor %}</dd>
+          <dt>Location</dt><dd>{{ host.location|default:"Not set" }}</dd>
+          <dt>Last check</dt><dd>{{ host.last_checked_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
+          <dt>Last successful connection</dt><dd>{{ host.last_connection_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
+          <dt>Live system data</dt><dd>{% if host.latest_snapshot %}{{ host.latest_snapshot.get_status_display }} · {{ host.latest_snapshot.captured_at|date:"Y-m-d H:i:s" }}{% if host.latest_snapshot.is_stale %} · Stale (older than 5 minutes){% else %} · Current{% endif %}{% else %}Not collected{% endif %}</dd>
+        </dl>
+        {% if can_test_server_connection %}<form method="post" action="{% url 'dashboard:test_server_connection' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-plug"></i> Test connection</button></form>{% endif %}
+        {% if can_test_server_connection and task_dispatch_enabled and can_view_tasks %}<form method="post" action="{% url 'dashboard:queue_server_connection_test' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-list-check"></i> Queue connection test</button></form>{% endif %}
+        {% if can_discover_servers %}
+          {% if host.is_local %}<form method="post" action="{% url 'dashboard:discover_server' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-arrows-rotate"></i> Refresh system data</button></form>{% endif %}
+          {% if task_dispatch_enabled and can_view_tasks %}{% if host.is_local or host.connection_type == "ssh" %}<form method="post" action="{% url 'dashboard:queue_server_discovery' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-list-check"></i> Queue system discovery</button></form>{% endif %}{% endif %}
+        {% endif %}
+        {% if host.latest_snapshot %}<div class="discovery-summary">
+            <h3>Latest live snapshot</h3>
+            {% with snapshot=host.latest_snapshot %}
+            <p>{{ snapshot.get_status_display }} · {{ snapshot.collection_duration_ms }} ms · {{ snapshot.captured_at|timesince }} ago</p>
+            <h4>Section availability</h4>
+            <div class="snapshot-availability">{% for section, state in snapshot.availability.items %}<span class="status-chip {{ state.status }}">{{ section|capfirst }}: {{ state.status|capfirst }}</span>{% endfor %}</div>
+            {% if snapshot.data.services %}<h4>Running system services</h4>
+              {% if snapshot.data.services.supported %}
+                <p>{{ snapshot.data.services.running_count }} running unit(s)</p>
+                <div class="table-responsive"><table class="infra-table"><thead><tr><th>Unit</th><th>State</th><th>Description</th>{% if host.is_local and can_restart_linux_services and task_dispatch_enabled and can_view_tasks and not host.latest_snapshot.is_stale %}<th>Action</th>{% endif %}</tr></thead><tbody>
+                {% for service in snapshot.data.services.items %}<tr><td>{{ service.unit }}</td><td>{{ service.active }} / {{ service.substate }}</td><td>{{ service.description|default:"—" }}</td>
+                  {% if host.is_local and can_restart_linux_services and task_dispatch_enabled and can_view_tasks and not host.latest_snapshot.is_stale %}<td><form method="post" action="{% url 'dashboard:queue_linux_service_restart' host.id %}" class="service-restart-form">{% csrf_token %}<input type="hidden" name="unit" value="{{ service.unit }}"><label>Type RESTART to confirm<input name="confirmation" required pattern="RESTART" autocomplete="off" aria-label="Type RESTART to confirm service restart"></label><button class="infra-button secondary small" type="submit">Queue restart</button></form></td>{% endif %}
+                </tr>{% empty %}<tr><td colspan="4">No running services were reported.</td></tr>{% endfor %}
+                </tbody></table></div>
+              {% else %}<p>System service inventory is unsupported on this host.</p>{% endif %}
+            {% endif %}
+            {% if snapshot.data.processes %}<h4>Top processes by memory</h4>
+              <div class="table-responsive"><table class="infra-table"><thead><tr><th>PID</th><th>Process</th><th>User</th><th>State</th><th>Memory</th></tr></thead><tbody>
+              {% for process in snapshot.data.processes.items %}<tr><td>{{ process.pid }}</td><td>{{ process.name }}</td><td>{{ process.user|default:"—" }}</td><td>{{ process.status }}</td><td>{{ process.memory_percent }}%</td></tr>{% empty %}<tr><td colspan="5">No process information is available.</td></tr>{% endfor %}
+              </tbody></table></div>
+            {% endif %}
+            <dl class="infra-details">
+              {% for key, value in snapshot.data.items %}{% if key != "services" and key != "processes" %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value|infra_json }}{% else %}Unavailable{% endif %}</dd>{% endif %}{% endfor %}
+            </dl>
+            {% endwith %}
+          </div>{% endif %}
+        {% if can_update_servers %}<form method="post" action="{% url 'dashboard:update_inventory_item' 'host' host.id %}" class="infra-form inventory-edit-form">{% csrf_token %}{{ host.edit_form.as_p }}<button class="infra-button secondary" type="submit">Save server</button></form>{% else %}<p>{{ host.description|default:"No description" }}</p>{% endif %}
+      </details>
+      {% endfor %}
+    </div>{% else %}<div class="empty-state compact"><strong>No servers registered</strong><span>Register a server to make it available to infrastructure providers.</span></div>{% endif %}
+  </section>
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Managed services</h2><p>{{ services|length }} service(s)</p></div></div>
+    {% if services %}<div class="service-list">{% for service in services %}
+      <details class="inventory-record"><summary><strong>{{ service.name }}</strong><span>{{ service.host.name }} · {{ service.get_kind_display }} · {{ service.version|default:"Version not set" }}</span></summary>
+        {% if can_manage_infrastructure %}<form method="post" action="{% url 'dashboard:update_inventory_item' 'service' service.id %}" class="infra-form">{% csrf_token %}{{ service.edit_form.as_p }}<button class="infra-button secondary" type="submit">Save service</button></form>{% else %}<p>{{ service.container_names|join:", "|default:"No container mapping" }}</p>{% endif %}
+      </details>
+    {% endfor %}</div>{% else %}<div class="empty-state compact"><strong>No services registered</strong><span>Register Odoo, Django, PostgreSQL, Redis, Traefik, or another service.</span></div>{% endif %}
+  </section>
+
+  <footer class="infra-footnote"><i class="fas fa-shield-halved"></i> SSH secrets are stored encrypted. Host-key verification is strict; unknown SSH host keys are rejected.</footer>
+</main>
+{% endblock %}

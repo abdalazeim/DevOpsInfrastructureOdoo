@@ -6,6 +6,8 @@ import environ
 env = environ.Env(
     DEBUG=(bool, False),
     SECRET_KEY=(str, ""),
+    CREDENTIAL_ENCRYPTION_KEY=(str, ""),
+    CREDENTIAL_ENCRYPTION_KEY_FALLBACKS=(list, []),
     DATABASE_URL=(str, ""),
     DJANGO_ALLOWED_HOSTS=(str, ""),
     CSRF_TRUSTED_ORIGINS=(str, ""),
@@ -28,9 +30,21 @@ env = environ.Env(
     DJANGO_ADMIN_USERNAME=(str, "admin"),
     DJANGO_ADMIN_EMAIL=(str, "admin@localhost"),
     DJANGO_ADMIN_PASSWORD=(str, ""),
-    LANGUAGE_CODE=(str, "ar"),
-    APP_FONT_FAMILY=(str, "Cairo"),
+    LANGUAGE_CODE=(str, "en"),
+    APP_FONT_FAMILY=(str, "Arial"),
     ENABLE_DOMAIN_SAMPLES=(bool, False),
+    INFRA_DOCKER_READ_ENABLED=(bool, False),
+    INFRA_SSH_TIMEOUT_SECONDS=(int, 8),
+    INFRA_OPERATION_TIMEOUT_SECONDS=(int, 300),
+    MONITORING_COLLECTION_INTERVAL_SECONDS=(int, 60),
+    METRICS_RETENTION_DAYS=(int, 30),
+    PROMETHEUS_URL=(str, ""),
+    SEMAPHORE_URL=(str, ""),
+    SEMAPHORE_API_TOKEN=(str, ""),
+    SEMAPHORE_TIMEOUT_SECONDS=(int, 8),
+    INFRA_ALERT_EMAILS=(list, []),
+    TRAEFIK_API_URL=(str, ""),
+    TRAEFIK_API_TOKEN=(str, ""),
 )
 
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
@@ -40,6 +54,8 @@ env.read_env(BASE_DIR / ".env")
 DEBUG = env("DEBUG")
 
 SECRET_KEY = env("SECRET_KEY") or os.environ.get("SECRET_KEY", "")
+CREDENTIAL_ENCRYPTION_KEY = env("CREDENTIAL_ENCRYPTION_KEY") or os.environ.get("CREDENTIAL_ENCRYPTION_KEY", "")
+CREDENTIAL_ENCRYPTION_KEY_FALLBACKS = env.list("CREDENTIAL_ENCRYPTION_KEY_FALLBACKS", default=[])
 
 ALLOWED_HOSTS = [
     h.strip()
@@ -51,7 +67,6 @@ ALLOWED_HOSTS = [
 # APPLICATION DEFINITION
 # ==============================================================================
 INSTALLED_APPS = [
-    "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
@@ -65,8 +80,17 @@ INSTALLED_APPS = [
     "django_filters",
     "apps.core",
     "apps.accounts",
-    "apps.modules.example",
+    "apps.security.apps.SecurityConfig",
+    "apps.tasks.apps.TasksConfig",
     "apps.infrastructure",
+    "apps.dashboard",
+    "apps.containers",
+    "apps.automation",
+    "apps.monitoring",
+    "apps.backup",
+    "apps.databases",
+    "apps.django_projects",
+    "apps.modules.example",
 ]
 
 # Optional domain samples stay outside the core app package so Django's test
@@ -133,13 +157,51 @@ if DATABASE_URL:
             ssl_require=not DEBUG,
         ),
     }
+
 else:
     DATABASES = {
         "default": {
             "ENGINE": "django.db.backends.sqlite3",
-            "NAME": BASE_DIR / "db.sqlite3",
+            "NAME": BASE_DIR / "data" / "database" / "infrastructure.sqlite3",
         }
     }
+
+INFRA_DOCKER_READ_ENABLED = env.bool("INFRA_DOCKER_READ_ENABLED", default=False)
+INFRA_SSH_TIMEOUT_SECONDS = max(1, env.int("INFRA_SSH_TIMEOUT_SECONDS", default=8))
+INFRA_OPERATION_TIMEOUT_SECONDS = max(1, env.int("INFRA_OPERATION_TIMEOUT_SECONDS", default=300))
+CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")
+CELERY_RESULT_BACKEND = env("CELERY_RESULT_BACKEND", default="") or None
+TASK_DISPATCH_ENABLED = env.bool("TASK_DISPATCH_ENABLED", default=False) and bool(CELERY_BROKER_URL)
+CELERY_TASK_SERIALIZER = "json"
+CELERY_RESULT_SERIALIZER = "json"
+CELERY_ACCEPT_CONTENT = ["json"]
+CELERY_TASK_IGNORE_RESULT = True  # Task and TaskLog are the durable result source.
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_ACKS_LATE = False  # Never auto-redeliver an operation with uncertain side effects.
+CELERY_TASK_PUBLISH_RETRY = False
+CELERY_TASK_SOFT_TIME_LIMIT = max(1, INFRA_OPERATION_TIMEOUT_SECONDS - 10)
+CELERY_TASK_TIME_LIMIT = INFRA_OPERATION_TIMEOUT_SECONDS
+CELERY_TASK_DEFAULT_QUEUE = "infrastructure"
+CELERY_TASK_ROUTES = {"infrastructure.execute_task": {"queue": "infrastructure"}}
+CELERY_BROKER_CONNECTION_TIMEOUT = 3
+CELERY_BROKER_CONNECTION_RETRY_ON_STARTUP = False
+CELERY_BROKER_TRANSPORT_OPTIONS = {"socket_connect_timeout": 3, "socket_timeout": 3}
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+MONITORING_COLLECTION_INTERVAL_SECONDS = max(15, env.int("MONITORING_COLLECTION_INTERVAL_SECONDS", default=60))
+METRICS_RETENTION_DAYS = max(1, env.int("METRICS_RETENTION_DAYS", default=30))
+RUNTIME_SETTING_ENV_OVERRIDES = {
+    "ssh_timeout_seconds": env("INFRA_SSH_TIMEOUT_SECONDS", default=None),
+    "operation_timeout_seconds": env("INFRA_OPERATION_TIMEOUT_SECONDS", default=None),
+    "monitoring_collection_interval_seconds": env("MONITORING_COLLECTION_INTERVAL_SECONDS", default=None),
+    "metrics_retention_days": env("METRICS_RETENTION_DAYS", default=None),
+}
+PROMETHEUS_URL = env("PROMETHEUS_URL")
+SEMAPHORE_URL = env("SEMAPHORE_URL").rstrip("/")
+SEMAPHORE_API_TOKEN = env("SEMAPHORE_API_TOKEN")
+SEMAPHORE_TIMEOUT_SECONDS = env.int("SEMAPHORE_TIMEOUT_SECONDS", default=8)
+INFRA_ALERT_EMAILS = env.list("INFRA_ALERT_EMAILS", default=[])
+TRAEFIK_API_URL = env("TRAEFIK_API_URL").rstrip("/")
+TRAEFIK_API_TOKEN = env("TRAEFIK_API_TOKEN")
 
 # ==============================================================================
 # PostgreSQL search_path fix
@@ -315,15 +377,10 @@ DEFAULT_ADMIN_PASSWORD = env("DJANGO_ADMIN_PASSWORD")
 
 # ==============================================================================
 # INTERNATIONALIZATION
-# Arabic is the default (RTL); English (LTR) is fully supported. The active
-# language can be switched via the ``?lang=`` query param (LocaleMiddleware
-# stores it in the session) or overridden with LANGUAGE_CODE in .env.
+# The user interface is English-only and left-to-right.
 # ==============================================================================
-LANGUAGE_CODE = env("LANGUAGE_CODE")
-LANGUAGES = [
-    ("ar", "العربية"),
-    ("en", "English"),
-]
+LANGUAGE_CODE = "en"
+LANGUAGES = [("en", "English")]
 LOCALE_PATHS = [BASE_DIR / "locale"]
 LANGUAGE_COOKIE_NAME = "app_language"
 LANGUAGE_COOKIE_AGE = None
@@ -334,13 +391,12 @@ USE_TZ = True
 
 # ==============================================================================
 # UI / FONTS
-# Default Arabic font family (Cairo or Tajawal). Individual pages/templates can
-# override; the value is exposed to templates via a context processor.
+# English UI font family. The value is exposed to templates via a context processor.
 # ==============================================================================
-APP_FONT_FAMILY = env("APP_FONT_FAMILY")
+APP_FONT_FAMILY = "Inter"
 
-SITE_TITLE = env("SITE_TITLE", default="واجهة التطبيق")
-SITE_SUBTITLE = env("SITE_SUBTITLE", default="Enterprise Starter")
+SITE_TITLE = "Infrastructure Manager"
+SITE_SUBTITLE = "Infrastructure Operations Console"
 
 # ==============================================================================
 # STATIC & MEDIA FILES

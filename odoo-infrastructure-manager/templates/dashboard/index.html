@@ -1,0 +1,49 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Infrastructure Manager · Dashboard{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=2">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard" id="infra-dashboard" data-overview-url="{% url 'dashboard:overview_api' %}">
+  <header class="infra-heading">
+    <div><div class="eyebrow">CONTROL PLANE</div><h1>Infrastructure overview</h1><p>Live service state and host resource signals</p></div>
+    <div class="infra-heading-actions"><span class="updated-label"><i class="fas fa-arrows-rotate"></i> <span id="updated-at">Ready</span></span><button class="infra-button" type="button" id="refresh-dashboard"><i class="fas fa-rotate-right"></i> Refresh</button></div>
+  </header>
+
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+  <section class="infra-stats" aria-label="Infrastructure summary">
+    <article class="metric-card"><div class="metric-head"><span>Containers</span><i class="fab fa-docker"></i></div><strong data-field="containers.total">{% if overview.containers.available %}{{ overview.container_counts.total }}{% else %}—{% endif %}</strong><small>{% if overview.containers.available %}{{ overview.container_counts.running }} running · {{ overview.container_counts.stopped }} stopped{% else %}Not configured{% endif %}</small></article>
+    <article class="metric-card"><div class="metric-head"><span>Unhealthy</span><i class="fas fa-heart-pulse"></i></div><strong data-field="containers.unhealthy">{% if overview.containers.available %}{{ overview.container_counts.unhealthy }}{% else %}—{% endif %}</strong><small>{% if overview.containers.available %}Docker health status{% else %}No live source{% endif %}</small></article>
+    <article class="metric-card"><div class="metric-head"><span>CPU</span><i class="fas fa-microchip"></i></div><strong data-field="metrics.cpu_percent">{% if overview.metrics.cpu_percent != None %}{{ overview.metrics.cpu_percent }}%{% else %}—{% endif %}</strong><small>Source: {{ overview.metrics.source }}</small></article>
+    <article class="metric-card"><div class="metric-head"><span>Memory</span><i class="fas fa-memory"></i></div><strong data-field="metrics.memory.percent">{% if overview.metrics.memory %}{{ overview.metrics.memory.percent }}%{% else %}—{% endif %}</strong><small>{% if overview.metrics.memory %}{{ overview.metrics.memory.used_bytes|filesizeformat }} of {{ overview.metrics.memory.total_bytes|filesizeformat }}{% else %}Unavailable{% endif %}</small></article>
+    <article class="metric-card"><div class="metric-head"><span>Root disk</span><i class="fas fa-hard-drive"></i></div><strong data-field="metrics.disk.percent">{% if overview.metrics.disk %}{{ overview.metrics.disk.percent }}%{% else %}—{% endif %}</strong><small>{% if overview.metrics.disk %}{{ overview.metrics.disk.used_bytes|filesizeformat }} used{% else %}Unavailable{% endif %}</small></article>
+  </section>
+
+  <section class="infra-grid-two">
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Managed services</h2><p>Configured inventory · status is unknown when no live source is available</p></div><a class="text-link" href="{% url 'dashboard:inventory' %}">Manage inventory <i class="fas fa-arrow-up-right-from-square"></i></a></div>
+      {% if overview.services %}<div class="service-list">{% for item in overview.services %}<div class="service-row"><span class="service-mark {{ item.record.kind }}"><i class="fas {% if item.record.kind == 'odoo' %}fa-cubes{% elif item.record.kind == 'django' %}fa-code{% elif item.record.kind == 'postgresql' %}fa-database{% elif item.record.kind == 'redis' %}fa-bolt{% else %}fa-network-wired{% endif %}"></i></span><div class="service-main"><strong>{{ item.record.name }}</strong><small>{{ item.record.host.name }} · {{ item.record.get_kind_display }}{% if item.record.version %} {{ item.record.version }}{% endif %}</small></div><span class="status-chip {{ item.state }}"><i></i>{{ item.state|title }}</span></div>{% endfor %}</div>{% else %}<div class="empty-state"><i class="fas fa-server"></i><strong>No services registered</strong><span>Add hosts and services from the inventory page to connect this dashboard to your environment.</span><a class="infra-button" href="{% url 'dashboard:inventory' %}">Register a host</a></div>{% endif %}
+    </article>
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Resource timeline</h2><p>Stored samples plus live refreshes during this session{% if overview.metrics.host_name %} · {{ overview.metrics.host_name }}{% endif %}</p></div><span class="source-tag">{{ overview.metrics.source }}</span></div>
+      <div class="chart-wrap"><canvas id="resource-chart" aria-label="CPU and memory usage timeline"></canvas><div id="chart-empty" class="chart-empty">{% if overview.metrics.available %}Collecting the first samples…{% else %}Metrics are not available{% endif %}</div></div>
+    </article>
+  </section>
+
+  <section class="infra-grid-two lower-grid">
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Approved automation</h2><p>Only templates enabled by an authorized manager are shown</p></div><form method="get" action="{% url 'dashboard:semaphore_ping' %}" class="ping-action"><button class="infra-button secondary" type="submit"><i class="fas fa-link"></i> Test Semaphore</button></form></div>
+      {% if can_manage_infrastructure %}{% if approved_templates %}<div class="automation-list">{% for template in approved_templates %}<div class="automation-row"><div><strong>{{ template.name }}</strong><small>{{ template.get_category_display }} · Project {{ template.project_id }} / Template {{ template.template_id }}</small></div><div class="automation-actions"><form method="post" action="{% url 'dashboard:run_template' template.id %}">{% csrf_token %}<input type="hidden" name="mode" value="dry_run"><button class="infra-button secondary" type="submit" title="Run using Semaphore dry-run">Dry run</button></form>{% if not template.read_only %}<form method="post" action="{% url 'dashboard:run_template' template.id %}" onsubmit="return confirm('This will start a live task in Semaphore. Continue?')">{% csrf_token %}<input type="hidden" name="mode" value="live"><label class="confirm-live"><input type="checkbox" name="confirm" value="yes" required> Confirm live run</label><button class="infra-button danger" type="submit">Run</button></form>{% endif %}</div></div>{% endfor %}</div>{% else %}<div class="empty-state compact"><i class="fas fa-shield-halved"></i><strong>No automation templates approved</strong><span>Configure Semaphore, then manage templates from the dashboard. Live runs stay disabled until reviewed.</span><a class="infra-button secondary" href="{% url 'dashboard:automation_templates' %}">Manage templates</a></div>{% endif %}{% else %}<div class="empty-state compact"><i class="fas fa-lock"></i><strong>Automation access restricted</strong><span>Your account can view the dashboard but cannot run automation templates.</span></div>{% endif %}
+    </article>
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Recent automation</h2><p>Semaphore task requests and their latest known state</p></div></div>
+      {% if recent_runs %}<div class="run-list">{% for run in recent_runs %}<div class="run-row"><span class="run-icon {{ run.status }}"><i class="fas {% if run.status == 'success' %}fa-check{% elif run.status == 'failed' %}fa-xmark{% elif run.status == 'running' %}fa-spinner{% else %}fa-clock{% endif %}"></i></span><div><strong><a href="{% url 'dashboard:run_detail' run.id %}">{{ run.template.name }}</a></strong><small>{% if run.external_task_id %}Task {{ run.external_task_id }} · {% endif %}{{ run.created_at|date:"Y-m-d H:i" }} · {{ run.get_status_display }}</small></div><form method="post" action="{% url 'dashboard:refresh_run' run.id %}">{% csrf_token %}<button class="icon-button" type="submit" aria-label="Refresh task status"><i class="fas fa-rotate-right"></i></button></form></div>{% endfor %}</div>{% else %}<div class="empty-state compact"><i class="fas fa-list-check"></i><strong>No operations yet</strong><span>Task history will appear here after a configured Semaphore template is run.</span></div>{% endif %}
+    </article>
+  </section>
+
+  <footer class="infra-footnote"><i class="fas fa-circle-info"></i> This dashboard does not invent status values. A dash or “Not configured” means no live provider is currently connected.</footer>
+</main>
+<script src="{% static 'vendor/chartjs/chart.umd.min.js' %}"></script>
+{{ overview.metrics_history|json_script:"metric-history" }}
+<script src="{% static 'js/dashboard.js' %}"></script>
+{% endblock %}

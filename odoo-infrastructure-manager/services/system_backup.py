@@ -10,8 +10,8 @@ import json
 import shutil
 import datetime
 from typing import Dict, Any, List, Optional
-from app.models.operation import WorkflowStep
-from app.services.archive_utils import safe_extractall
+from infrastructure_engine.models.operation import WorkflowStep
+from infrastructure_engine.services.archive_utils import safe_extractall
 
 class SystemBackupService:
     """Manages full infrastructure snapshots and verified restorations."""
