@@ -6,6 +6,9 @@
 <main class="infra-dashboard task-center-page">
   <header class="infra-heading"><div><div class="eyebrow">EXECUTION</div><h1>Task center</h1><p>Track infrastructure operations, their status, initiator, target and redacted output.</p></div></header>
   {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+  <div class="infra-message {% if dispatch_status.ready %}success{% else %}warning{% endif %}" role="status">
+    <strong>Task queue: {{ dispatch_status.status|capfirst }}.</strong> {{ dispatch_status.message }}
+  </div>
   <section class="infra-panel table-panel">
     <div class="panel-heading"><div><h2>Execution history</h2><p>{{ page.paginator.count }} task(s)</p></div>
       <form method="get" class="task-filter"><label for="task-status">Status</label><select id="task-status" name="status" class="table-filter"><option value="">All statuses</option>{% for value,label in statuses %}<option value="{{ value }}"{% if selected_status == value %} selected{% endif %}>{{ label }}</option>{% endfor %}</select><button class="infra-button secondary small" type="submit">Filter</button></form>

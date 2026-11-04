@@ -3,9 +3,28 @@ import os
 import platform
 import shutil
 import socket
+import subprocess
 import time
 
 import psutil
+
+
+def get_local_server_load():
+    """Return truthful compatibility metrics for legacy orchestrator reports."""
+    try:
+        cpu_percent = psutil.cpu_percent(interval=0.1)
+        memory = psutil.virtual_memory()
+        disk = psutil.disk_usage(os.path.abspath(os.sep))
+        gib = 1024 ** 3
+        return {
+            "cpu": f"{cpu_percent:.1f}%",
+            "ram": f"{memory.used / gib:.1f}GB/{memory.total / gib:.1f}GB",
+            "disk": f"{disk.percent:.1f}%",
+            "source": "live-local-host",
+            "available": True,
+        }
+    except (OSError, RuntimeError, ValueError, psutil.Error) as exc:
+        return {"available": False, "source": "live-local-host", "error": type(exc).__name__}
 
 
 def collect_local_snapshot():
@@ -16,12 +35,17 @@ def collect_local_snapshot():
     def section(name, collector):
         try:
             value = collector()
-            data[name] = value
-            availability[name] = {"status": "available", "observed_at": time.time()}
-        except (OSError, PermissionError, RuntimeError, ValueError) as exc:
+        except (OSError, PermissionError, RuntimeError, ValueError, psutil.Error, subprocess.SubprocessError) as exc:
             data[name] = None
             availability[name] = {"status": "unavailable", "reason": type(exc).__name__}
             errors.append(f"{name}: {type(exc).__name__}")
+            return
+        data[name] = value
+        if isinstance(value, dict) and value.get("supported") is False:
+            availability[name] = {"status": "unsupported", "reason": value.get("reason", "Not supported on this host")}
+            errors.append(f"{name}: unsupported")
+        else:
+            availability[name] = {"status": "available", "observed_at": time.time()}
 
     section("system", lambda: {
         "hostname": socket.gethostname(),
@@ -47,8 +71,11 @@ def collect_local_snapshot():
             raise OSError("No readable mounted filesystems")
         return rows
     section("disks", disks)
-    section("network", lambda: {"interfaces": [{"name": name, "addresses": [addr.address for addr in addresses if addr.family in (socket.AF_INET, socket.AF_INET6)]} for name, addresses in psutil.net_if_addrs().items()], "dns_servers": _dns_servers()})
+    section("network_interfaces", lambda: [{"name": name, "addresses": [addr.address for addr in addresses if addr.family in (socket.AF_INET, socket.AF_INET6)]} for name, addresses in psutil.net_if_addrs().items()])
+    section("dns", _dns_servers)
     section("providers", lambda: {"docker_cli": shutil.which("docker") is not None, "ansible_cli": shutil.which("ansible") is not None, "systemctl": shutil.which("systemctl") is not None})
+    section("services", _running_systemd_services)
+    section("processes", _top_processes)
     status = "failed" if not data else ("partial" if errors else "success")
     return {"source": "local-linux", "status": status, "data": data, "availability": availability, "duration_ms": max(0, int((time.monotonic() - started) * 1000)), "error_details": "; ".join(errors)}
 
@@ -64,3 +91,38 @@ def _dns_servers():
     except OSError:
         raise
     return servers
+
+
+def _running_systemd_services():
+    executable = shutil.which("systemctl")
+    if not executable:
+        return {"manager": "systemd", "supported": False, "reason": "systemctl is not installed", "items": []}
+    result = subprocess.run(
+        [executable, "list-units", "--type=service", "--state=running", "--no-legend", "--no-pager"],
+        check=True, capture_output=True, text=True, timeout=4,
+        env={**os.environ, "LC_ALL": "C"}, close_fds=True,
+    )
+    if len(result.stdout) > 131072:
+        raise ValueError("systemd service inventory exceeds the collection limit")
+    items = []
+    for line in result.stdout.splitlines():
+        fields = line.split(None, 4)
+        if len(fields) >= 4:
+            items.append({"unit": fields[0], "load": fields[1], "active": fields[2], "substate": fields[3], "description": fields[4] if len(fields) == 5 else ""})
+    return {"manager": "systemd", "supported": True, "running_count": len(items), "items": items}
+
+
+def _top_processes():
+    items = []
+    for process in psutil.process_iter(attrs=["pid", "name", "username", "status", "memory_percent"]):
+        try:
+            info = process.info
+            items.append({
+                "pid": info.get("pid"), "name": info.get("name") or "Unknown",
+                "user": info.get("username"), "status": info.get("status"),
+                "memory_percent": round(info.get("memory_percent") or 0, 2),
+            })
+        except (psutil.NoSuchProcess, psutil.AccessDenied, psutil.ZombieProcess):
+            continue
+    items.sort(key=lambda item: item["memory_percent"], reverse=True)
+    return {"sampled_processes": len(items), "items": items[:20], "sort": "memory_percent_desc"}

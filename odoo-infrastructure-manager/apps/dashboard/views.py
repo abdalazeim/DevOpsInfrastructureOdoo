@@ -6,6 +6,7 @@ from functools import wraps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import PermissionDenied, ValidationError
+from django.db import IntegrityError
 from django.http import HttpResponseForbidden, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.urls import reverse
@@ -28,9 +29,11 @@ from infrastructure_engine.core.engine import InfrastructureEngine, OperationRej
 from apps.monitoring.models import AlertEvent, AlertRule
 from apps.tasks.models import Task
 from apps.tasks.services.task_service import request_task_cancellation
+from apps.tasks.services.operation_tasks import queue_infrastructure_operation
+from apps.tasks.services.dispatcher import TaskDispatchUnavailable, dispatch_status
 
 from .forms import (AlertRuleForm, ApprovedTaskTemplateForm, BackupPolicyForm, CredentialCreateForm, GlobalSettingsForm,
-                    ManagedHostForm, ManagedServiceForm)
+                    ManagedHostForm, ManagedServiceForm, QuickConnectServerForm)
 from .services.container_service import ContainerDiscoveryService
 from .services.overview_service import DashboardOverviewService
 from .services.traefik_service import TraefikReadOnlyService
@@ -79,6 +82,7 @@ def containers(request):
 def inventory(request):
     hosts = list(ManagedHost.objects.prefetch_related("groups").select_related("latest_snapshot").all())
     services = list(ManagedService.objects.select_related("host").all())
+    queue_status = dispatch_status()
     for host in hosts:
         host.edit_form = ManagedHostForm(instance=host, prefix=f"h{host.pk}")
     for service in services:
@@ -97,6 +101,10 @@ def inventory(request):
         "can_update_servers": has_permission(request.user, "server.update", "infrastructure_manage"),
         "can_test_server_connection": has_permission(request.user, "server.connect", "infrastructure_manage"),
         "can_discover_servers": has_permission(request.user, "server.view", "infrastructure_view"),
+        "task_dispatch_enabled": queue_status["ready"],
+        "task_dispatch_status": queue_status,
+        "can_view_tasks": has_permission(request.user, "task.view", "tasks_manage"),
+        "can_restart_linux_services": has_permission(request.user, "linux.service.restart"),
         "nav_sections": _navigation(active="inventory"),
     })
 
@@ -161,8 +169,66 @@ def global_settings(request):
     return render(request, "dashboard/settings.html", {
         "form": form,
         "can_manage_settings": can_manage,
+        "quick_connect_form": QuickConnectServerForm() if has_permission(request.user, "server.create", "infrastructure_manage") else None,
+        "can_create_servers": has_permission(request.user, "server.create", "infrastructure_manage"),
+        "can_test_server_connection": has_permission(request.user, "server.connect", "infrastructure_manage"),
+        "credential_encryption_ready": is_credential_encryption_ready(),
         "nav_sections": _navigation(active="settings"),
     })
+
+
+@login_required
+@require_POST
+def quick_connect_server(request):
+    if not has_permission(request.user, "server.create", "infrastructure_manage"):
+        return HttpResponseForbidden("Server registration permission required.")
+    form = QuickConnectServerForm(request.POST)
+    if not form.is_valid():
+        for field, errors in form.errors.items():
+            messages.error(request, f"{field}: {', '.join(errors)}")
+        return redirect("dashboard:global_settings")
+    try:
+        host = form.save(actor=request.user)
+    except CredentialEncryptionError:
+        messages.error(request, "The SSH password was not saved. Configure credential encryption and try again.")
+        return redirect("dashboard:global_settings")
+    except IntegrityError:
+        messages.error(request, "A server with this name is already registered, or the local application host already exists.")
+        return redirect("dashboard:global_settings")
+
+    if host.credential_id:
+        log_audit(request, action="create", module="security.credentials", object_id=host.credential_id,
+                  object_repr=f"SSH credential for {host.name}")
+    log_audit(request, action="create", module="infrastructure.host", object_id=host.pk,
+              object_repr=f"Managed host {host.name}")
+
+    if host.is_local and has_permission(request.user, "server.view", "infrastructure_view"):
+        try:
+            result = InfrastructureEngine.execute(
+                "server.discover", target_id=host.pk, actor=request.user,
+                parameters={}, request=request,
+            )
+            if result.status == "success":
+                messages.success(request, f"{host.name} was added and local system data was collected.")
+            else:
+                messages.warning(request, f"{host.name} was added, but local discovery returned {result.status}.")
+        except OperationRejected as exc:
+            messages.warning(request, f"{host.name} was saved. Local discovery: {exc}")
+    elif host.connection_type == ManagedHost.ConnectionType.SSH and has_permission(request.user, "server.connect", "infrastructure_manage"):
+        try:
+            result = InfrastructureEngine.execute(
+                "server.test_connection", target_id=host.pk, actor=request.user,
+                parameters={}, request=request,
+            )
+            if result.status == "success":
+                messages.success(request, f"{host.name} was saved and the SSH connection was verified.")
+            else:
+                messages.warning(request, f"{host.name} was saved, but the SSH connection could not be verified: {result.message}")
+        except OperationRejected as exc:
+            messages.warning(request, f"{host.name} was saved. Connection test: {exc}")
+    else:
+        messages.success(request, f"{host.name} was added to the server inventory.")
+    return redirect("dashboard:inventory")
 
 
 @login_required
@@ -178,6 +244,7 @@ def tasks_list(request):
     return render(request, "dashboard/tasks.html", {
         "page": page, "selected_status": selected_status,
         "statuses": Task.Status.choices,
+        "dispatch_status": dispatch_status(),
         "can_cancel_tasks": has_permission(request.user, "task.cancel", "tasks_manage"),
         "nav_sections": _navigation(active="tasks"),
     })
@@ -254,6 +321,65 @@ def test_server_connection(request, host_id):
 
 @login_required
 @require_POST
+def queue_server_connection_test(request, host_id):
+    return _queue_server_operation(request, host_id, "server.test_connection")
+
+
+@login_required
+@require_POST
+def queue_server_discovery(request, host_id):
+    return _queue_server_operation(request, host_id, "server.discover")
+
+
+@login_required
+@require_POST
+def queue_linux_service_restart(request, host_id):
+    confirmed = request.POST.get("confirmation", "").strip() == "RESTART"
+    try:
+        task = queue_infrastructure_operation(
+            operation="linux.service.restart", target_id=host_id,
+            actor=request.user, parameters={"unit": request.POST.get("unit", "")},
+            confirmation=confirmed, request=request,
+        )
+    except TaskDispatchUnavailable as exc:
+        messages.error(request, str(exc))
+        return redirect("dashboard:inventory")
+    except PermissionDenied as exc:
+        return HttpResponseForbidden(str(exc))
+    except OperationRejected as exc:
+        messages.error(request, str(exc))
+        return redirect("dashboard:inventory")
+    if task.status == Task.Status.QUEUED:
+        messages.success(request, f"Restart of {request.POST.get('unit', 'service')} queued as task {task.pk}.")
+    else:
+        messages.error(request, f"Service restart task {task.pk} could not be dispatched.")
+    return redirect("dashboard:tasks")
+
+
+def _queue_server_operation(request, host_id, operation):
+    try:
+        task = queue_infrastructure_operation(
+            operation=operation, target_id=host_id,
+            actor=request.user, parameters={}, request=request,
+        )
+    except TaskDispatchUnavailable as exc:
+        messages.error(request, str(exc))
+        return redirect("dashboard:inventory")
+    except PermissionDenied as exc:
+        return HttpResponseForbidden(str(exc))
+    except OperationRejected as exc:
+        return HttpResponseForbidden(str(exc)) if exc.status_code == 403 else JsonResponse(
+            {"error": str(exc)}, status=exc.status_code,
+        )
+    if task.status == Task.Status.QUEUED:
+        messages.success(request, f"{operation} queued as task {task.pk}.")
+    else:
+        messages.error(request, f"{operation} task {task.pk} could not be dispatched.")
+    return redirect("dashboard:tasks")
+
+
+@login_required
+@require_POST
 def discover_server(request, host_id):
     try:
         result = InfrastructureEngine.execute(
@@ -262,7 +388,8 @@ def discover_server(request, host_id):
         )
     except OperationRejected as exc:
         return JsonResponse({"error": str(exc)}, status=exc.status_code)
-    return JsonResponse({"status": result.status, "message": result.message, **result.data}, status=200)
+    http_status = 503 if result.status == "failed" else (206 if result.data.get("snapshot_status") == "partial" else 200)
+    return JsonResponse({"status": result.status, "message": result.message, **result.data}, status=http_status)
 
 
 @login_required

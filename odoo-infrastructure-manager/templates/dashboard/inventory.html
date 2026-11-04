@@ -72,17 +72,37 @@
           <dt>Live system data</dt><dd>{% if host.latest_snapshot %}{{ host.latest_snapshot.get_status_display }} · {{ host.latest_snapshot.captured_at|date:"Y-m-d H:i:s" }}{% if host.latest_snapshot.is_stale %} · Stale (older than 5 minutes){% else %} · Current{% endif %}{% else %}Not collected{% endif %}</dd>
         </dl>
         {% if can_test_server_connection %}<form method="post" action="{% url 'dashboard:test_server_connection' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-plug"></i> Test connection</button></form>{% endif %}
-        {% if can_discover_servers and host.is_local %}<form method="post" action="{% url 'dashboard:discover_server' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-arrows-rotate"></i> Refresh system data</button></form>
-          {% if host.latest_snapshot %}<div class="discovery-summary">
+        {% if can_test_server_connection and task_dispatch_enabled and can_view_tasks %}<form method="post" action="{% url 'dashboard:queue_server_connection_test' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-list-check"></i> Queue connection test</button></form>{% endif %}
+        {% if can_discover_servers %}
+          {% if host.is_local %}<form method="post" action="{% url 'dashboard:discover_server' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-arrows-rotate"></i> Refresh system data</button></form>{% endif %}
+          {% if task_dispatch_enabled and can_view_tasks %}{% if host.is_local or host.connection_type == "ssh" %}<form method="post" action="{% url 'dashboard:queue_server_discovery' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-list-check"></i> Queue system discovery</button></form>{% endif %}{% endif %}
+        {% endif %}
+        {% if host.latest_snapshot %}<div class="discovery-summary">
             <h3>Latest live snapshot</h3>
             {% with snapshot=host.latest_snapshot %}
             <p>{{ snapshot.get_status_display }} · {{ snapshot.collection_duration_ms }} ms · {{ snapshot.captured_at|timesince }} ago</p>
+            <h4>Section availability</h4>
+            <div class="snapshot-availability">{% for section, state in snapshot.availability.items %}<span class="status-chip {{ state.status }}">{{ section|capfirst }}: {{ state.status|capfirst }}</span>{% endfor %}</div>
+            {% if snapshot.data.services %}<h4>Running system services</h4>
+              {% if snapshot.data.services.supported %}
+                <p>{{ snapshot.data.services.running_count }} running unit(s)</p>
+                <div class="table-responsive"><table class="infra-table"><thead><tr><th>Unit</th><th>State</th><th>Description</th>{% if host.is_local and can_restart_linux_services and task_dispatch_enabled and can_view_tasks and not host.latest_snapshot.is_stale %}<th>Action</th>{% endif %}</tr></thead><tbody>
+                {% for service in snapshot.data.services.items %}<tr><td>{{ service.unit }}</td><td>{{ service.active }} / {{ service.substate }}</td><td>{{ service.description|default:"—" }}</td>
+                  {% if host.is_local and can_restart_linux_services and task_dispatch_enabled and can_view_tasks and not host.latest_snapshot.is_stale %}<td><form method="post" action="{% url 'dashboard:queue_linux_service_restart' host.id %}" class="service-restart-form">{% csrf_token %}<input type="hidden" name="unit" value="{{ service.unit }}"><label>Type RESTART to confirm<input name="confirmation" required pattern="RESTART" autocomplete="off" aria-label="Type RESTART to confirm service restart"></label><button class="infra-button secondary small" type="submit">Queue restart</button></form></td>{% endif %}
+                </tr>{% empty %}<tr><td colspan="4">No running services were reported.</td></tr>{% endfor %}
+                </tbody></table></div>
+              {% else %}<p>System service inventory is unsupported on this host.</p>{% endif %}
+            {% endif %}
+            {% if snapshot.data.processes %}<h4>Top processes by memory</h4>
+              <div class="table-responsive"><table class="infra-table"><thead><tr><th>PID</th><th>Process</th><th>User</th><th>State</th><th>Memory</th></tr></thead><tbody>
+              {% for process in snapshot.data.processes.items %}<tr><td>{{ process.pid }}</td><td>{{ process.name }}</td><td>{{ process.user|default:"—" }}</td><td>{{ process.status }}</td><td>{{ process.memory_percent }}%</td></tr>{% empty %}<tr><td colspan="5">No process information is available.</td></tr>{% endfor %}
+              </tbody></table></div>
+            {% endif %}
             <dl class="infra-details">
-              {% for key, value in snapshot.data.items %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value|infra_json }}{% else %}Unavailable{% endif %}</dd>{% endfor %}
+              {% for key, value in snapshot.data.items %}{% if key != "services" and key != "processes" %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value|infra_json }}{% else %}Unavailable{% endif %}</dd>{% endif %}{% endfor %}
             </dl>
             {% endwith %}
           </div>{% endif %}
-        {% endif %}
         {% if can_update_servers %}<form method="post" action="{% url 'dashboard:update_inventory_item' 'host' host.id %}" class="infra-form inventory-edit-form">{% csrf_token %}{{ host.edit_form.as_p }}<button class="infra-button secondary" type="submit">Save server</button></form>{% else %}<p>{{ host.description|default:"No description" }}</p>{% endif %}
       </details>
       {% endfor %}

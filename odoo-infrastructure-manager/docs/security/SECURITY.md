@@ -70,6 +70,13 @@ a protected secret store. Without a valid key, credential creation is disabled
 and encryption fails closed. Credential lists and audit records contain metadata
 only; the secret is never rendered or serialized.
 
+The Global Settings quick-connect form accepts a server name, address, SSH login,
+password and port. It creates the host record and an encrypted SSH credential in
+one database transaction, then probes SSH when the actor also has `server.connect`.
+Local application hosts use direct collection and do not store an SSH credential.
+SSH still rejects unknown or changed host keys; configure trusted host keys for
+the web/worker service account before expecting a probe to succeed.
+
 To rotate keys without losing access to existing ciphertext:
 
 1. Set the new primary `CREDENTIAL_ENCRYPTION_KEY` and the old key in
@@ -82,6 +89,12 @@ To rotate keys without losing access to existing ciphertext:
 SSH probes reject unknown host keys, use bounded timeouts, invoke only the fixed
 `uname -srm` metadata probe, and redact exception details before returning them.
 Do not weaken host-key policy to make an untrusted host connect.
+
+Linux service restart is limited to a currently running systemd unit from a fresh
+local discovery snapshot. It requires `linux.service.restart`, a typed `RESTART`
+confirmation, and task dispatch through the configured Celery worker. The adapter
+uses a fixed `systemctl restart <unit>` call and verifies the unit is active after
+the restart; arbitrary shell commands are never accepted.
 
 ## 7. Logging
 

@@ -10,6 +10,7 @@ from apps.core.services.runtime_settings import (
     RUNTIME_SETTING_SCHEMA, environment_override, get_runtime_setting,
 )
 from apps.core.services.system_settings import set_setting
+from apps.security.services.credentials import is_credential_encryption_ready
 
 
 class ManagedHostForm(forms.ModelForm):
@@ -51,6 +52,83 @@ class ManagedHostForm(forms.ModelForm):
             host.save()
             self.save_m2m()
         return host
+
+
+class QuickConnectServerForm(forms.Form):
+    MODE_CHOICES = (
+        ("ssh", "SSH server (virtual machine, VPS, or remote host)"),
+        ("local", "This application host"),
+    )
+    connection_mode = forms.ChoiceField(
+        label="Connection type", choices=MODE_CHOICES, initial="ssh",
+        widget=forms.RadioSelect,
+    )
+    name = forms.CharField(label="Server name", max_length=120, strip=True,
+                           widget=forms.TextInput(attrs={"placeholder": "Production VPS"}))
+    hostname = forms.CharField(label="IP address or hostname", max_length=253, required=False, strip=True,
+                               widget=forms.TextInput(attrs={"placeholder": "203.0.113.10 or server.example.com"}))
+    username = forms.CharField(label="SSH login name", max_length=120, required=False, strip=True,
+                               widget=forms.TextInput(attrs={"placeholder": "root or deploy", "autocomplete": "username"}))
+    password = forms.CharField(
+        label="Password", required=False, strip=False, max_length=20000,
+        widget=forms.PasswordInput(render_value=False, attrs={"autocomplete": "new-password"}),
+    )
+    port = forms.IntegerField(label="SSH port", min_value=1, max_value=65535, initial=22, required=False,
+                              widget=forms.NumberInput(attrs={"placeholder": "22"}))
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("connection_mode") == "ssh":
+            if not cleaned.get("hostname"):
+                self.add_error("hostname", "Enter the server IP address or hostname.")
+            if not cleaned.get("username"):
+                self.add_error("username", "Enter the SSH login name.")
+            if not cleaned.get("password"):
+                self.add_error("password", "Enter the SSH password.")
+            if not cleaned.get("port"):
+                cleaned["port"] = 22
+            if not is_credential_encryption_ready():
+                self.add_error("password", "Secure credential storage is not configured on this application.")
+        else:
+            cleaned["hostname"] = "localhost"
+            cleaned["port"] = 22
+        return cleaned
+
+    def save(self, *, actor=None):
+        from django.db import transaction
+
+        from apps.infrastructure.models import ManagedHost
+
+        with transaction.atomic():
+            credential = None
+            is_local = self.cleaned_data["connection_mode"] == "local"
+            if not is_local:
+                credential_name = f"{self.cleaned_data['name']} SSH"[:120]
+                base_name = credential_name
+                suffix = 2
+                while Credential.objects.filter(name=credential_name).exists():
+                    tail = f" ({suffix})"
+                    credential_name = f"{base_name[:120-len(tail)]}{tail}"
+                    suffix += 1
+                credential = Credential(
+                    name=credential_name, kind=Credential.Kind.SSH_PASSWORD,
+                    username=self.cleaned_data["username"], created_by=actor,
+                )
+                credential.set_secret(self.cleaned_data["password"])
+                credential.save()
+            host = ManagedHost.objects.create(
+                name=self.cleaned_data["name"],
+                hostname=self.cleaned_data["hostname"],
+                server_type=ManagedHost.ServerType.LOCAL if is_local else ManagedHost.ServerType.REMOTE,
+                connection_type=ManagedHost.ConnectionType.LOCAL if is_local else ManagedHost.ConnectionType.SSH,
+                ssh_port=self.cleaned_data["port"],
+                credential=credential,
+                credential_reference=f"credential:{credential.pk}" if credential else "",
+                is_local=is_local,
+                environment=ManagedHost.Environment.PRODUCTION,
+                enabled=True,
+            )
+            return host
 
 
 class ManagedServiceForm(forms.ModelForm):

@@ -9,6 +9,7 @@ import subprocess
 import os
 import sys
 from typing import Dict, Any, List, Optional
+from infrastructure_engine.adapters.linux.local import get_local_server_load
 from infrastructure_engine.services.traefik_manager import TraefikDockerManager
 from infrastructure_engine.services.odoo_manager import OdooDockerManager
 
@@ -77,7 +78,7 @@ class InfrastructureManager:
         }
 
     def _get_server_load(self) -> Dict[str, Any]:
-        return {'cpu': '15%', 'ram': '4GB/16GB', 'disk': '45%'}
+        return get_local_server_load()
 
     def run_operation(self, category: str, action: str, params: Dict[str, Any]) -> bool:
         """Centralized execution entry point with pre-flight checks."""

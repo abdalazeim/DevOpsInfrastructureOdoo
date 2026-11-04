@@ -8,14 +8,52 @@
     <div><div class="eyebrow">CONFIGURATION</div><h1>Global settings</h1><p>Validated defaults used by infrastructure, monitoring and execution services.</p></div>
   </header>
   {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
-  <section class="infra-panel settings-panel">
-    <div class="panel-heading"><div><h2>Operational defaults</h2><p>Environment variables override database values and are read-only here.</p></div></div>
-    <form method="post" class="infra-form settings-form">
-      {% csrf_token %}{{ form.as_p }}
-      {% if can_manage_settings %}<div class="settings-actions"><button class="infra-button" type="submit">Save settings</button><span>Changes are validated, stored in the system settings registry and audit logged.</span></div>
-      {% else %}<p class="settings-read-only">You have read-only access to these settings.</p>{% endif %}
+  {% if quick_connect_form %}<section class="infra-panel quick-connect-panel">
+    <div class="panel-heading"><div><h2>Connect a server</h2><p>Use the same details you use for SSH. Virtual machines, VPS instances and other Linux hosts use the SSH option.</p></div></div>
+    {% if not credential_encryption_ready %}<p class="infra-message warning">SSH passwords cannot be saved until credential encryption is configured. Local host registration remains available.</p>{% endif %}
+    <form method="post" action="{% url 'dashboard:quick_connect_server' %}" class="infra-form quick-connect-form" id="quick-connect-form" data-credentials-ready="{{ credential_encryption_ready|yesno:'true,false' }}">
+      {% csrf_token %}
+      {% for field in quick_connect_form %}<div class="quick-connect-field" data-quick-field="{{ field.name }}">{{ field.label_tag }}{{ field }}{% if field.help_text %}<small>{{ field.help_text }}</small>{% endif %}{% for error in field.errors %}<small class="field-error">{{ error }}</small>{% endfor %}</div>{% endfor %}
+      <div class="settings-actions"><button class="infra-button" type="submit">Save and connect</button><span>The password is encrypted before it is stored.</span></div>
     </form>
-  </section>
+  </section>{% endif %}
+
+  <details class="infra-panel advanced-settings-panel">
+    <summary><span><strong>Advanced runtime defaults</strong><small>Timeouts, monitoring interval, and data retention</small></span><i class="fas fa-chevron-down"></i></summary>
+    <div class="advanced-settings-content">
+      <div class="panel-heading"><div><h2>Runtime settings</h2><p>Environment variables override database values and are read-only here.</p></div></div>
+      <form method="post" class="infra-form settings-form">
+        {% csrf_token %}{{ form.as_p }}
+        {% if can_manage_settings %}<div class="settings-actions"><button class="infra-button" type="submit">Save settings</button><span>Changes are validated and audit logged.</span></div>
+        {% else %}<p class="settings-read-only">You have read-only access to runtime settings.</p>{% endif %}
+      </form>
+    </div>
+  </details>
   <footer class="infra-footnote"><i class="fas fa-circle-info"></i> Secrets, database URLs and encryption keys are not editable in this page. Configure those through the protected environment.</footer>
 </main>
 {% endblock %}
+{% block extra_js %}<script>
+(() => {
+  const form = document.getElementById("quick-connect-form");
+  if (!form) return;
+  const sshFields = ["hostname", "username", "password", "port"];
+  const submit = form.querySelector('button[type="submit"]');
+  const credentialsReady = form.dataset.credentialsReady === "true";
+  const updateMode = () => {
+    const local = form.querySelector('input[name="connection_mode"]:checked')?.value === "local";
+    sshFields.forEach((name) => {
+      const row = form.querySelector(`[data-quick-field="${name}"]`);
+      const input = row?.querySelector("input");
+      if (row) row.hidden = local;
+      if (input) {
+        input.disabled = local;
+        if (local && name === "hostname") input.value = "localhost";
+        if (local && name === "password") input.value = "";
+      }
+    });
+    if (submit) submit.disabled = !local && !credentialsReady;
+  };
+  form.addEventListener("change", updateMode);
+  updateMode();
+})();
+</script>{% endblock %}

@@ -69,7 +69,13 @@ class DashboardAccessTests(TestCase):
 
     @patch("apps.infrastructure.services.discovery.collect_local_snapshot", return_value={
         "source": "local-linux", "status": "partial",
-        "data": {"system": {"operating_system": "Linux", "architecture": "x86_64"}, "memory": None},
+        "data": {
+            "system": {"operating_system": "Linux", "architecture": "x86_64"},
+            "memory": None,
+            "services": {"manager": "systemd", "supported": True, "running_count": 1,
+                         "items": [{"unit": "ssh.service", "active": "active", "substate": "running", "description": "OpenSSH server"}]},
+            "processes": {"items": [{"pid": 10, "name": "gunicorn", "user": "odoo", "status": "running", "memory_percent": 2.5}]},
+        },
         "availability": {"system": {"status": "available"}, "memory": {"status": "unavailable"}},
         "duration_ms": 12, "error_details": "memory: PermissionError",
     })
@@ -86,6 +92,8 @@ class DashboardAccessTests(TestCase):
         page = self.client.get(reverse("dashboard:inventory"))
         self.assertContains(page, "Latest live snapshot")
         self.assertContains(page, "Partially collected")
+        self.assertContains(page, "ssh.service")
+        self.assertContains(page, "gunicorn")
         collect.assert_called_once_with()
 
     def test_local_discovery_refuses_remote_targets(self):
@@ -169,13 +177,18 @@ class ApprovedAutomationTests(TestCase):
     def test_dashboard_loads_enterprise_visual_system_after_page_styles(self):
         response = self.client.get(reverse("dashboard:index"))
         self.assertContains(response, "css/dashboard.css?v=2")
-        self.assertContains(response, "css/enterprise-shell.css?v=1")
+        self.assertContains(response, "css/enterprise-shell.css?v=2")
         self.assertLess(
             response.content.index(b"css/dashboard.css?v=2"),
-            response.content.index(b"css/enterprise-shell.css?v=1"),
+            response.content.index(b"css/enterprise-shell.css?v=2"),
         )
 
     def test_global_settings_validate_store_and_audit_changes(self):
+        page = self.client.get(reverse("dashboard:global_settings"))
+        self.assertContains(page, "Connect a server")
+        self.assertContains(page, "IP address or hostname")
+        self.assertContains(page, "SSH port")
+        self.assertContains(page, "Advanced runtime defaults")
         invalid = self.client.post(reverse("dashboard:global_settings"), {
             "ssh_timeout_seconds": 8, "operation_timeout_seconds": 300,
             "monitoring_collection_interval_seconds": 2, "metrics_retention_days": 30,
@@ -215,6 +228,35 @@ class ApprovedAutomationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         task.refresh_from_db()
         self.assertEqual(task.status, Task.Status.CANCELLED)
+
+    def test_task_center_reports_queue_dispatch_as_disabled_by_default(self):
+        response = self.client.get(reverse("dashboard:tasks"))
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Task queue: Disabled")
+
+    def test_queue_connection_test_does_not_create_task_when_dispatch_is_disabled(self):
+        host = ManagedHost.objects.create(name="queued-disabled", hostname="queue.example.test")
+        response = self.client.post(reverse("dashboard:queue_server_connection_test", args=[host.pk]), follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Task dispatch is disabled")
+        self.assertFalse(Task.objects.exists())
+
+    @patch("apps.dashboard.views.dispatch_status", return_value={"ready": True, "status": "configured", "message": "Configured"})
+    def test_fresh_local_service_inventory_exposes_confirmed_task_action(self, dispatch_status):
+        host = ManagedHost.objects.create(name="systemd-host", hostname="localhost", is_local=True,
+                                          server_type="local", connection_type="local")
+        InfrastructureSnapshot.objects.create(
+            host=host, source="local-linux", status=InfrastructureSnapshot.Status.SUCCESS,
+            data={"services": {"supported": True, "running_count": 1, "items": [{
+                "unit": "ssh.service", "active": "active", "substate": "running",
+                "description": "OpenSSH service",
+            }]}},
+            availability={"services": {"status": "available"}},
+        )
+        response = self.client.get(reverse("dashboard:inventory"))
+        self.assertContains(response, "Queue restart")
+        self.assertContains(response, "Type RESTART to confirm")
+        self.assertContains(response, "ssh.service")
 
     def test_host_can_be_managed_from_dashboard_inventory(self):
         response = self.client.post(reverse("dashboard:create_inventory_item", args=["host"]), {
@@ -262,6 +304,48 @@ class ApprovedAutomationTests(TestCase):
         host = form.save()
         self.assertEqual(host.server_type, ManagedHost.ServerType.LOCAL)
         self.assertEqual(host.connection_type, ManagedHost.ConnectionType.LOCAL)
+
+    @override_settings(CREDENTIAL_ENCRYPTION_KEY=TEST_CREDENTIAL_KEY)
+    @patch("infrastructure_engine.core.engine.SSHConnectionAdapter.inspect", return_value={
+        "operating_system": "Linux", "os_version": "6.8.0", "architecture": "x86_64",
+    })
+    def test_global_settings_quick_connect_saves_encrypted_password_and_tests_ssh(self, inspect):
+        response = self.client.post(reverse("dashboard:quick_connect_server"), {
+            "connection_mode": "ssh", "name": "New VPS", "hostname": "192.0.2.20",
+            "username": "deploy", "password": "very-private-password", "port": "2222",
+        })
+        self.assertEqual(response.status_code, 302)
+        host = ManagedHost.objects.get(name="New VPS")
+        self.assertEqual(host.hostname, "192.0.2.20")
+        self.assertEqual(host.ssh_port, 2222)
+        self.assertEqual(host.connection_type, ManagedHost.ConnectionType.SSH)
+        self.assertEqual(host.credential.username, "deploy")
+        self.assertNotEqual(host.credential.encrypted_secret, "very-private-password")
+        self.assertEqual(host.credential.reveal_secret(), "very-private-password")
+        self.assertEqual(host.connection_status, ManagedHost.ConnectionStatus.ONLINE)
+        inspect.assert_called_once_with(host)
+
+    @override_settings(CREDENTIAL_ENCRYPTION_KEY="")
+    def test_global_settings_quick_connect_adds_local_host_without_ssh_fields(self):
+        response = self.client.post(reverse("dashboard:quick_connect_server"), {
+            "connection_mode": "local", "name": "Application host", "hostname": "localhost",
+        })
+        self.assertEqual(response.status_code, 302)
+        host = ManagedHost.objects.get(name="Application host")
+        self.assertTrue(host.is_local)
+        self.assertEqual(host.connection_type, ManagedHost.ConnectionType.LOCAL)
+        self.assertIsNone(host.credential)
+
+    @override_settings(CREDENTIAL_ENCRYPTION_KEY="")
+    def test_global_settings_quick_connect_fails_closed_without_encryption_key(self):
+        response = self.client.post(reverse("dashboard:quick_connect_server"), {
+            "connection_mode": "ssh", "name": "No key VPS", "hostname": "192.0.2.21",
+            "username": "deploy", "password": "must-not-be-saved", "port": "22",
+        }, follow=True)
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Secure credential storage is not configured")
+        self.assertFalse(ManagedHost.objects.filter(name="No key VPS").exists())
+        self.assertFalse(Credential.objects.filter(name__startswith="No key VPS").exists())
 
     def test_restore_requires_separate_permission_and_typed_confirmation(self):
         restore = ApprovedTaskTemplate.objects.create(
