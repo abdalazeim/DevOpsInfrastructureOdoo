@@ -17,7 +17,7 @@
   - تشغيل **Odoo 18.0** مع **PostgreSQL 17** على المنفذ `10018`.
   - تشغيل **Odoo 19.0** مع **PostgreSQL 18** على المنفذ `10019`.
   - عزل كامل لكل إصدار في شبكة داخلية مستقلة (`odoo17_internal` / `odoo18_internal` / `odoo19_internal`)، مع ربطها بشبكة البروكسي المشتركة `proxy`.
-  - تثبيت موحّد عبر `automation/scripts/install-odoo.sh <17|18|19>` بأسلوب minhng92 (مجلد مستقل، `postgresql/`، `addons/`، `etc/`، و`entrypoint.sh`).
+  - تثبيت موحّد عبر `scripts/install-odoo17.sh` / `scripts/install-odoo18.sh` / `scripts/install-odoo19.sh` من مستودع `Odoo-MultiVersion-Deployment` (مجلد مستقل، `postgresql/`، `addons/`، `etc/`، و`entrypoint.sh`).
 - **إدارة عبر الطرفية فقط**:
   - واجهة قوائم نصية افتراضية وواجهة Textual تفاعلية.
   - أوامر CLI لتنفيذ العمليات والأتمتة مع عرض الخطوات والسجلات.

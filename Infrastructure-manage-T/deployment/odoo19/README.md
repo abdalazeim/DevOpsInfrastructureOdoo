@@ -2,92 +2,80 @@
 
 ## Quick Installation
 
-Install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/) yourself, then run the following to set up first Odoo instance @ `localhost:10019` (default master password: `minhng.info`):
+Install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/) yourself, then run the following to set up first Odoo instance:
 
-``` bash
-curl -s https://raw.githubusercontent.com/minhng92/odoo-19-docker-compose/master/run.sh | bash -s -- --destination odoo-one --port 10019 --chat 20019
-```
-and/or run the following to set up another Odoo instance @ `localhost:11019` (default master password: `minhng.info`):
-
-``` bash
-curl -s https://raw.githubusercontent.com/minhng92/odoo-19-docker-compose/master/run.sh | bash -s -- --destination odoo-two --port 11019 --chat 21019
+```bash
+cd /opt/Odoo-MultiVersion-Deployment/odoo19
+sudo ./scripts/install-odoo19.sh
 ```
 
-Arguments:
-* `--destination`: Odoo deploy folder (e.g., **odoo-one**)
-* `--port`: Odoo port (e.g., **10019**)
-* `--chat`: Live chat port (e.g., **20019**)
-* `--password`: Master password (**admin_passwd**). Optional, defaults to the value in **etc/odoo.conf**.
-* `--db-password`: PostgreSQL password (env **POSTGRES_PASSWORD**/**PASSWORD**). Optional, defaults to `odoo19@2025`.
+The script installs two independent Odoo 19 instances:
+- **Instance 1**: `https://odoo19-1.devops-odoo.com` — `odoo19-db1` (PostgreSQL 18)
+- **Instance 2**: `https://odoo19-2.devops-odoo.com` — `odoo19-db2` (PostgreSQL 18)
 
-Example with a custom master password:
+No ports are published publicly; Traefik handles access via HTTPS.
 
-``` bash
-curl -s https://raw.githubusercontent.com/minhng92/odoo-19-docker-compose/master/run.sh | bash -s -- --destination odoo-one --port 10019 --chat 20019 --password test1234
+### Installation via Jenkins
+
+Use the Jenkins Pipeline `Install Odoo 19 – Two Instances` which runs all installation stages automatically.
+
+### Installation via Terminal
+
+```bash
+cd /opt/Odoo-MultiVersion-Deployment/odoo19
+sudo ./scripts/install-odoo19.sh
 ```
-
-Example with custom master + database passwords:
-
-``` bash
-curl -s https://raw.githubusercontent.com/minhng92/odoo-19-docker-compose/master/run.sh | bash -s -- --destination odoo-one --port 10019 --chat 20019 --password test1234 --db-password dbSecret123
-```
-
-If `curl` is not found, install it:
-
-``` bash
-$ sudo apt-get install curl
-# or
-$ sudo yum install curl
-```
-
-<p>
-<img src="screenshots/odoo-19-docker-compose.gif" width="100%">
-</p>
 
 ## Usage
 
 Start the container:
-``` sh
-docker-compose up
+```sh
+cd /opt/odoo19/instance1
+docker-compose up -d
 ```
-Then open `localhost:10019` to access Odoo 19.
+
+Then open `https://odoo19-1.devops-odoo.com` to access Odoo 19 via Traefik HTTPS.
+
+For the second instance:
+```bash
+cd /opt/odoo19/instance2
+docker-compose up -d
+```
+
+Open `https://odoo19-2.devops-odoo.com` to access the second Odoo 19 instance.
 
 - **If you get any permission issues**, change the folder permission to make sure that the container is able to access the directory:
 
-``` sh
-$ sudo chmod -R 777 addons
-$ sudo chmod -R 777 etc
-$ sudo chmod -R 777 postgresql
+```sh
+$ sudo chmod -R 700 /data/odoo19/instance1/postgresql
+$ sudo chmod -R 700 /data/odoo19/instance2/postgresql
 ```
 
-- If you want to start the server with a different port, change **10019** to another value in **docker-compose.yml** inside the parent dir:
+- If you want to start the server with a different port, change **8069** to another value in **docker-compose.yml** inside the parent dir:
 
 ```
 ports:
- - "10019:8069"
+  - "8069:8069"
 ```
 
-- To run Odoo container in detached mode (be able to close terminal without stopping Odoo):
+- To run Odoo container in detached mode:
 
 ```
 docker-compose up -d
 ```
 
-- To Use a restart policy, i.e. configure the restart policy for a container, change the value related to **restart** key in **docker-compose.yml** file to one of the following:
-   - `no` =	Do not automatically restart the container. (the default)
-   - `on-failure[:max-retries]` =	Restart the container if it exits due to an error, which manifests as a non-zero exit code. Optionally, limit the number of times the Docker daemon attempts to restart the container using the :max-retries option.
-  - `always` =	Always restart the container if it stops. If it is manually stopped, it is restarted only when Docker daemon restarts or the container itself is manually restarted. (See the second bullet listed in restart policy details)
-  - `unless-stopped`	= Similar to always, except that when the container is stopped (manually or otherwise), it is not restarted even after Docker daemon restarts.
+- To Use a restart policy:
+
 ```
- restart: always             # run as a service
+restart: always             # run as a service
 ```
 
-- To increase maximum number of files watching from 8192 (default) to **524288**. In order to avoid error when we run multiple Odoo instances. This is an *optional step*. These commands are for Ubuntu user:
+- To increase maximum number of files watching from 8192 (default) to **524288**:
 
 ```
 $ if grep -qF "fs.inotify.max_user_watches" /etc/sysctl.conf; then echo $(grep -F "fs.inotify.max_user_watches" /etc/sysctl.conf); else echo "fs.inotify.max_user_watches = 524288" | sudo tee -a /etc/sysctl.conf; fi
 $ sudo sysctl -p    # apply new config immediately
-``` 
+```
 
 ## Custom addons
 
@@ -97,40 +85,40 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 
 * To change Odoo configuration, edit file: **etc/odoo.conf**.
 * Log file: **etc/odoo-server.log**
-* Default database password (**admin_passwd**) is `minhng.info`, update it via `--password` or in [etc/odoo.conf#L75](/etc/odoo.conf#L75)
+* Default database password (**admin_passwd**) is set via `vault_odoo_admin_password` in Ansible vault, update it in [etc/odoo.conf](/etc/odoo.conf) or via Jenkins credentials.
 
 ## Odoo container management
 
 **Run Odoo**:
 
-``` bash
+```bash
 docker-compose up -d
 ```
 
 **Restart Odoo**:
 
-``` bash
+```bash
 docker-compose restart
 ```
 
 **Stop Odoo**:
 
-``` bash
+```bash
 docker-compose down
 ```
 
 ## Live chat
 
-In [docker-compose.yml#L20](docker-compose.yml#L20), we exposed port **20019** for live-chat on host.
+Live chat runs on port **8072** internally and is routed through Traefik via WebSocket path `/websocket`.
 
 Configuring **nginx** to activate live chat feature (in production):
 
-``` conf
+```conf
 #...
 server {
     #...
-    location /longpolling/ {
-        proxy_pass http://0.0.0.0:20019/longpolling/;
+    location /websocket/ {
+        proxy_pass http://0.0.0.0:8072/websocket/;
     }
     #...
 }
@@ -141,31 +129,18 @@ server {
 
 * odoo:19
 * postgres:18
+* PGDATA: /var/lib/postgresql/18/docker
 
-## Odoo 19.0 screenshots after successful installation.
+## Odoo 19.0 Multi-Instance Deployment Summary
 
-<p align="center">
-<img src="screenshots/odoo-19-welcome-screenshot.jpg" width="50%">
-</p>
-
-<p>
-<img src="screenshots/odoo-19-apps-screenshot.jpg" width="100%">
-</p>
-
-<p>
-<img src="screenshots/odoo-19-dashboard.jpg" width="100%">
-</p>
-
-<p>
-<img src="screenshots/odoo-19-sales-screen.jpg" width="100%">
-</p>
-
-<p>
-<img src="screenshots/odoo-19-product-form.jpg" width="100%">
-</p>
-
-## ☕ Buy Me a Coffee
-
-If you find this project helpful, consider buying me a coffee to support my work!
-
-<a href="https://buymeacoffee.com/minhng.info" target="_blank"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" style="height: 60px !important;width: 217px !important;" ></a>
+| المكون | القيمة |
+|--------|--------|
+| صورة Odoo Docker | `odoo:19` |
+| PostgreSQL | 18 |
+| PGDATA المسار | `/var/lib/postgresql/18/docker` |
+| المنفذ الداخلي Odoo | 8069 |
+| المنفذ الداخلي Live Chat | 8072 |
+| عدد النسخ | 2 |
+| النطاقات | `odoo19-1.devops-odoo.com` / `odoo19-2.devops-odoo.com` |
+| مجلدات البيانات | `/data/odoo19/instance1` / `/data/odoo19/instance2` |
+| Traefik | مشترك (HTTPS) |
