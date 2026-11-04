@@ -1,109 +1,130 @@
-# مدير البنية التحتية لنظام أودو (Odoo Infrastructure Manager)
+# Odoo Infrastructure Manager - مدير البنية التحتية لنظام أودو
 
-## 📌 وصف النظام
-
-نظام **Odoo Infrastructure Manager** هو أداة احترافية لأتمتة إعداد وإدارة بيئات Odoo باستخدام Docker وTraefik، بواجهة Terminal تفاعلية سهلة الاستخدام.
-
-يدعم جميع إصدارات **Ubuntu Server** و **Ubuntu Desktop** بدءًا من **Ubuntu 22.04 LTS وحتى أحدث إصدار مستقر**، مع إمكانية إدارة Odoo 17 وOdoo 18 وOdoo 19 وقواعد بيانات PostgreSQL، وتخصيص إعدادات الخادم والشبكات والنطاقات والتخزين في كل تجربة.
-
-يوفر النظام التثبيت والإعداد التلقائي، ومراقبة الخدمات، وإدارة السجلات، والنسخ الاحتياطي والاستعادة، مع حفظ ملفات الإعداد وإمكانية إعادة تنفيذ العمليات بأمان.
+> نظام احترافي لأتمتة إعداد وإدارة بيئات Odoo متعددة الإصدارات باستخدام Docker وTraefik وAnsible وJenkins، بواجهة Terminal تفاعلية سهلة الاستخدام.
 
 ---
 
-## 🌟 مميزات المشروع
+## 📋 جدول المحتويات
 
-- **بنية متعددة الإصدارات (Multi-Version Odoo)**:
-  - تشغيل **Odoo 17.0** مع **PostgreSQL 16** على المنفذ `10017`.
-  - تشغيل **Odoo 18.0** مع **PostgreSQL 17** على المنفذ `10018`.
-  - تشغيل **Odoo 19.0** مع **PostgreSQL 18** على المنفذ `10019`.
-  - عزل كامل لكل إصدار في شبكة داخلية مستقلة (`odoo17_internal` / `odoo18_internal` / `odoo19_internal`)، مع ربطها بشبكة البروكسي المشتركة `proxy`.
-  - تثبيت موحّد عبر `scripts/install-odoo17.sh` / `scripts/install-odoo18.sh` / `scripts/install-odoo19.sh` من مستودع `Odoo-MultiVersion-Deployment` (مجلد مستقل، `postgresql/`، `addons/`، `etc/`، و`entrypoint.sh`).
-- **إدارة عبر الطرفية فقط**:
-  - واجهة قوائم نصية افتراضية وواجهة Textual تفاعلية.
-  - أوامر CLI لتنفيذ العمليات والأتمتة مع عرض الخطوات والسجلات.
-  - لا يتطلب مدير البنية التحتية Node.js أو واجهة ويب أو خادم HTTP محليًا.
-- **pgAdmin بأسلوب Websoft9**:
-  - حاوية `dpage/pgadmin4` على شبكة `proxy` الخارجية.
-  - بيانات الدخول من `.env` (`PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`) دون أي قاعدة PostgreSQL تجريبية.
-  - منفذ قابل للضبط عبر `PGADMIN_HTTP_PORT` (افتراضيًا `5050`).
-- **توجيه وحماية Traefik v3.7**:
-  - توجيه تلقائي عبر الدومينات الفرعية.
-  - إصدار شهادات SSL/TLS مجانية عبر **Let's Encrypt (ACME)**.
-  - تحويل حركة المرور تلقائياً من HTTP (منفذ 80) إلى HTTPS (منفذ 443).
-  - حماية لوحة تحكم Traefik عبر مصادقة Basic Auth وتدابير الأمان الرأسية (Security Headers).
-  - دعم مسار WebSocket / Livechat على المنفذ 8072 بشكل مستقل.
-- **إدارة آمنة للأسرار والبيانات**:
-  - عدم تخزين كلمات المرور نهائياً داخل ملفات YAML أو مستودع Git.
-  - قراءة الأسرار حصرياً من ملف البيئة المحمي `.env` بصلاحيات `0600`.
-  - عزل قواعد بيانات PostgreSQL تماماً داخل الحاويات وعدم فتح المنفذ 5432 للعامة.
-- **النسخ الاحتياطي والاستعادة الذكية**:
-  - أخذ نسخ احتياطية مضغوطة من قواعد البيانات عبر `pg_dump` مع أرشيف مرفقات Odoo (Filestore).
-  - فحص سلامة الملفات عبر بصمة التشفير **SHA256**.
-  - تطبيق سياسة الاحتفاظ بالنسخ (Retention Policy) وحذف النسخ القديمة تلقائياً.
-  - آلية استعادة ذكية تأخذ نسخة أمان تلقائية (Safety Backup) قبل الكتابة فوق أي قاعدة بيانات قائمة وتتطلب تأكيداً كتابياً صريحاً لمنع الأخطاء البشرية.
-- **التنفيذ الآمن والأتمتة**:
-  - التحقق المسبق من صحة الإعدادات، عدم تعارض المنافذ، وتوفر المتطلبات.
-  - دعم وضع المحاكاة والمعاينة (**Dry-Run**) قبل أي تعديل على النظام الفعلي.
-  - كتابة سكربتات باش صارمة تعتمد `set -Eeuo pipefail`، وتطبيع أسطر CRLF إلى LF قبل التنفيذ.
-  - فصل طبقة الواجهة عن طبقة التنفيذ عبر مكتبة `subprocess` بقوائم وسائط معقمة لمنع حقن الأوامر (Command Injection).
-  - فك آمن للأرشيف عبر `safe_extractall` يرفض المسارات المطلقة و`..` والروابط الرمزية والملفات الخاصة (Tar Slip / Symlink Escape).
-  - `ExecutionService` يقرأ stdout/stderr عبر خيوط متزامنة مع مهلة 300 ثانية، ما يمنع الجمود (Deadlock) عند امتلاء المخازن المؤقتة.
+- [نظرة عامة](#نظرة-عامة)
+- [المميزات الرئيسية](#المميزات-الرئيسية)
+- [الإصدارات المدعومة](#الإصدارات-المدعومة)
+- [بنية المشروع](#بينة-المشروع)
+- [التثبيت والبدء السريع](#التثبيت-والبدء-السريع)
+- [التثبيت عبر Terminal](#التثبيت-عبر-Terminal)
+- [التثبيت عبر Jenkins](#التثبيت-عبر-Jenkins)
+- [إعدادات الإصدارات](#إعدادات-الإصدارات)
+- [الأمان والتشفير](#الأمان-والتشفير)
+- [النطاقات وشهادات SSL/TLS](#النطاقات-وشهادات-SSLTLS)
+- [النسخ الاحتياطي والاستعادة](#النسخ-الاحتياطي-والاستعادة)
+- [مراقبة الصحة والفحص](#مراقبة-الصحة-والفحص)
+- [اختبارات الجودة](#اختبارات-الجودة)
+- [خطة الأمان والتراجع](#خطة-الأمان-والتراجع)
+- [المساهمة والترخيص](#المساهمة-والترخيص)
 
 ---
 
-## 📁 هيكلية المشروع (Project Architecture)
+## نظرة عامة
+
+**Odoo Infrastructure Manager** هو أداة DevOps شاملة لنشر وإدارة بيئات Odoo متعددة الإصدارات على نفس الخادم باستخدام تقنيات حاويات Docker، وموزع العكسي Traefik v3.7، وقواعد بيانات PostgreSQL معزولة لكل إصدار.
+
+يدعم النظام نشر **3 إصدارات من Odoo** مع **نسختين مستقلتين لكل إصدار**، بإجمالي **6 نسخ Odoo** تعمل بشكل متوازٍ على خادم واحد، مع عزل كامل بين الشبكات والبيانات والقواعد.
+
+---
+
+## المميزات الرئيسية
+
+| الفئة | المميزات |
+|-------|----------|
+| **دعم متعدد الإصدارات** | Odoo 17 (PostgreSQL 16)، Odoo 18 (PostgreSQL 17)، Odoo 19 (PostgreSQL 18) |
+| **عزل كامل** | شبكة داخلية مستقلة لكل إصدار، شبكات بيانات مستقلة، حاويات معزولة |
+| **وصول عبر HTTPS** | Traefik v3.7 مع شهادات Let's Encrypt تلقائية، تحويل HTTP إلى HTTPS |
+| **إدارة عبر Terminal** | واجهة قوائم تفاعلية (TUI)، أوامر CLI، سكربتات تثبيت بنقرة واحدة |
+| **نشر عبر Jenkins** | خطوط أنابيب (Pipelines) آلية لكل إصدار مع زر "Build Now" |
+| **إدارة الأسرار** | كلمات مرور من متغيرات البيئة `.env` بصلاحية `0600`، geen تخزين في Git |
+| **النسخ الاحتياطي** | نسخ مضغوطة من قواعد البيانات مع أرشيف المرفقات، بصمة SHA256 |
+| **الأمان المتقدم** | فحص المسارات الخطرة (Tar Slip)، منع حقن الأوامر، `no-new-privileges` |
+
+---
+
+## الإصدارات المدعومة
+
+| الإصدار | صورة Odoo | PostgreSQL | PGDATA المسار | المنفذ الداخلي Odoo | المنفذ الداخلي Live Chat | عدد النسخ | النطاقات |
+|---------|------------|-------------|----------------|----------------------|--------------------------|-----------|----------|
+| **Odoo 17** | `odoo:17` | 16 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `odoo1.devops-odoo.com`、`odoo2.devops-odoo.com` |
+| **Odoo 18** | `odoo:18` | 17 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `odoo18-1.devops-odoo.com`、`odoo18-2.devops-odoo.com` |
+| **Odoo 19** | `odoo:19` | 18 | `/var/lib/postgresql/18/docker` | 8069 | 8072 | 2 | `odoo19-1.devops-odoo.com`、`odoo19-2.devops-odoo.com` |
+
+### تفاصيل النشر
+
+| المكون | الإعداد |
+|--------|---------|
+| **محرك الحاويات** | Docker Engine + Docker Compose v2 |
+| **موزع العكسي** | Traefik v3.7 (شبكة مشتركة `proxy`) |
+| **أتمتة النشر** | Ansible (أدوار مشتركة: system, docker, postgresql, odoo, traefik) |
+| **تكامل CI/CD** | Jenkins Pipeline مع زرين مستقلين لكل إصدار |
+| **تخزين البيانات** | `/data/odoo17/`, `/data/odoo18/`, `/data/odoo19/` |
+| **ملفات الإعداد** | `/opt/odoo17/`, `/opt/odoo18/`, `/opt/odoo19/` |
+| **النسخ الاحتياطية** | `/data/backups/odoo17/`, `/data/backups/odoo18/`, `/data/backups/odoo19/` |
+
+---
+
+## بينة المشروع
 
 ```
 odoo-infrastructure-manager/
-├── app/                        # النواة البرمجية بلغة بايثون
-│   ├── main.py                 # نقطة الدخول الرئيسية للـ CLI والـ TUI
-│   ├── ui/                     # واجهات المستخدم التفاعلية (TUI & Terminal)
-│   ├── services/               # خدمات Docker, Ansible, Backups, Execution, Health
-│   ├── workflows/              # مسارات العمل: إعداد الخادم، نشر Traefik، نشر Odoo
+├── app/
+│   ├── main.py                 # نقطة الدخول الرئيسية (CLI و TUI)
+│   ├── ui/                     # واجهات المستخدم التفاعلية
+│   ├── services/               # خدمات Docker, Ansible, Backups, Health
+│   ├── workflows/              # مسارات النشر لكل إصدار
 │   ├── validators/             # مدققات الإعدادات والنظام والمنافذ
-│   └── models/                 # نماذج البيانات للملفات والعمليات والصحة
+│   └── models/                 # نماذج البيانات
 ├── automation/
-│   ├── ansible/                # كتب تشغيل Ansible لإعداد خادم Ubuntu وDocker
-│   │   ├── playbook.yml
-│   │   ├── inventory.ini
-│   │   └── roles/ (baseline, docker)
+│   ├── ansible/                # كتب تشغيل Ansible
 │   └── scripts/                # سكربتات باش معقمة (init, setup, deploy, backup, restore, health)
 ├── deployment/
-│   ├── traefik/                # إعدادات Docker Compose و Traefik v3.7 Static Config
-│   ├── odoo17/                 # Compose وإعدادات Odoo 17 + PostgreSQL 16
-│   ├── odoo18/                 # Compose وإعدادات Odoo 18 + PostgreSQL 17
-│   ├── odoo19/                 # Compose وإعدادات Odoo 19 + PostgreSQL 18
-│   └── pgadmin/                # pgAdmin 4 على شبكة proxy الخارجية
+│   ├── traefik/                # إعدادات Traefik v3.7 و Docker Compose
+│   ├── odoo17/                 # Odoo 17 + PostgreSQL 16
+│   ├── odoo18/                 # Odoo 18 + PostgreSQL 17
+│   ├── odoo19/                 # Odoo 19 + PostgreSQL 18
+│   └── pgadmin/                # pgAdmin 4 على شبكة proxy
 ├── profiles/                   # ملفات التكوين القابلة لإعادة الاستخدام (YAML)
-│   ├── example.yaml
-│   ├── devops-odoo-prod.yaml
-│   └── local-dev.yaml
-├── templates/                  # قوالب البيئة (env.template) وسكربت الدخول
-├── tests/                      # اختبارات الوحدة والتكامل مع Pytest / Unittest
-├── docs/                       # التوثيق الهندسي، الأمان، وخطة التعافي من الكوارث
-├── bootstrap-odoo-infra.sh     # تثبيت Docker/Ansible وتوليد .env وأسرار عشوائية
-├── launch-odoo-infra.sh        # نقطة إطلاق موحدة (TUI افتراضيًا أو Textual)
-├── .env.example                # نموذج المتغيرات البيئية والأسرار
+├── templates/                  # قوالب البيئة (.env.template) وسكربت الدخول
+├── tests/                      # اختبارات الوحدة والتكامل
+├── docs/                       # التوثيق الهندسي والأمان
+├── bootstrap-odoo-infra.sh     # تثبيت Docker/Ansible وتوليد .env
+├── launch-odoo-infra.sh        # نقطة الإطلاق الموحدة
+├── .env.example                # نموذج المتغيرات البيئية
 ├── .gitignore
-├── pyproject.toml              # مواصفات الحزمة البرمجية
-└── README.md                   # التوثيق الشامل
+├── pyproject.toml
+└── README.md                   # هذا الملف
 ```
 
 ---
 
-## 🚀 التثبيت والبدء السريع
+## التثبيت والبدء السريع
 
 ### 1. المتطلبات الأساسية
-- خادم أو جهاز يعمل بنظام **Ubuntu Server** أو **Ubuntu Desktop** (بدءاً من **Ubuntu 22.04 LTS وحتى أحدث إصدار مستقر**).
-- Python 3.10 أو أحدث.
-- Docker Engine و Docker Compose v2.
+
+| المتطلب | الحد الأدنى | الموصى به |
+|----------|-----------|-----------|
+| نظام التشغيل | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS |
+| Python | 3.10+ | 3.12+ |
+| Docker Engine | 20.10+ | 24.0+ |
+| Docker Compose | v2+ | v2.20+ |
+| Ansible | 2.12+ | 2.16+ |
+| ذاكرة RAM | 4 GB | 8 GB+ |
+| مساحة قرص | 50 GB | 100 GB+ |
 
 ### 2. استنساخ المستودع وتجهيز البيئة
+
 ```bash
-git clone <repository_url> odoo-infrastructure-manager
+# استنساخ المستودع
+git clone https://github.com/your-org/Odoo-MultiVersion-Deployment.git
 cd odoo-infrastructure-manager
 
-# إنشاء البيئة الافتراضية
+# إنشاء البيئة الافتراضية لـ Python
 python3 -m venv venv
 source venv/bin/activate
 
@@ -112,107 +133,224 @@ pip install -e .
 ```
 
 ### 3. إعداد ملف الأسرار وتأمين الصلاحيات
+
 ```bash
-# الطريقة الموصى بها: يثبت Docker (عبر get.docker.com الرسمي) وAnsible،
-# ثم يولّد .env بكلمات مرور عشوائية وهاش Basic Auth وصلاحيات 0600.
+# الطريقة الموصى بها (تثبيت Docker + Ansible وتوليد .env تلقائياً)
 sudo ./bootstrap-odoo-infra.sh --install-docker --with-ansible
 
-# أو يدويًا:
+# أو يدوياً:
 cp templates/env.template .env
 chmod 600 .env
 nano .env
 ```
 
+> ⚠️ **ملاحظة أمان**: ملف `.env` يحوي كلمات مرور حساسة، يجب أن تكون صلاحياته `0600` فقط، ولا يُرفع أبداً إلى مستودع Git.
+
 ### 4. تشغيل النظام
+
 ```bash
 # واجهة Terminal التفاعلية (الافتراضي)
 ./launch-odoo-infra.sh
 
-# تشغيل واجهة Textual داخل الطرفية
+# واجهة Textual داخل الطرفية
 ./launch-odoo-infra.sh --action textual
-```
 
-خيارات `bootstrap-odoo-infra.sh` المهمة:
-- `--skip-docker` / `--skip-ansible` لتخطي التثبيت.
-- `--docker-version <ver>` و`--docker-mirror <url>` و`--docker-dry-run`.
-- `--regenerate-env` لإعادة توليد الأسرار (ينشئ نسخة احتياطية من `.env` القديم).
-
----
-
-## 🖥️ تشغيل الواجهة التفاعلية (Terminal TUI)
-
-لتشغيل واجهة الـ Terminal التفاعلية:
-```bash
-python3 app/main.py
-# أو عبر الأمر المباشر إذا تم تثبيت الحزمة
-odoo-manager
-```
-
-### خيارات سطر الأوامر (CLI Flags):
-```bash
-# خيار الفحص المسبق الذكي الشامل وعرض جدول المكونات
+# الفحص المسبق الشامل
 python3 app/main.py --action preflight
 
-# تشغيل التدقيق وفحص التوافق لملف إعداد معين
-python3 app/main.py --action validate --profile profiles/devops-odoo-prod.yaml
-
-# معاينة تنفيذ تجهيز الخادم دون أي تعديل فعلي (Dry-Run)
-python3 app/main.py --action prep --profile profiles/example.yaml --dry-run
-
-# نشر Traefik v3.7 فقط
+# نشر Traefik فقط
 python3 app/main.py --action traefik
 
-# نشر بيئة Odoo 17 / 18 / 19 فقط
+# نشر Odoo 17 فقط
 python3 app/main.py --action odoo17
+
+# نشر Odoo 18 فقط
 python3 app/main.py --action odoo18
+
+# نشر Odoo 19 فقط
 python3 app/main.py --action odoo19
 
-# نشر كامل البنية التحتية دفعة واحدة
+# نشر كامل البنية التحتية
 python3 app/main.py --action full
-
-# فحص صحة الحاويات والخدمات والشبكة
-python3 app/main.py --action health
-
-# تشغيل واجهة Textual داخل الطرفية
-python3 app/main.py --action textual
 ```
 
 ---
 
-## 🔍 الفحص المسبق والتثبيت الذكي والنسخ الشاملة
+## التثبيت عبر Terminal
 
-عند تشغيل النظام، يبدأ بفحص شامل وغير مدمر للبيئة الحالية قبل إجراء أي تغييرات:
+يمكن تثبيت كل إصدار باستخدام سكريبت واحد ينفذ جميع مراحل النشر تلقائياً عبر Ansible Playbook.
 
-1. **فحص المتطلبات والحزم**: التحقق من إصدار Ubuntu، وجود Docker Engine، Docker Compose v2، Traefik، Ansible، والأدوات (`curl`, `jq`, `ufw`, `tar`, `gzip`).
-2. **عرض حالة التثبيت والإعداد**: إذا كانت الأداة مثبتة، يعرض النظام حالتها وإصدارها ومسارها وتفاصيل إعدادها، **دون إعادة تثبيتها أو تعديلها**.
-3. **التثبيت التلقائي الذكي**: إذا كانت إحدى الأدوات المطلوبة غير مثبتة، يعرض النظام اسمها وسبب الحاجة إليها، ويتيح تثبيتها تلقائياً بعد موافقة صريحة من المستخدم.
-4. **النسخ الاحتياطي الوقائي الشامل**: خيار إلزامي لإنشاء نسخة احتياطية كاملة تشمل:
-   - ملفات الإعداد والملفات الشخصية (`profiles/*.yaml`).
-   - ملفات البيئة والأسرار (`.env`).
-   - ملفات Docker Compose وتكوينات Traefik وشهادات SSL (`acme.json`).
-   - قواعد بيانات PostgreSQL ومجلدات البيانات الدائمة.
-5. **استعادة النسخ الاحتياطية**: استعراض النسخ السابقة واستعادتها مع التحقق من سلامة الأرشيف عبر **SHA256** وطلب كتابة رمز تأكيد صريح (`RESTORE-SNAPSHOT-<ID>`).
-6. **تقرير نهائي**: جدول يوضح حالة كل مكون: مثبت، غير مثبت، يحتاج تحديثاً، أو به مشكلة، مع إصدار المكون والإجراء الموصى به.
+### Odoo 17
+
+```bash
+cd /opt/Odoo-MultiVersion-Deployment/odoo17
+sudo ./scripts/install-odoo17.sh
+```
+
+### Odoo 18
+
+```bash
+cd /opt/Odoo-MultiVersion-Deployment/odoo18
+sudo ./scripts/install-odoo18.sh
+```
+
+### Odoo 19
+
+```bash
+cd /opt/Odoo-MultiVersion-Deployment/odoo19
+sudo ./scripts/install-odoo19.sh
+```
+
+> كل سكريبت يقوم بما يلي:
+> 1. فحص المتطلبات الأساسية (Docker, Docker Compose, Ansible)
+> 2. إنشاء المجلدات والشبكات (`/opt`, `/data`, شبكة `proxy`)
+> 3. تشغيل Ansible Playbook لنشر الحاويات
+> 4. إجراء فحوصات صحة الخدمات (Odoo, PostgreSQL, Traefik)
+> 5. عرض تقرير نهائي مع الروابط المتاحة
 
 ---
 
-## ⚙️ إعدادات النطاقات (DNS) وشهادات SSL/TLS
+## التثبيت عبر Jenkins
 
-لاستخدام النطاقات الحقيقية وشهادات Let's Encrypt التلقائية:
-1. قم بإنشاء سجلات **A Record** في مزود الـ DNS الخاص بك، بحيث تشير النطاقات التالية إلى عنوان IP العام للخادم:
-   - `odoo17.yourdomain.com` ➔ `IP_ADDRESS`
-   - `odoo18.yourdomain.com` ➔ `IP_ADDRESS`
-   - `odoo19.yourdomain.com` ➔ `IP_ADDRESS`
-   - `pgadmin.yourdomain.com` ➔ `IP_ADDRESS`
-   - `traefik.yourdomain.com` ➔ `IP_ADDRESS`
-2. تأكد من أن المنافذ **80** و **443** مفتوحة على جدار الحماية (UFW أو Security Groups)، وأن لوحة تحكم Traefik لا تُنشر على أي منفذ إدارة مباشر (`api.insecure` معطّل دائمًا، والمنفذ 10090 غير مستخدم).
-3. اضبط البريد الإلكتروني الخاص بك في المتغير `ACME_EMAIL` داخل ملف `.env`، وسيتولى Traefik إصدار وتجديد الشهادات تلقائياً مع تخزينها في الملف المشفر `acme.json` بصلاحيات `0600`.
+يوفر النظام خط أنابيب (Pipeline) مستقل لكل إصدار يمكن تفعيله بزر "Build Now" في واجهة Jenkins.
+
+| الزر | الإصدار | PostgreSQL | عدد النسخ |
+|------|---------|------------|-----------|
+| Install Odoo 17 – Two Instances | Odoo 17 | 16 | 2 |
+| Install Odoo 18 – Two Instances | Odoo 18 | 17 | 2 |
+| Install Odoo 19 – Two Instances | Odoo 19 | 18 | 2 |
+
+### ملفات Jenkins
+
+| الملف | المسار | الوصف |
+|------|--------|-------|
+| Jenkinsfile (رئيسي) | `Jenkinsfile` | Pipeline موحد يدعم جميع الإصدارات |
+| Jenkinsfile (Odoo 17) | `Jenkins/install-odoo17.Jenkinsfile` | Pipeline مخصص لـ Odoo 17 |
+| Jenkinsfile (Odoo 18) | `Jenkins/install-odoo18.Jenkinsfile` | Pipeline مخصص لـ Odoo 18 |
+| Jenkinsfile (Odoo 19) | `Jenkins/install-odoo19.Jenkinsfile` | Pipeline مخصص لـ Odoo 19 |
+
+### مراحل كل Pipeline
+
+1. **Checkout GitHub** - استنساخ الكود من المستودع
+2. **Pre-Deployment Validation** - فحص المتطلبات وإنشاء المجلدات
+3. **Ansible Preparation** - تثبيت مجموعات Ansible والتحقق من ملفات الإعداد
+4. **Secrets Configuration** - تشفير كلمات المرور باستخدام Ansible Vault
+5. **Docker Deployment** - نشر الحاويات عبر Ansible Playbook
+6. **Health Checks** - فحص صحة جميع الخدمات والحاويات
+7. **Deployment Report** - عرض تقرير النشر والروابط المتاحة
 
 ---
 
-## 💾 دليل النسخ الاحتياطي والاستعادة (Backup & Recovery)
+## إعدادات الإصدارات
 
-### أخذ نسخة احتياطية فورية:
+### ملفات الإصدارات (versions/)
+
+| الملف | المسار | المحتوى |
+|-------|--------|---------|
+| Odoo 17 | `versions/odoo17.yml` | إعدادات نسختي Odoo 17 (instance1, instance2) |
+| Odoo 18 | `versions/odoo18.yml` | إعدادات نسختي Odoo 18 (instance1, instance2) |
+| Odoo 19 | `versions/odoo19.yml` | إعدادات نسختي Odoo 19 (instance1, instance2) |
+
+### مثال على هيكل ملف الإصدار
+
+```yaml
+odoo_version: "19"
+postgres_version: "18"
+odoo_image: "odoo:19"
+postgres_image: "postgres:18"
+
+odoo_instances:
+  - name: instance1
+    domain: odoo19-1.devops-odoo.com
+    data_path: /data/odoo19/instance1
+    db_name: odoo19_db1
+    db_user: odoo19_instance1
+    container_name: odoo19-instance1
+  - name: instance2
+    domain: odoo19-2.devops-odoo.com
+    data_path: /data/odoo19/instance2
+    db_name: odoo19_db2
+    db_user: odoo19_instance2
+    container_name: odoo19-instance2
+```
+
+### كلمات مرورferred الافتراضية (قبل الإنتاج)
+
+| الإصدار | Odoo Admin Password | PostgreSQL Password |
+|---------|---------------------|---------------------|
+| Odoo 17 | `odoo17` | `odoo17` |
+| Odoo 18 | `odoo18` | `odoo18` |
+| Odoo 19 | `odoo19` | `odoo19` |
+
+> ⚠️ **يجب استبدال هذه الكلمات المرور قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins credentials أو ملف `.env`.
+
+---
+
+## الأمان والتشفير
+
+| ميزة | التفاصيل |
+|------|----------|
+| **حماية ملف `.env`** | صلاحية `0600` فقط، قراءة من المستخدم الجذر فقط |
+| **عدم تخزين الأسرار في Git** | كلمات المرور تُقرأ حصرياً من متغيرات البيئة |
+| **عزل PostgreSQL** | المنفذ 5432 غير مفتوح للعامة، الوصول فقط عبر شبكة داخلية |
+| **Traefik Basic Auth** | حماية لوحة تحكم Traefik عبر مصادقة أساسية |
+| **أمان الحاويات** | `no-new-privileges: true` على جميع حاويات Traefik و Odoo |
+| **فحص المسارات الخطرة** | رفض المسارات المطلقة و `..` والروابط الرمزية (Tar Slip Protection) |
+| **منع حقن الأوامر** | استخدام `subprocess` بقوائم وسائط معقمة، `shell=False` |
+| **تراجع آمن** | نسخة أمان تلقائية قبل أي استعادة لقاعدة بيانات |
+
+---
+
+## النطاقات وشهادات SSL/TLS
+
+### النطاقات المدعومة
+
+| الخدمة | النطاق |
+|-------|--------|
+| Odoo 17 - النسخة 1 | `odoo1.devops-odoo.com` |
+| Odoo 17 - النسخة 2 | `odoo2.devops-odoo.com` |
+| Odoo 18 - النسخة 1 | `odoo18-1.devops-odoo.com` |
+| Odoo 18 - النسخة 2 | `odoo18-2.devops-odoo.com` |
+| Odoo 19 - النسخة 1 | `odoo19-1.devops-odoo.com` |
+| Odoo 19 - النسخة 2 | `odoo19-2.devops-odoo.com` |
+| pgAdmin | `pgadmin.yourdomain.com` |
+| Traefik Dashboard | `traefik.yourdomain.com` |
+
+### إعداد DNS
+
+```text
+odoo1.devops-odoo.com    ➔  IP_ADDRESS
+odoo2.devops-odoo.com    ➔  IP_ADDRESS
+odoo18-1.devops-odoo.com ➔  IP_ADDRESS
+odoo18-2.devops-odoo.com ➔  IP_ADDRESS
+odoo19-1.devops-odoo.com ➔  IP_ADDRESS
+odoo19-2.devops-odoo.com ➔  IP_ADDRESS
+pgadmin.yourdomain.com   ➔  IP_ADDRESS
+traefik.yourdomain.com   ➔  IP_ADDRESS
+```
+
+### متطلبات جدار الحماية
+
+| المنفذ | البروتوكول | الغرض |
+|-------|-----------|-------|
+| 80 | TCP | HTTP (تحويل تلقائي إلى HTTPS) |
+| 443 | TCP | HTTPS (Let's Encrypt) |
+| 8072 | TCP | WebSocket / Live Chat (داخلي) |
+| 5432 | TCP | PostgreSQL (داخلي فقط، غير مفتوح للعامة) |
+
+### شهادات SSL
+
+- إصدار شهادات مجانية عبر **Let's Encrypt (ACME)**
+- تحويل تلقائي من HTTP (منفذ 80) إلى HTTPS (منفذ 443)
+- تخزين الشهادات في `acme.json` بصلاحية `0600`
+- تجديد تلقائي للشهادات قبل انتهاء صلاحيتها
+
+---
+
+## النسخ الاحتياطي والاستعادة
+
+### أخذ نسخة احتياطية
+
 ```bash
 # Odoo 17
 bash automation/scripts/backup-db.sh 17 odoo17_prod 7
@@ -223,101 +361,114 @@ bash automation/scripts/backup-db.sh 18 odoo18_prod 7
 # Odoo 19
 bash automation/scripts/backup-db.sh 19 odoo19_prod 14
 ```
-سيقوم السكربت بحفظ:
-1. تفريغ قاعدة البيانات بصيغة `dump_odoo17_prod_YYYYMMDD_HHMMSS.sql.gz`.
-2. أرشيف الملفات المرفقة بصيغة `filestore_odoo17_prod_YYYYMMDD_HHMMSS.tar.gz`.
-3. ملف البيانات الوصفية وبصمة `SHA256`.
 
-### استعادة قاعدة بيانات مع تدابير الأمان:
+### محتويات النسخة الاحتياطية
+
+| الملف | الوصف |
+|-------|-------|
+| `dump_odooXX_prod_YYYYMMDD_HHMMSS.sql.gz` | تفريغ قاعدة بيانات PostgreSQL |
+| `filestore_odooXX_prod_YYYYMMDD_HHMMSS.tar.gz` | أرشيف مرفقات Odoo (Filestore) |
+| `metadata_odooXX_prod_YYYYMMDD_HHMMSS.json` | بيانات وصفية وبصمة SHA256 |
+
+### استعادة قاعدة بيانات
+
 ```bash
-# لن تتم الاستعادة على قاعدة بيانات قائمة إلا بتأكيد صريح:
 bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_prod --force
 ```
-> **ملاحظة أمان فائقة الأهمية**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في المجلد `safety_pre_restore` قبل حذف أو إعادة بناء القاعدة القديمة.
+
+> ⚠️ **أمان الاستعادة**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في مجلد `safety_pre_restore` قبل الكتابة فوق أي قاعدة بيانات قائمة، ويتطلب تأكيداً كتابياً صريحاً (`RESTORE-SNAPSHOT-<ID>`).
 
 ---
 
-## 🧪 الاختبارات وضمان الجودة
+## مراقبة الصحة والفحص
 
-لتشغيل حزمة الاختبارات:
+### فحص صحة الخدمات
+
 ```bash
+# فحص جميع الخدمات
+python3 app/main.py --action health
+
+# فحص نسخة معينة عبر سكريبت
+./scripts/health-check.sh instance1 8069 8072
+```
+
+### نقاط الفحص
+
+| المكون | طريقة الفحص | المعيار |
+|-------|-------------|---------|
+| Docker Engine | `docker --version` | versión مثبتة ومستجيبة |
+| Docker Compose | `docker compose version` | v2+ |
+| PostgreSQL | `pg_isready -U <user> -d <db>` | accepting connections |
+| Odoo HTTP | `wget --spider http://localhost:8069/web/database/selector` | استجابة HTTP 200 |
+| Traefik | `docker network inspect proxy` | شبكة موجودة ونشطة |
+| حاويات Odoo | `docker inspect --format='{{.State.Status}}'` | حالة `running` |
+
+---
+
+## اختبارات الجودة
+
+```bash
+# تشغيل جميع الاختبارات
 python3 -m unittest discover tests -v
+
+# اختبار مكون معين
+python3 -m unittest tests.test_security -v
 ```
 
-تشمل الاختبارات:
-- رفض المسارات الخطرة عند فك الأرشيف (Tar Slip، المسارات المطلقة، الروابط الرمزية والصلبة، والملفات الخاصة).
-- فحص تعارض المنافذ والنطاقات وصيغ البريد الإلكتروني وسجلات الـ Cron.
-- بناء أوامر Docker Compose و Ansible مع أعلام الفحص (`--check`) و (`--dry-run`).
-- اختبار تسلسل خطوات نشر Odoo 17 و Odoo 18 و Odoo 19 و Traefik.
+### نطاق الاختبارات
+
+| نوع الاختبار | التفاصيل |
+|-------------|----------|
+| أمان فك الأرشيف | رفض المسارات الخطرة (Tar Slip، المسارات المطلقة، الروابط الرمزية) |
+| تعارض المنافذ | التحقق من عدم تعارض المنافذ بين الإصدارات |
+| صحة النطاقات | التحقق من صيغ النطاقات وسجلات DNS |
+| أوامر Docker Compose | بناء الأوامر مع أعلام `--check` و `--dry-run` |
+| تسلسل خطوات النشر | اختبار تسلسل نشر Odoo 17، 18، 19 و Traefik |
 
 ---
 
-## 🛡️ خطة الأمان والتراجع (Security & Rollback Plan)
+## خطة الأمان والتراجع (Security & Rollback Plan)
 
-- **التراجع في حال فشل الترقية**: يتم استرجاع نسخة الأمان التلقائية المخزنة في مجلد `safety_pre_restore`.
-- **التشغيل بدون صلاحيات مفرطة**: تعمل كافة حاويات Traefik و Odoo بمستخدمين معزولين وخيارات `no-new-privileges:true`.
-- **المنع الصارم لأوامر الحذف الجماعي**: الأداة لا تنفذ أبداً `down -v` أو تمس وحدات التخزين المستدامة (Persistent Volumes) إلا بعد طلب تأكيد خطي صريح يبيّن حجم الضرر المحتمل.
+| السيناريو | الإجراء |
+|-----------|---------|
+| فشل ترقية Odoo | استرجاع نسخة الأمان من مجلد `safety_pre_restore` |
+| تلف قاعدة بيانات | استعادة من نسخة احتياطية مع تأكيد صريح `--force` |
+| اختراق أمان | عزل الحاويات المتأثرة، تغيير كلمات المرور فوراً |
+| تعطل Traefik | التحقق من شبكة `proxy` وشهادات SSL، إعادة تشغيل الحاوية |
+
+###禁止事项 (محظورات)
+
+- ✅ لا تنفيذ `down -v` إلا بعد تأكيد خطي صريح
+- ✅ لا مسح وحدات التخزين المستدامة (Persistent Volumes) بدون تأكيد
+- ✅ لا تخزين كلمات المرور في ملفات YAML أو Git
+- ✅ لا فتح منفذ PostgreSQL 5432 للعامة
 
 ---
 
-مرخص بموجب رخصة **Apache-2.0**. مطور بعناية لمهندسي الـ DevOps ومديري الأنظمة.
+## المساهمة والترخيص
 
-## فحص Python وPostgreSQL واختيار مكان التثبيت
+### المساهمة
 
-من القائمة الرئيسية اختر `16`، أو شغّل:
+نرحب بالمساهمات من مجتمع المطورين. يرجى:
 
-```bash
-./launch-odoo-infra.sh --action runtimes
-```
+1. Fork المستودع
+2. إنشاء فرع جديد للميزة (`git checkout -b feature/amazing-feature`)
+3. committing التغييرات (`git commit -m 'Add amazing feature'`)
+4. Push إلى الفرع (`git push origin feature/amazing-feature`)
+5. فتح طلب سحب (Pull Request)
 
-اختر Python أو PostgreSQL، ثم الجهاز أو Docker. يعرض الفحص إصدارات ومسارات البرامج المكتشفة على الجهاز، أو صور Docker والحاويات وحالتها. لا يعد وجود عميل PostgreSQL وحده تثبيتًا للخادم، ولا يعني وجود صورة Docker تشغيل حاوية.
+### الترخيص
 
-خيارات Python: 3.10 و3.11 و3.12 وإدخال إصدار أحدث. خيارات PostgreSQL: 15 و16 و17 و18. الفحص محدود بالمسارات والصور المعروفة؛ يعرض أخطاء الوصول منفصلة عن عدم العثور على تثبيت.
+مرخص بموجب رخصة **Apache-2.0**. مطور بعناية لمهندسي DevOps ومديري الأنظمة.
 
-توصيات المشروع التي تظهر عند اختيار Python، وفق إعدادات صاحب المشروع:
+---
 
-- Odoo 17: Python 3.10 أو 3.11.
-- Odoo 18: Python 3.11 موصى به.
-- Odoo 19: Python 3.12 موصى به بشدة.
+## 연락 والدعم
 
-هذه توصيات للاختيار وليست منعًا لبقية الإصدارات. تثبيت Python على الجهاز لا يغيّر إصدار Python داخل حاويات Odoo.
+لأي استفسارات أو دعم تقني، يرجى فتح Issue في مستودع المشروع على GitHub.
 
-تثبيت Python على Ubuntu متاح للإصدارات 3.10 و3.11 و3.12: يعرض أوامر apt، ويضيف deadsnakes PPA للإصدارين 3.11 و3.12، ثم يطلب تأكيد التنفيذ ويعرض المخرجات مباشرة. يتوقف عند فشل أي أمر ويتحقق من الإصدار وvenv وensurepip بعد التثبيت. توفر الحزم يعتمد على إصدار Ubuntu والمستودعات؛ لا يغيّر python3 الافتراضي ولا ينزل get-pip.py. يمكن معاينة الأوامر فقط باستخدام `--action runtimes --dry-run`. تثبيت Python وPostgreSQL داخل Docker وإصدارات Python الأحدث ما زال ينتظر طرق التثبيت. يتطلب تشغيل المدير نفسه وجود Python مسبقًا؛ تثبيته الأولي يجب أن يتم من سكربت الإقلاع قبل تشغيل المدير.
+---
 
-### PostgreSQL على Ubuntu
-
-يدعم خيار `runtimes` تثبيت PostgreSQL 15 و16 و17 و18 على الجهاز. يعرض الخطة ويطلب التأكيد، ثم يثبت `postgresql-common` ويشغل سكربت إعداد PGDG الرسمي تفاعليًا، ويحدث فهرس apt ويثبت الخادم والعميل المطابقين للإصدار و`libpq-dev`. يعرض إصدار الخادم و`pg_lsclusters` وحالة خدمة PostgreSQL دون pager. يتوقف عند أول فشل؛ نجاح الخدمة العامة لا يثبت جاهزية كل cluster.
-
-يمكن اختيار حزمة `postgresql-<version>-pgvector` أيضًا. تثبيت الحزمة منفصل عن تفعيل الإضافة: بعد إنشاء قاعدة Odoo والاتصال بها، ينفذ المسؤول `CREATE EXTENSION IF NOT EXISTS vector;`. لا تنفذ الأداة SQL تلقائيًا على قاعدة بيانات.
-
-المصدر: [دليل PostgreSQL الرسمي لتثبيت Ubuntu](https://www.postgresql.org/download/linux/ubuntu/). توفر الحزم يعتمد على إصدار Ubuntu والمعمارية والمستودع.
-
-### فحص Docker Engine
-
-من القائمة `16` اختر `3. Docker Engine`. يعرض الفحص مسار العميل وإصداره، وإصدار المحرك وDocker context وCompose ومعلومات الحاويات والتخزين المتاحة. يميز بين عدم اكتشاف التثبيت، وعميل لا يعمل، ورفض الصلاحيات، وعدم الوصول للمحرك، والمحرك المستجيب. عدم الوصول لا يعني أن Docker غير مثبت. الفحص نفسه لا يعدل الخدمات؛ ويمكن بعده فتح خطة تثبيت المحرك المحلي. قد يكون اتصال الفحص الحالي بمحرك بعيد. يستخدم الفحص المسبق نفس التشخيص.
-
-### تثبيت Docker Engine من القائمة
-
-اختر `16` ثم `3`، وافتح خطة التثبيت بعد عرض الحالة. يتوفر أحدث إصدار مستقر أو اختيار VERSION_STRING من الإصدارات المشتركة بين docker-ce وdocker-ce-cli بعد إعداد المستودع. يكتشف المثبت Ubuntu codename والمعمارية، ويضيف مفتاح Docker وملف docker.sources، ثم يثبت Engine وCLI وcontainerd.io وBuildx وCompose.
-
-تعرض الحزم المتعارضة قبل التنفيذ، ويطلب apt تأكيد الإزالة مع عرض تأثيرها. لا ينفذ المثبت purge أو حذف بيانات Docker. إزالة الحزم قد توقف خدمات قائمة. إذا ألغيت اختيار الإصدار بعد إعداد المستودع، يبقى إعداد المستودع محفوظًا.
-
-يتحقق المسار من خدمة Docker والمحرك المحلي وCompose وBuildx. يمكن تفعيل اختبار hello-world؛ ينزل الصورة ويشغل حاوية مؤقتة. إضافة مستخدم إلى مجموعة docker اختيارية، تمنحه صلاحيات واسعة، وتتطلب تسجيل الخروج والدخول لتفعيلها.
-
-للمعاينة دون تعديل استخدم `./launch-odoo-infra.sh --action runtimes --dry-run`. يتطلب اكتشاف الحزم والمعمارية Ubuntu وdpkg حتى في المعاينة. هذا المسار مستقل عن خيار Docker القديم في bootstrap.
-
-المصدر: [تثبيت Docker Engine على Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
-
-### Docker Compose كإضافة مستقلة
-
-اختر القائمة `16` ثم `4` لعرض نتيجة `docker compose version`. إذا كانت الإضافة تعمل يعرض الإصدار دون إعادة التثبيت. إذا غاب عميل Docker يوجهك لإعداد Engine أولًا. عند تعذر تشغيل Compose يعرض الخطأ وخطة `apt-get update` ثم `apt-get install -y docker-compose-plugin`، ويتحقق بعد التنفيذ. يجب أن يكون مستودع Docker الرسمي مجهزًا؛ مسار تثبيت Engine يجهزه. تدعم هذه القائمة `--dry-run` ولا تحتاج إلى اتصال بالمحرك لقراءة إصدار Compose.
-
-### Portainer
-
-اختر القائمة `16` ثم `5`. يفحص المسار حاويات Portainer CE/EE والصورة القديمة المعروفة، بما فيها الحاويات المتوقفة أو ذات الاسم المخصص، ويعرض الاسم والصورة والحالة والمنافذ. يرفض التثبيت عند تعذر الاتصال أو تعارض الاسم؛ الصور المخصصة غير المعروفة قد لا تُكتشف.
-
-إذا لم توجد حاوية يعرض خطة Portainer CE LTS على محرك Linux المحلي، مع volume دائم `portainer_data` (يعاد استخدامه إن وجد)، ومقبس Docker، ومنفذ HTTPS قابل للاختيار افتراضيًا 9443. منفذ Edge 8000 اختياري. بعد موافقة المستخدم يفحص تعارض المنافذ ويثبت الحاوية ويتحقق من حالتها دون حذف حاويات قائمة. يتطلب صلاحية الوصول للمقبس `/var/run/docker.sock`؛ لا يحاول تشغيل الأوامر تلقائيًا بـ sudo.
-
-إدارة التثبيت تتم عبر Terminal؛ Portainer نفسه يوفر لوحة ويب على `https://<SERVER-IP>:9443` لإكمال الإعداد الأولي. الشهادة الافتراضية ذاتية التوقيع، وقد يلزم رمز إعداد من سجلات الحاوية. تحقق تشغيل الحاوية لا يعني اختبار جاهزية HTTPS. يمكن استخدام `--action runtimes --dry-run` للمعاينة.
-
-المصدر: [تثبيت Portainer CE على Docker/Linux](https://docs.portainer.io/start/install-ce/server/docker/linux).
+**تم التحديث في:** نوفمبر 2026  
+**الإصدار:** 1.0.0  
+**الحالة:** producción ready
