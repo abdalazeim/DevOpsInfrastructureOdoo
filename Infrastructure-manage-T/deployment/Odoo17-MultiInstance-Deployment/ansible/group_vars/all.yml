@@ -25,5 +25,5 @@ backup_root: "/data/backups/odoo17"
 backup_retention_count: 5
 
 # كلمات المرور الآمنة (تُOverride عبر Ansible Vault أو Jenkins Credentials)
-vault_odoo_admin_password: "CHANGE_ME"
-vault_postgres_password: "CHANGE_ME"
+vault_odoo_admin_password: "odoo17"
+vault_postgres_password: "odoo17"

@@ -52,7 +52,7 @@
     odoo_image: "{{ odoo_image }}"
     postgres_image: "{{ postgres_image }}"
     db_user: "{{ item.db_user }}"
-    db_password: "{{ vault_postgres_password | default('CHANGE_ME') }}"
+    db_password: "{{ vault_postgres_password | default('odoo17') }}"
     db_name: "{{ item.db_name }}"
     data_path: "{{ item.data_path }}"
     http_port: "{{ item.http_port }}"
@@ -72,9 +72,9 @@
     mode: '0600'
   vars:
     instance_name: "{{ item.name }}"
-    admin_password: "{{ vault_odoo_admin_password | default('CHANGE_ME') }}"
+    admin_password: "{{ vault_odoo_admin_password | default('odoo17') }}"
     db_user: "{{ item.db_user }}"
-    db_password: "{{ vault_postgres_password | default('CHANGE_ME') }}"
+    db_password: "{{ vault_postgres_password | default('odoo17') }}"
     workers: "{{ odoo_workers }}"
 
 - name: Create .env file for instance
