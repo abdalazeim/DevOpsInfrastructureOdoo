@@ -1,5 +1,5 @@
 # Odoo Multi-Version Deployment - Role: verify
-# التحقق من سلامة نسخ Odoo الاحتياطية
+# Verify integrity of Odoo backups
 
 - name: Discover backup directories
   become: true
@@ -12,7 +12,7 @@
 
 - name: Display discovered backups
   ansible.builtin.debug:
-    msg: "وجدت نسخة احتياطية: {{ item.path }}"
+    msg: "Found backup: {{ item.path }}"
   loop: "{{ backup_manifests.files }}"
 
 - name: Verify backup manifest is valid JSON
@@ -53,4 +53,4 @@
 
 - name: Display verification summary
   ansible.builtin.debug:
-    msg: "✓ تم التحقق من جميع النسخ الاحتياطية بنجاح - عدد النسخ: {{ backup_manifests.files | length }}"
+    msg: "✓ All backups verified successfully - count: {{ backup_manifests.files | length }}"

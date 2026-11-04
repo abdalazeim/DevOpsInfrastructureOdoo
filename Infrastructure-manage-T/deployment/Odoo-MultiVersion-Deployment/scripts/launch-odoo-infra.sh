@@ -3,7 +3,7 @@
 # Odoo Multi-Version Deployment - Launch Infrastructure
 # Launches the project with all necessary permissions
 # ==============================================================================
-set -Eeuo pipefail
+set -euo pipefail
 
 # Output colors
 RED='\033[0;31m'

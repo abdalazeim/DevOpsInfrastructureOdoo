@@ -1,6 +1,6 @@
 # Odoo Multi-Version Deployment - Role: permissions
-# إدارة الصلاحيات والأمان للملفات والمجلدات والمستخدمين
-# يُطبق مبدأ أقل صلاحية كافية (Least Privilege)
+# File, directory, and user permissions and security
+# Applies the Least Privilege principle
 
 - name: Ensure odoo user and group exist
   become: true
@@ -125,4 +125,4 @@
 
 - name: Display permissions summary
   ansible.builtin.debug:
-    msg: "✓ تم ضبط الصلاحيات لجميع المجلدات والملفات بنجاح"
+    msg: "✓ Permissions set for all directories and files successfully"

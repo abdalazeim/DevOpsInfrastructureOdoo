@@ -1,5 +1,5 @@
 # Odoo Multi-Version Deployment - Role: restore
-# استعادة نسخ Odoo الاحتياطية مع تدابير الأمان الكاملة
+# Restore Odoo backups with full safety measures
 
 - name: Create restore safety directories
   become: true
@@ -160,4 +160,4 @@
 
 - name: Display restore completion message
   ansible.builtin.debug:
-    msg: "✓ تم إكمال استعادة Odoo {{ odoo_version }} - {{ instance_name }} بنجاح من النسخة: {{ backup_id }}"
+    msg: "✓ Odoo {{ odoo_version }} - {{ instance_name }} restored successfully from backup: {{ backup_id }}"

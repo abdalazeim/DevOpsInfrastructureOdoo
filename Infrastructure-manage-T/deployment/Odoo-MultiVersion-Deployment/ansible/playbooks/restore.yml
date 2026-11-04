@@ -1,5 +1,5 @@
 # Odoo Multi-Version Deployment - Playbook: Restore
-# يدعم Odoo 17 و Odoo 19 مع نسخ متعددة لكل إصدار
+# Supports Odoo 17 and Odoo 19 with multiple instances per version
 - name: Restore Odoo Instance
   hosts: odoo_host
   become: true
@@ -13,7 +13,7 @@
         that:
           - confirm_restore | bool
           - backup_id != ''
-        msg: "يجب تحديد confirm_restore=true و backup_id للموافقة على الاستعادة"
+        msg: "confirm_restore=true and backup_id must be specified to approve restore"
     - name: Include instance variables based on version
       ansible.builtin.include_vars:
         file: "versions/{{ odoo_version | default('odoo17') }}.yml"

@@ -1,14 +1,14 @@
 #!/usr/bin/env jenkinsfile
 // ================================================================================
 // Odoo Multi-Version Deployment - Unified Jenkinsfile
-// يدعم Odoo 17 و Odoo 19 مع instanciestين لكل إصدار
+// Supports Odoo 17 and Odoo 19 with two instances per version
 // ================================================================================
 
 properties([
     parameters([
-        choice(name: 'ODOO_VERSION', choices: ['odoo17', 'odoo19'], description: 'اختر إصدار Odoo المراد نشره'),
-        string(name: 'ODOO_ADMIN_PASSWORD', description: 'كلمة مرور المشرف على Odoo', trim: true),
-        string(name: 'POSTGRES_PASSWORD', description: 'كلمة مرور PostgreSQL', trim: true)
+        choice(name: 'ODOO_VERSION', choices: ['odoo17', 'odoo19'], description: 'Select Odoo version to deploy'),
+        string(name: 'ODOO_ADMIN_PASSWORD', description: 'Odoo administrator password', trim: true),
+        string(name: 'POSTGRES_PASSWORD', description: 'PostgreSQL password', trim: true)
     ])
 ])
 
@@ -66,9 +66,9 @@ pipeline {
                     set -e
                     ansible-galaxy collection install -r requirements.yml
                     if [ "${ODOO_VERSION}" = "odoo17" ]; then
-                        test -f versions/odoo17.yml || { echo "ERROR: versions/odoo17.yml غير موجود"; exit 1; }
+                        test -f versions/odoo17.yml || { echo "ERROR: versions/odoo17.yml not found"; exit 1; }
                     else
-                        test -f versions/odoo19.yml || { echo "ERROR: versions/odoo19.yml غير موجود"; exit 1; }
+                        test -f versions/odoo19.yml || { echo "ERROR: versions/odoo19.yml not found"; exit 1; }
                     fi
                 '''
             }
@@ -136,7 +136,7 @@ pipeline {
                             failed.add(inst)
                         }
                     }
-                    if (!failed.isEmpty()) error("فشل في النسخ: ${failed.join(', ')}")
+                    if (!failed.isEmpty()) error("Backup failed: ${failed.join(', ')}")
                 }
             }
         }
@@ -146,12 +146,12 @@ pipeline {
                 sh '''
                     if [ "${ODOO_VERSION}" = "odoo17" ]; then
                         docker ps --filter "name=odoo17" --format "table {{.Names}}\t{{.Status}}"
-                        echo "✓ تم نشر Odoo 17 بنجاح"
+                        echo "✓ Odoo 17 deployed successfully"
                         echo "https://odoo1.devops-odoo.com"
                         echo "https://odoo2.devops-odoo.com"
                     else
                         docker ps --filter "name=odoo19" --format "table {{.Names}}\t{{.Status}}"
-                        echo "✓ تم نشر Odoo 19 بنجاح"
+                        echo "✓ Odoo 19 deployed successfully"
                         echo "https://odoo19-1.devops-odoo.com"
                         echo "https://odoo19-2.devops-odoo.com"
                     fi
@@ -163,13 +163,13 @@ pipeline {
     post {
         success {
             mail to: 'admin@yourdomain.com',
-                 subject: "نجاح نشر Odoo ${ODOO_VERSION} - بناء ${env.BUILD_NUMBER}",
-                 body: "تم نشر نسختي Odoo ${ODOO_VERSION} بنجاح."
+                 subject: "Odoo ${ODOO_VERSION} deployment success - Build ${env.BUILD_NUMBER}",
+                 body: "Odoo ${ODOO_VERSION} versions deployed successfully."
         }
         failure {
             mail to: 'admin@yourdomain.com',
-                 subject: "فشل نشر Odoo ${ODOO_VERSION} - بناء ${env.BUILD_NUMBER}",
-                 body: "فشل نشر Odoo ${ODOO_VERSION}."
+                 subject: "Odoo ${ODOO_VERSION} deployment failure - Build ${env.BUILD_NUMBER}",
+                 body: "Odoo ${ODOO_VERSION} deployment failed."
         }
         always {
             archiveArtifacts artifacts: 'ansible/**, versions/**, scripts/**, requirements.yml', allowEmptyArchive: true

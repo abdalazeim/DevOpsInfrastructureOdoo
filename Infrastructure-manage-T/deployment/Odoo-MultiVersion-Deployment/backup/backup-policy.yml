@@ -1,12 +1,12 @@
 # Odoo Multi-Version Deployment - Backup Policy
-# سياسة النسخ الاحتياطي والاستعاشة من الكوارث
+# Backup and disaster recovery policy
 
 backup_policy:
   version: "1.0"
   created_at: "2026-11-04"
   updated_at: "2026-11-04"
 
-  # أنواع النسخ الاحتياطي المدعومة
+  # Supported backup types
   backup_types:
     - full
     - database
@@ -15,7 +15,7 @@ backup_policy:
     - complete-infrastructure
     - pre-update
 
-  # جدولة النسخ الاحتياطي
+  # Backup schedule
   schedules:
     daily:
       type: full
@@ -38,7 +38,7 @@ backup_policy:
       month: 1
       retention_years: 1
 
-  # المكونات المشمولة في كل نسخة
+  # Components included in each backup
   components:
     postgresql:
       enabled: true
@@ -78,21 +78,21 @@ backup_policy:
       tool: git
       track: commit_hash
 
-  # معايير الجودة والتحقق
+  # Quality and verification standards
   integrity:
     checksum_algorithm: sha256
     manifest_required: true
     verify_before_restore: true
     test_restore_environment: true
 
-  # سياسات الاستعادة
+  # Restore policies
   restore:
     safety_backup_before_restore: true
     confirm_required: true
     try_finally_protection: true
     rollback_on_failure: true
 
-  # إشعارات
+  # Notifications
   notifications:
     on_success: true
     on_failure: true

@@ -1,6 +1,6 @@
 # Odoo Multi-Version Deployment - Role: system-config-backup
-# نسخ احتياطي لإعدادات نظام Ubuntu والبنية التحتية
-# منفصل عن نسخ قواعد بيانات Odoo وملفاتها
+# Backup Ubuntu system configuration and infrastructure
+# Separate from Odoo database and file backups
 
 - name: Create system-config backup root directory
   become: true
@@ -19,7 +19,7 @@
 
 - name: Display available disk space
   ansible.builtin.debug:
-    msg: "مساحة القرص المتاحة: {{ disk_space.stdout_lines[0] }}"
+    msg: "Available disk space: {{ disk_space.stdout_lines[0] }}"
 
 - name: Copy network configuration (netplan)
   become: true
@@ -174,4 +174,4 @@
 
 - name: Display backup completion message
   ansible.builtin.debug:
-    msg: "✓ تم إكمال نسخ إعدادات نظام Ubuntu بنجاح"
+    msg: "✓ Ubuntu system configuration backup completed successfully"

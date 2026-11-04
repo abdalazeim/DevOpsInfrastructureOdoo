@@ -3,7 +3,7 @@
 # Odoo Multi-Version Deployment - Bootstrap Infrastructure
 # Installs all dependencies and prepares the environment for the project
 # ==============================================================================
-set -Eeuo pipefail
+set -euo pipefail
 
 # Output colors
 RED='\033[0;31m'

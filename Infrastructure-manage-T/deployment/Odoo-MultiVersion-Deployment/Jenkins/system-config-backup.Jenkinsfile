@@ -16,9 +16,9 @@ pipeline {
     }
 
     parameters {
-        booleanParam(name: 'ENCRYPT_BACKUP', defaultValue: true, description: 'تشفير الأرشيف قبل التخزين')
-        string(name: 'ENCRYPT_PASSWORD', defaultValue: '', description: 'كلمة مرور التشفير (إذا تركت فارغة سيتم استخدام القيمة الافتراضية)')
-        choice(name: 'VERIFY_ONLY', choices: ['true', 'false'], description: 'فحص فقط دون نسخ احتياطي', default: 'false')
+        booleanParam(name: 'ENCRYPT_BACKUP', defaultValue: true, description: 'Encrypt archive before storage')
+        string(name: 'ENCRYPT_PASSWORD', defaultValue: '', description: 'Encryption password (if left empty, default value will be used)')
+        choice(name: 'VERIFY_ONLY', choices: ['true', 'false'], description: 'Verify only without backup', default: 'false')
     }
 
     stages {
@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "بدء نسخ إعدادات نظام Ubuntu - بناء #${env.BUILD_NUMBER}"
+                    echo "Starting Ubuntu system configuration backup - Build #${env.BUILD_NUMBER}"
                     whoami
                     df -h / /data /opt
                     free -h
@@ -49,12 +49,12 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "فحص النسخ الاحتياطية الحالية فقط..."
+                    echo "Verifying existing backups only..."
                     if [ -d /data/backups/system-config ]; then
                         ls -lh /data/backups/system-config/
                         find /data/backups/system-config -name "checksums.sha256" -exec sh -c 'cd "$(dirname {})" && sha256sum -c checksums.sha256' \;
                     else
-                        echo "لا توجد نسخ احتياطية سابقة."
+                        echo "No previous backups found."
                     fi
                 '''
             }
@@ -71,16 +71,15 @@ pipeline {
                         export ENCRYPT="${ENCRYPT_BACKUP}"
                         export ENCRYPT_PASSWORD="${ENCRYPT_PASS:-system-backup-encrypt-password}"
                         
-                        echo "تشغيل سكربت نسخ إعدادات نظام Ubuntu..."
+                        echo "Running Ubuntu system configuration backup script..."
                         sudo /opt/Odoo-MultiVersion-Deployment/scripts/backup-system-config.sh
                         
-                        echo ""
-                        echo "فحص سلامة الأرشيف المُنشأ..."
+                        echo "Verifying integrity of created archive..."
                         LATEST_BACKUP=$(ls -dt /data/backups/system-config/*/ | head -1)
                         if [ -f "${LATEST_BACKUP}checksums.sha256" ]; then
                             cd "${LATEST_BACKUP}"
                             sha256sum -c checksums.sha256
-                            echo "✓ تم التحقق من سلامة النسخة الاحتياطية"
+                            echo "✓ Backup integrity verified"
                         fi
                     '''
                 }
@@ -94,12 +93,12 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "تشفير الأرشيف..."
+                    echo "Encrypting archive..."
                     LATEST_ARCHIVE=$(ls -dt /data/backups/system-config/system-config-*.tar.gz | head -1)
                     if [ -f "$LATEST_ARCHIVE" ]; then
                         echo "${ENCRYPT_PASSWORD}" | gpg --batch --yes --passphrase-fd 0 -c "$LATEST_ARCHIVE"
                         rm -f "$LATEST_ARCHIVE"
-                        echo "✓ تم تشفير الأرشيف: ${LATEST_ARCHIVE}.gpg"
+                        echo "✓ Archive encrypted: ${LATEST_ARCHIVE}.gpg"
                     fi
                 '''
             }
@@ -110,16 +109,16 @@ pipeline {
                 sh '''
                     set -e
                     echo "======================================"
-                    echo "تقرير نسخ إعدادات نظام Ubuntu"
+                    echo "Ubuntu System Configuration Backup Report"
                     echo "======================================"
-                    echo "بناء رقم: ${env.BUILD_NUMBER}"
-                    echo "التاريخ: $(date)"
-                    echo "التشفير: ${ENCRYPT_BACKUP}"
+                    echo "Build Number: ${env.BUILD_NUMBER}"
+                    echo "Date: $(date)"
+                    echo "Encryption: ${ENCRYPT_BACKUP}"
                     echo ""
-                    echo "النسخ المتاحة في /data/backups/system-config/:"
+                    echo "Available backups in /data/backups/system-config/:"
                     ls -lh /data/backups/system-config/ 2>/dev/null || true
                     echo ""
-                    echo "✓ تم إكمال نسخ إعدادات نظام Ubuntu بنجاح"
+                    echo "✓ Ubuntu system configuration backup completed successfully"
                 '''
             }
         }
@@ -128,13 +127,13 @@ pipeline {
     post {
         success {
             mail to: 'admin@yourdomain.com',
-                 subject: "نجاح نسخ إعدادات نظام Ubuntu - بناء ${env.BUILD_NUMBER}",
-                 body: "تم نسخ إعدادات نظام Ubuntu بنجاح. التشفير: ${ENCRYPT_BACKUP}."
+                 subject: "Ubuntu system configuration backup success - Build ${env.BUILD_NUMBER}",
+                 body: "Ubuntu system configuration backed up successfully. Encryption: ${ENCRYPT_BACKUP}."
         }
         failure {
             mail to: 'admin@yourdomain.com',
-                 subject: "فشل نسخ إعدادات نظام Ubuntu - بناء ${env.BUILD_NUMBER}",
-                 body: "فشل نسخ إعدادات نظام Ubuntu. يرجى التحقق من السجلات."
+                 subject: "Ubuntu system configuration backup failure - Build ${env.BUILD_NUMBER}",
+                 body: "Ubuntu system configuration backup failed. Please check logs."
         }
         always {
             archiveArtifacts artifacts: 'scripts/**, backup/**', allowEmptyArchive: true

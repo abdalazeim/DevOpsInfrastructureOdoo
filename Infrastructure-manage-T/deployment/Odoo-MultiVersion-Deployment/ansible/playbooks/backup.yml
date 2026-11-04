@@ -1,5 +1,5 @@
 # Odoo Multi-Version Deployment - Playbook: Backup
-# يدعم Odoo 17 و Odoo 19 مع نسخ متعددة لكل إصدار
+# Supports Odoo 17 and Odoo 19 with multiple instances per version
 - name: Backup Odoo Instances
   hosts: odoo_host
   become: true

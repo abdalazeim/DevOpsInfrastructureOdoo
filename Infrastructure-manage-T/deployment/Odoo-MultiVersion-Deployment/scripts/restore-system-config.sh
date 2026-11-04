@@ -4,7 +4,7 @@
 # Restore Ubuntu system configuration after reinstallation
 # Staged and safe - does not restore sensitive settings blindly
 # ==============================================================================
-set -Eeuo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

@@ -1,5 +1,5 @@
 # Odoo Multi-Version Deployment - Role: backup
-# نسخ احتياطي لنسخ Odoo مع تدابير الأمان الكاملة
+# Backup Odoo instances with full safety measures
 
 - name: Create backup directories for all versions
   become: true
@@ -22,7 +22,7 @@
 
 - name: Display available disk space
   ansible.builtin.debug:
-    msg: "مساحة القرص المتاحة: {{ disk_space.stdout_lines[0] }}"
+    msg: "Available disk space: {{ disk_space.stdout_lines[0] }}"
 
 - name: Stop Odoo container temporarily for backup (protected with try/finally)
   become: true
@@ -143,7 +143,7 @@
       when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
     - name: Fail the task after ensuring containers are started
       ansible.builtin.fail:
-        msg: "فشل عملية النسخ الاحتياطي لـ Odoo {{ odoo_version }}"
+        msg: "Odoo {{ odoo_version }} backup process failed"
 
   always:
     - name: Start Odoo container after backup
@@ -157,4 +157,4 @@
 
 - name: Display backup completion message
   ansible.builtin.debug:
-    msg: "✓ تم إكمال النسخ الاحتياطي لـ Odoo {{ odoo_version }} بنجاح"
+    msg: "✓ Odoo {{ odoo_version }} backup completed successfully"

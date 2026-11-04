@@ -4,7 +4,7 @@
 # Independent backup of Ubuntu system configuration and infrastructure
 # Separate from Odoo database and file backups
 # ==============================================================================
-set -Eeuo pipefail
+set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 

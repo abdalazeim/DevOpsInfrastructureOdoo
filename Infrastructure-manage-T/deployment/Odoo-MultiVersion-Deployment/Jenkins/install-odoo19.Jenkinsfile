@@ -18,8 +18,8 @@ pipeline {
     }
 
     parameters {
-        string(name: 'ODOO_ADMIN_PASSWORD', description: 'كلمة مرور المشرف على Odoo', trim: true)
-        string(name: 'POSTGRES_PASSWORD', description: 'كلمة مرور PostgreSQL', trim: true)
+        string(name: 'ODOO_ADMIN_PASSWORD', description: 'Odoo administrator password', trim: true)
+        string(name: 'POSTGRES_PASSWORD', description: 'PostgreSQL password', trim: true)
     }
 
     stages {
@@ -53,7 +53,7 @@ pipeline {
                     set -e
                     cd ${PROJECT_ROOT}
                     ansible-galaxy collection install -r requirements.yml
-                    test -f versions/odoo19.yml || { echo "ERROR: versions/odoo19.yml غير موجود"; exit 1; }
+                    test -f versions/odoo19.yml || { echo "ERROR: versions/odoo19.yml not found"; exit 1; }
                 '''
             }
         }
@@ -117,7 +117,7 @@ pipeline {
                             failed.add(inst)
                         }
                     }
-                    if (!failed.isEmpty()) error("فشل في النسخ: ${failed.join(', ')}")
+                    if (!failed.isEmpty()) error("Health check failed: ${failed.join(', ')}")
                 }
             }
         }
@@ -126,7 +126,7 @@ pipeline {
             steps {
                 sh '''
                     docker ps --filter "name=odoo19" --format "table {{.Names}}\t{{.Status}}"
-                    echo "✓ تم نشر Odoo 19 بنجاح"
+                    echo "✓ Odoo 19 deployed successfully"
                     echo "https://odoo19-1.devops-odoo.com"
                     echo "https://odoo19-2.devops-odoo.com"
                 '''
@@ -135,8 +135,8 @@ pipeline {
     }
 
     post {
-        success { mail to: 'admin@yourdomain.com', subject: "نجاح نشر Odoo 19 - بناء ${env.BUILD_NUMBER}", body: "تم نشر نسختي Odoo 19 بنجاح." }
-        failure { mail to: 'admin@yourdomain.com', subject: "فشل نشر Odoo 19 - بناء ${env.BUILD_NUMBER}", body: "فشل نشر Odoo 19." }
+        success { mail to: 'admin@yourdomain.com', subject: "Odoo 19 deployment success - Build ${env.BUILD_NUMBER}", body: "Odoo 19 versions deployed successfully." }
+        failure { mail to: 'admin@yourdomain.com', subject: "Odoo 19 deployment failure - Build ${env.BUILD_NUMBER}", body: "Odoo 19 deployment failed." }
         always { archiveArtifacts artifacts: 'ansible/**, versions/**, scripts/**, requirements.yml', allowEmptyArchive: true }
     }
 }
