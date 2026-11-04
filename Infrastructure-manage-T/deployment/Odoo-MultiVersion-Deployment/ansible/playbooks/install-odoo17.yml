@@ -1,0 +1,20 @@
+# Odoo Multi-Version Deployment - Playbook: install-odoo17.yml
+- name: Install Odoo 17 Multi-Instance
+  hosts: odoo_host
+  become: true
+  vars:
+    odoo_version: "17"
+    postgres_version: "16"
+    odoo_image: "odoo:17"
+    postgres_image: "postgres:16"
+    docker_compose_template: "docker/odoo17-compose.yml.j2"
+  pre_tasks:
+    - name: Include instance variables
+      ansible.builtin.include_vars:
+        file: versions/odoo17.yml
+  roles:
+    - system
+    - docker
+    - postgresql
+    - odoo
+    - traefik

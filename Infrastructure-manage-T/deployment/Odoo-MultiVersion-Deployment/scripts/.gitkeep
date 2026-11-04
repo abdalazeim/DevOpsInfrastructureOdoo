@@ -1,0 +1,2 @@
+#!/bin/bash
+chmod +x scripts/install-odoo17.sh scripts/install-odoo19.sh scripts/health-check.sh scripts/backup.sh

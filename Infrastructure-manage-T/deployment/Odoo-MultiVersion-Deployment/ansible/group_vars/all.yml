@@ -1,0 +1,24 @@
+# Odoo Multi-Version Deployment - Group Vars (all)
+# Shared variables across Odoo 17 and Odoo 19 deployments
+
+# Network configuration
+proxy_network: "proxy"
+internal_network_odoo17: "odoo17_internal"
+internal_network_odoo19: "odoo19_internal"
+
+# Directories
+opt_root: "/opt"
+data_root: "/data"
+backup_root: "/data/backups"
+
+# PostgreSQL settings
+postgres_pgdata_version_16: "/var/lib/postgresql/data"
+postgres_pgdata_version_18: "/var/lib/postgresql/18/docker"
+
+# Odoo settings
+odoo_http_port: 8069
+odoo_chat_port: 8072
+
+# Traefik settings
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"

@@ -1,0 +1,27 @@
+# Odoo Multi-Version Deployment - Role: postgresql
+# PostgreSQL configuration and validation tasks
+
+- name: Check PostgreSQL readiness
+  become: true
+  community.docker.docker_container_exec:
+    container: "{{ item.container_name }}-db"
+    command: pg_isready -U {{ item.db_user }} -d {{ item.db_name }}
+  register: pg_status
+  failed_when: pg_status.rc != 0
+  loop: "{{ odoo_instances }}"
+
+- name: Create Odoo database user if not exists
+  become: true
+  community.docker.docker_container_exec:
+    container: "{{ item.container_name }}-db"
+    command: psql -U postgres -c "SELECT 1 FROM pg_roles WHERE rolname='{{ item.db_user }}';"
+  register: user_check
+  loop: "{{ odoo_instances }}"
+
+- name: Create Odoo database user
+  become: true
+  community.docker.docker_container_exec:
+    container: "{{ item.container_name }}-db"
+    command: psql -U postgres -c "CREATE ROLE {{ item.db_user }} WITH LOGIN PASSWORD '{{ vault_postgres_password }}';"
+  when: "'{{ item.db_user }}' not in user_check.stdout"
+  loop: "{{ odoo_instances }}"

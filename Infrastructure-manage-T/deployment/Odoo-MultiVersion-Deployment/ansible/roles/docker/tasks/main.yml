@@ -1,0 +1,45 @@
+# Odoo Multi-Version Deployment - Role: docker
+# Deploys Odoo and PostgreSQL containers using Docker Compose
+
+- name: Render Docker Compose file for instance
+  become: true
+  ansible.builtin.template:
+    src: "{{ docker_compose_template }}"
+    dest: "{{ item.config_path }}/docker-compose.yml"
+    mode: '0644'
+  loop: "{{ odoo_instances }}"
+  vars:
+    container_name: "{{ item.container_name }}"
+    odoo_image: "{{ odoo_image }}"
+    postgres_image: "{{ postgres_image }}"
+    db_user: "{{ item.db_user }}"
+    db_password: "{{ vault_postgres_password }}"
+    db_name: "{{ item.db_name }}"
+    data_path: "{{ item.data_path }}"
+    domain: "{{ item.domain }}"
+    http_port: "{{ item.http_port }}"
+    chat_port: "{{ item.chat_port }}"
+    internal_network: "{{ (odoo_version == '17') ? internal_network_odoo17 : internal_network_odoo19 }}"
+    proxy_network: "{{ proxy_network }}"
+    traefik_enabled: "{{ item.traefik_enabled | default(true) }}"
+    certresolver: "{{ traefik_certresolver }}"
+    postgres_pgdata_path: "{{ (postgres_version == '18') ? postgres_pgdata_version_18 : postgres_pgdata_version_16 }}"
+
+- name: Create entrypoint script
+  become: true
+  ansible.builtin.copy:
+    dest: "{{ item.config_path }}/entrypoint.sh"
+    content: |
+      #!/bin/bash
+      set -e
+      exec "$@"
+    mode: '0755'
+  loop: "{{ odoo_instances }}"
+
+- name: Start Docker Compose services
+  become: true
+  community.docker.docker_compose_v2:
+    project_src: "{{ item.config_path }}"
+    state: present
+    restart_policy: always
+  loop: "{{ odoo_instances }}"

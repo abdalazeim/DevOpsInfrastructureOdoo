@@ -1,0 +1,63 @@
+# Odoo Multi-Version Deployment - Role: system
+# Prepares directories, permissions, and network on the host
+
+- name: Create system directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ opt_root }}/odoo17"
+    - "{{ opt_root }}/odoo19"
+    - "{{ data_root }}/odoo17"
+    - "{{ data_root }}/odoo19"
+    - "{{ backup_root }}/odoo17"
+    - "{{ backup_root }}/odoo19"
+
+- name: Create instance directories
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0700'
+  loop:
+    - "{{ data_root }}/odoo17/instance1/postgresql"
+    - "{{ data_root }}/odoo17/instance2/postgresql"
+    - "{{ data_root }}/odoo19/instance1/postgresql"
+    - "{{ data_root }}/odoo19/instance2/postgresql"
+    - "{{ opt_root }}/odoo17/instance1/etc"
+    - "{{ opt_root }}/odoo17/instance1/addons"
+    - "{{ opt_root }}/odoo17/instance2/etc"
+    - "{{ opt_root }}/odoo17/instance2/addons"
+    - "{{ opt_root }}/odoo19/instance1/etc"
+    - "{{ opt_root }}/odoo19/instance1/addons"
+    - "{{ opt_root }}/odoo19/instance2/etc"
+    - "{{ opt_root }}/odoo19/instance2/addons"
+
+- name: Ensure Docker proxy network exists
+  become: true
+  community.docker.docker_network:
+    name: "{{ proxy_network }}"
+    driver: bridge
+    state: present
+    options:
+      subnet: "172.28.0.0/16"
+
+- name: Create Odoo config files directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.config_path }}/etc"
+    state: directory
+    mode: '0755'
+  loop: "{{ odoo_instances }}"
+
+- name: Set PostgreSQL data directory permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.data_path }}/postgresql"
+    state: directory
+    owner: '999'
+    group: '999'
+    mode: '0700'
+  loop: "{{ odoo_instances }}"
