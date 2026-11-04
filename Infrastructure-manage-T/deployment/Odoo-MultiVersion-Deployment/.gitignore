@@ -6,10 +6,16 @@ __pycache__/
 *.local
 .vscode/
 .idea/
-.DS_Thumbs
+.DS_Store
 Thumbs.db
 *.log
 *.retry
 group_vars/vault.yml
 /tmp/.vault_pass
 /tmp/.ansible_vault_pass
+*.swo
+*.swp
+*~
+.vagrant/
+.ansible/
+ansible.cfg

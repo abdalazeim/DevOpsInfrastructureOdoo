@@ -1,0 +1,177 @@
+# Odoo Multi-Version Deployment - Role: system-config-backup
+# نسخ احتياطي لإعدادات نظام Ubuntu والبنية التحتية
+# منفصل عن نسخ قواعد بيانات Odoo وملفاتها
+
+- name: Create system-config backup root directory
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "/data/backups/system-config"
+
+- name: Check available disk space
+  become: true
+  ansible.builtin.command: df -h /data
+  register: disk_space
+  changed_when: false
+
+- name: Display available disk space
+  ansible.builtin.debug:
+    msg: "مساحة القرص المتاحة: {{ disk_space.stdout_lines[0] }}"
+
+- name: Copy network configuration (netplan)
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/netplan/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/netplan/"
+    remote_src: yes
+    mode: '0600'
+  when: ansible_facts['default_ipv4'] is defined
+
+- name: Copy SSH configuration
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/ssh/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/ssh/"
+    remote_src: yes
+    mode: '0600'
+
+- name: Copy Docker daemon configuration
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/docker/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/docker/"
+    remote_src: yes
+    mode: '0600'
+
+- name: Copy fstab and hostname files
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/{{ item }}"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/{{ item }}"
+    remote_src: yes
+    mode: '0600'
+  loop:
+    - fstab
+    - hostname
+    - hosts
+
+- name: Copy /opt directory (projects and compose files)
+  become: true
+  ansible.builtin.copy:
+    src: "/opt/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/opt/"
+    remote_src: yes
+    mode: '0755'
+
+- name: Copy systemd services and cron jobs
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/systemd/system/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/systemd/system/"
+    remote_src: yes
+    mode: '0600'
+
+- name: Copy ufw firewall configuration
+  become: true
+  ansible.builtin.copy:
+    src: "/etc/ufw/"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/etc/ufw/"
+    remote_src: yes
+    mode: '0600'
+  when: ansible_os_family == "Debian"
+
+- name: Collect system information
+  become: true
+  ansible.builtin.command: "{{ item }}"
+  register: system_info
+  changed_when: false
+  loop:
+    - hostnamectl
+    - lsblk -f
+    - findmnt
+    - df -hT
+    - ip address
+    - ip route
+    - docker version
+    - docker compose version
+
+- name: Save system information to files
+  become: true
+  ansible.builtin.copy:
+    content: "{{ item.stdout }}"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/system-info/{{ item.item | replace(' ', '_') | replace('/', '-') }}.txt"
+    mode: '0644'
+  loop: "{{ system_info.results }}"
+  loop_control:
+    index_var: sys_info_index
+
+- name: Generate installed packages list
+  become: true
+  ansible.builtin.command: dpkg-query -W -f='${binary:Package}\t${Version}\n'
+  register: packages_list
+  changed_when: false
+  when: ansible_os_family == "Debian"
+
+- name: Save packages list
+  become: true
+  ansible.builtin.copy:
+    content: "{{ packages_list.stdout }}"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/packages.txt"
+    mode: '0644'
+  when: ansible_os_family == "Debian"
+
+- name: Create backup manifest
+  become: true
+  ansible.builtin.copy:
+    content: |
+      {
+        "backup_type": "system_configuration",
+        "created_at": "{{ ansible_date_time.iso8601 }}",
+        "hostname": "{{ ansible_facts['hostname'] }}",
+        "operating_system": "{{ ansible_facts['distribution'] }} {{ ansible_facts['distribution_version'] }}",
+        "backup_root": "/data/backups/system-config",
+        "included_paths": [
+          "/etc/netplan",
+          "/etc/ssh",
+          "/etc/fstab",
+          "/etc/docker",
+          "/opt"
+        ],
+        "included_files": [
+          "/etc/hostname",
+          "/etc/hosts",
+          "/etc/fstab"
+        ],
+        "included_info": [
+          "/etc/apt",
+          "/etc/systemd/system",
+          "/etc/cron.d",
+          "/etc/ufw"
+        ],
+        "integrity_check": "sha256",
+        "status": "completed"
+      }
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/manifest.json"
+    mode: '0640'
+
+- name: Create checksums for backup files
+  become: true
+  ansible.builtin.command: sha256sum $(find /data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }} -type f ! -name checksums.sha256 | sort | tr '\n' ' ')
+  args:
+    chdir: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}"
+  register: checksums
+  changed_when: false
+
+- name: Save checksums to file
+  become: true
+  ansible.builtin.copy:
+    content: "{{ checksums.stdout }}"
+    dest: "/data/backups/system-config/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/checksums.sha256"
+    mode: '0640'
+
+- name: Display backup completion message
+  ansible.builtin.debug:
+    msg: "✓ تم إكمال نسخ إعدادات نظام Ubuntu بنجاح"

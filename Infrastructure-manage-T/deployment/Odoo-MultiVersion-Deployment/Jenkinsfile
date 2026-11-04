@@ -18,9 +18,7 @@ pipeline {
     environment {
         REPO_URL = 'https://github.com/your-org/Odoo-MultiVersion-Deployment.git'
         REPO_CREDENTIALS = 'github-credentials'
-        ANSIBLE_VAULT_PASSWORD = 'ansible-vault-password'
-        ODOO_ADMIN_PASSWORD = parameters.ODOO_ADMIN_PASSWORD ?: credentials('odoo-admin-password')
-        POSTGRES_PASSWORD = parameters.POSTGRES_PASSWORD ?: credentials('odoo-postgres-password')
+        PROJECT_ROOT = '/opt/Odoo-MultiVersion-Deployment'
     }
 
     options {
@@ -78,12 +76,14 @@ pipeline {
 
         stage('Secrets Configuration') {
             steps {
-                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS')]) {
+                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS'),
+                                 string(credentialsId: 'odoo-admin-password', variable: 'ODOO_ADMIN_PASS'),
+                                 string(credentialsId: 'odoo-postgres-password', variable: 'POSTGRES_PASS')]) {
                     sh '''
                         set -e
                         cat > group_vars/vault.yml <<EOF
-                        vault_odoo_admin_password: "${ODOO_ADMIN_PASSWORD}"
-                        vault_postgres_password: "${POSTGRES_PASSWORD}"
+                        vault_odoo_admin_password: "${ODOO_ADMIN_PASS}"
+                        vault_postgres_password: "${POSTGRES_PASS}"
                         EOF
                         echo "${VAULT_PASS}" > /tmp/.vault_pass; chmod 600 /tmp/.vault_pass
                         ansible-vault encrypt group_vars/vault.yml --vault-password-file /tmp/.vault_pass
@@ -95,22 +95,24 @@ pipeline {
 
         stage('Docker Deployment') {
             steps {
-                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS')]) {
+                withCredentials([string(credentialsId: 'ansible-vault-password', variable: 'VAULT_PASS'),
+                                 string(credentialsId: 'odoo-admin-password', variable: 'ODOO_ADMIN_PASS'),
+                                 string(credentialsId: 'odoo-postgres-password', variable: 'POSTGRES_PASS')]) {
                     sh '''
                         set -e
                         echo "${VAULT_PASS}" > /tmp/.vault_pass; chmod 600 /tmp/.vault_pass
                         if [ "${ODOO_VERSION}" = "odoo17" ]; then
                             ansible-playbook -i ansible/inventory/hosts.ini \\
                                 -e @versions/odoo17.yml \\
-                                -e vault_odoo_admin_password="${ODOO_ADMIN_PASSWORD}" \\
-                                -e vault_postgres_password="${POSTGRES_PASSWORD}" \\
+                                -e vault_odoo_admin_password="${ODOO_ADMIN_PASS}" \\
+                                -e vault_postgres_password="${POSTGRES_PASS}" \\
                                 --vault-password-file /tmp/.vault_pass \\
                                 ansible/playbooks/install-odoo17.yml
                         else
                             ansible-playbook -i ansible/inventory/hosts.ini \\
                                 -e @versions/odoo19.yml \\
-                                -e vault_odoo_admin_password="${ODOO_ADMIN_PASSWORD}" \\
-                                -e vault_postgres_password="${POSTGRES_PASSWORD}" \\
+                                -e vault_odoo_admin_password="${ODOO_ADMIN_PASS}" \\
+                                -e vault_postgres_password="${POSTGRES_PASS}" \\
                                 --vault-password-file /tmp/.vault_pass \\
                                 ansible/playbooks/install-odoo19.yml
                         fi
@@ -129,7 +131,7 @@ pipeline {
                     def port_chat = 8072
                     for (inst in instances) {
                         try {
-                            sh script: "./scripts/health-check.sh ${inst} ${port_http} ${port_chat}", returnStatus: true
+                            sh script: "${PROJECT_ROOT}/scripts/health-check.sh ${inst} ${port_http} ${port_chat}", returnStatus: true
                         } catch (Exception e) {
                             failed.add(inst)
                         }

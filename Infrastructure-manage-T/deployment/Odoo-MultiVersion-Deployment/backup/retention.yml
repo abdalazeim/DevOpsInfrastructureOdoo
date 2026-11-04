@@ -1,0 +1,66 @@
+# Odoo Multi-Version Deployment - Retention Policy
+# سياسة الاحتفاظ بالنسخ الاحتياطية
+
+retention_policy:
+  version: "1.0"
+
+  # فترات الاحتفاظ حسب نوع النسخة
+  retention_periods:
+    daily_backups:
+      period: "7 days"
+      auto_delete: true
+    weekly_backups:
+      period: "4 weeks"
+      auto_delete: true
+    monthly_backups:
+      period: "3 months"
+      auto_delete: true
+    yearly_backups:
+      period: "1 year"
+      auto_delete: true
+
+  # عدد النسخ المحفوظة لكل إصدار
+  max_backups_per_instance:
+    odoo17:
+      instance1: 30
+      instance2: 30
+    odoo18:
+      instance1: 30
+      instance2: 30
+    odoo19:
+      instance1: 30
+      instance2: 30
+
+  # تنظيف تلقائي للنسخ القديمة
+  auto_cleanup:
+    enabled: true
+    schedule: "weekly"
+    time: "03:00"
+    day: "monday"
+    dry_run_first: true
+
+  # حماية النسخ الهامة
+  protected_backups:
+    - "pre-update-*"
+    - "major-release-*"
+
+  # تخزين النسخ على وسائط متعددة
+  storage_tiers:
+    primary:
+      path: "/data/backups"
+      type: "local_disk"
+      redundancy: "single"
+    secondary:
+      path: "/data/backups/archive"
+      type: "cold_storage"
+      redundancy: "redundant"
+    offsite:
+      enabled: false
+      type: "cloud_s3"
+      schedule: "monthly"
+
+  # تنبيهات عند اقتراب اكتمال المساحة
+  storage_alerts:
+    threshold_percent: 85
+    action: "notify_admin"
+    email: "admin@yourdomain.com"

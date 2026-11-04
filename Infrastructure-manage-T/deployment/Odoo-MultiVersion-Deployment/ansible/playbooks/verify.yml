@@ -1,0 +1,22 @@
+# Odoo Multi-Version Deployment - Playbook: Verify
+# يدعم Odoo 17 و Odoo 19 مع نسخ متعددة لكل إصدار
+- name: Verify Odoo Backups
+  hosts: odoo_host
+  become: true
+  vars:
+    verify_type: "{{ verify_type | default('checksums') }}"
+    odoo_version_filter: "{{ odoo_version_filter | default('all') }}"
+  pre_tasks:
+    - name: Include instance variables
+      ansible.builtin.include_vars:
+        file: "versions/{{ odoo_version | default('odoo17') }}.yml"
+      when: odoo_version is defined
+    - name: Set default odoo_version if not provided
+      ansible.builtin.set_fact:
+        odoo_version: "odoo17"
+      when: odoo_version is not defined
+    - name: Set postgres_version based on odoo_version
+      ansible.builtin.set_fact:
+        postgres_version: "{{ '18' if odoo_version == 'odoo19' else '16' }}"
+  roles:
+    - verify

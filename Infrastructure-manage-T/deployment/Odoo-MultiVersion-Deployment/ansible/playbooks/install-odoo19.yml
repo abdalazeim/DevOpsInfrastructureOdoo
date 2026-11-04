@@ -14,6 +14,7 @@
         file: versions/odoo19.yml
   roles:
     - system
+    - permissions
     - docker
     - postgresql
     - odoo

@@ -1,0 +1,160 @@
+# Odoo Multi-Version Deployment - Role: backup
+# نسخ احتياطي لنسخ Odoo مع تدابير الأمان الكاملة
+
+- name: Create backup directories for all versions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  loop:
+    - "{{ backup_root }}/odoo17"
+    - "{{ backup_root }}/odoo19"
+    - "{{ backup_root }}/infrastructure"
+    - "{{ backup_root }}/jenkins"
+    - "{{ backup_root }}/reports"
+
+- name: Check available disk space
+  become: true
+  ansible.builtin.command: df -h /data
+  register: disk_space
+  changed_when: false
+
+- name: Display available disk space
+  ansible.builtin.debug:
+    msg: "مساحة القرص المتاحة: {{ disk_space.stdout_lines[0] }}"
+
+- name: Stop Odoo container temporarily for backup (protected with try/finally)
+  become: true
+  block:
+    - name: Stop Odoo container before backup
+      become: true
+      community.docker.docker_container:
+        name: "{{ item.container_name }}"
+        state: stopped
+        timeout: 60
+      loop: "{{ odoo_instances }}"
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
+
+    - name: Backup PostgreSQL database
+      become: true
+      community.docker.docker_container_exec:
+        container: "{{ item.container_name }}-db"
+        command: pg_dump -U postgres {{ item.db_name }}
+      register: db_backup_raw
+      loop: "{{ odoo_instances }}"
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
+
+    - name: Save database dump to file
+      become: true
+      ansible.builtin.copy:
+        content: "{{ item.stdout }}"
+        dest: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/database.dump"
+        mode: '0644'
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: db_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Backup Filestore using tar + zstd
+      become: true
+      ansible.builtin.shell: |
+        tar cf - -C "{{ item.item.data_path }}" . | zstd > "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/filestore.tar.zst"
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: filestore_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Backup Custom Addons using tar + zstd
+      become: true
+      ansible.builtin.shell: |
+        tar cf - -C "{{ item.item.config_path }}" addons | zstd > "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/addons.tar.zst"
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: addons_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Backup Odoo Configuration using tar + zstd
+      become: true
+      ansible.builtin.shell: |
+        tar cf - -C "{{ item.item.config_path }}" etc | zstd > "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/config.tar.zst"
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: config_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Create backup manifest
+      become: true
+      ansible.builtin.copy:
+        content: |
+          {
+            "backup_id": "{{ odoo_version }}-{{ instance_name | default(item.item.name) }}-{{ ansible_date_time.date }}",
+            "odoo_version": "{{ odoo_version }}",
+            "postgres_version": "{{ postgres_version }}",
+            "instance": "{{ instance_name | default(item.item.name) }}",
+            "database": "{{ item.item.db_name }}",
+            "backup_type": "{{ backup_type | default('full') }}",
+            "created_at": "{{ ansible_date_time.iso8601 }}",
+            "database_backup": "database.dump",
+            "filestore_backup": "filestore.tar.zst",
+            "addons_backup": "addons.tar.zst",
+            "config_backup": "config.tar.zst",
+            "integrity_check": "sha256",
+            "status": "completed"
+          }
+        dest: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/manifest.json"
+        mode: '0644'
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: manifest_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Create checksums for backup files
+      become: true
+      ansible.builtin.command: sha256sum database.dump filestore.tar.zst addons.tar.zst config.tar.zst
+      args:
+        chdir: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}"
+      register: checksums
+      changed_when: false
+      loop: "{{ db_backup_raw.results }}"
+      loop_control:
+        index_var: checksum_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+    - name: Save checksums to file
+      become: true
+      ansible.builtin.copy:
+        content: "{{ item.stdout }}"
+        dest: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/checksums.sha256"
+        mode: '0644'
+      loop: "{{ checksums.results }}"
+      loop_control:
+        index_var: save_checksum_index
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.item.name == instance_name)
+
+  rescue:
+    - name: Ensure Odoo container is started even if backup failed
+      become: true
+      community.docker.docker_container:
+        name: "{{ item.container_name }}"
+        state: started
+        timeout: 120
+      loop: "{{ odoo_instances }}"
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
+    - name: Fail the task after ensuring containers are started
+      ansible.builtin.fail:
+        msg: "فشل عملية النسخ الاحتياطي لـ Odoo {{ odoo_version }}"
+
+  always:
+    - name: Start Odoo container after backup
+      become: true
+      community.docker.docker_container:
+        name: "{{ item.container_name }}"
+        state: started
+        timeout: 120
+      loop: "{{ odoo_instances }}"
+      when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
+
+- name: Display backup completion message
+  ansible.builtin.debug:
+    msg: "✓ تم إكمال النسخ الاحتياطي لـ Odoo {{ odoo_version }} بنجاح"

@@ -1,0 +1,5 @@
+- name: Backup Ubuntu System Configuration
+  hosts: odoo_host
+  become: true
+  roles:
+    - system-config-backup

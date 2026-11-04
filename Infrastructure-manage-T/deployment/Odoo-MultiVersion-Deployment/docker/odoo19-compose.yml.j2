@@ -1,6 +1,6 @@
 # ==============================================================================
 # Odoo 19 Multi-Instance Docker Compose Template (Jinja2)
-# PostgreSQL 18 - PGDATA: /var/lib/postgresql/18/docker (重要: PostgreSQL 18+ غير المسار)
+# PostgreSQL 18 - PGDATA: /var/lib/postgresql/18/docker
 # ==============================================================================
 version: '3.8'
 
@@ -8,7 +8,7 @@ services:
   db:
     container_name: {{ container_name }}-db
     image: {{ postgres_image }}
-    user: root
+    user: "999:999"
     restart: always
     environment:
       - POSTGRES_USER={{ db_user }}
@@ -28,7 +28,7 @@ services:
   odoo:
     container_name: {{ container_name }}
     image: {{ odoo_image }}
-    user: root
+    user: "999:999"
     depends_on:
       db:
         condition: service_healthy
@@ -36,11 +36,10 @@ services:
     tty: true
     command: ["--config=/etc/odoo/odoo.conf"]
     environment:
-      - HOST=db
+      - HOST={{ container_name }}-db
       - PORT=5432
       - USER={{ db_user }}
       - PASSWORD={{ db_password }}
-      - PIP_BREAK_SYSTEM_PACKAGES=1
     {% if traefik_enabled %}
     networks:
       - internal
@@ -73,7 +72,7 @@ services:
     environment:
       - ODOO_RC=/etc/odoo/odoo.conf
     healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8069/web/database/selector"]
+      test: ["CMD-SHELL", "pg_isready -h {{ container_name }}-db -U {{ db_user }} -d {{ db_name }} || curl -sf http://localhost:8069/web/database/selector || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3

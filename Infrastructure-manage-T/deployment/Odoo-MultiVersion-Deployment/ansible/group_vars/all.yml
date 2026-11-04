@@ -18,7 +18,20 @@ postgres_pgdata_version_18: "/var/lib/postgresql/18/docker"
 # Odoo settings
 odoo_http_port: 8069
 odoo_chat_port: 8072
+odoo_user: "odoo"
+odoo_group: "odoo"
+odoo_uid: 999
+odoo_gid: 999
 
 # Traefik settings
 traefik_entrypoint: "websecure"
 traefik_certresolver: "letsencrypt"
+
+# Backup settings
+backup_stop_odoo: true
+backup_type: "full"
+
+# Security
+docker_user: "999:999"
+postgres_uid: 999
+postgres_gid: 999

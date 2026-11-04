@@ -15,7 +15,7 @@
     - "{{ backup_root }}/odoo17"
     - "{{ backup_root }}/odoo19"
 
-- name: Create instance directories
+- name: Create instance directories from odoo_instances
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
@@ -44,7 +44,7 @@
     options:
       subnet: "172.28.0.0/16"
 
-- name: Create Odoo config files directory
+- name: Create Odoo config files directory for each instance
   become: true
   ansible.builtin.file:
     path: "{{ item.config_path }}/etc"

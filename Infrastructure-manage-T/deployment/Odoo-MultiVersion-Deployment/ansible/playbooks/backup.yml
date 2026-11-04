@@ -1,0 +1,22 @@
+# Odoo Multi-Version Deployment - Playbook: Backup
+# يدعم Odoo 17 و Odoo 19 مع نسخ متعددة لكل إصدار
+- name: Backup Odoo Instances
+  hosts: odoo_host
+  become: true
+  vars:
+    backup_type: "{{ backup_type | default('full') }}"
+    backup_stop_odoo: "{{ backup_stop_odoo | default(true) }}"
+  pre_tasks:
+    - name: Include instance variables based on version
+      ansible.builtin.include_vars:
+        file: "versions/{{ odoo_version | default('odoo17') }}.yml"
+      when: odoo_version is defined
+    - name: Set default odoo_version if not provided
+      ansible.builtin.set_fact:
+        odoo_version: "odoo17"
+      when: odoo_version is not defined
+    - name: Set postgres_version based on odoo_version
+      ansible.builtin.set_fact:
+        postgres_version: "{{ '18' if odoo_version == 'odoo19' else '16' }}"
+  roles:
+    - backup

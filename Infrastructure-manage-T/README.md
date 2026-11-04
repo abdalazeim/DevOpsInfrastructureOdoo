@@ -309,6 +309,259 @@ odoo_instances:
 
 ---
 
+## 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+
+### نظرة عامة على النسخ الاحتياطي
+
+يدعم النظام نسخًا احتياطية شاملة لكل مكون من مكونات النشر، مع إمكانية الاستعادة التلقائية والآمنة عند حدوث أي عطل أو كارثة.
+
+| العنصر | ما الذي نحفظه | الأداة المستخدمة | التردد المقترح |
+|--------|--------------|----------------|---------------|
+| **PostgreSQL** | قواعد البيانات والمستخدمون والصلاحيات | `pg_dump` / `backup-db.sh` | يومي |
+| **Filestore** | المرفقات والصور والملفات المرفوعة | `tar.gz` / `backup.sh` | يومي |
+| **Custom Addons** | الإضافات والتعديلات البرمجية المخصصة | Git / `tar.gz` | عند كل تعديل |
+| **Odoo Configuration** | ملفات `odoo.conf` وإعدادات الحاوية | `cp` / Ansible | عند كل تعديل |
+| **Docker Compose** | ملفات تشغيل الحاويات (`docker-compose.yml`) | Git | عند كل تعديل |
+| **Environment** | متغيرات التشغيل والأسرار المشفرة (`.env`) | `chmod 600` + Git (مشفّر) | عند كل تعديل |
+| **Traefik** | إعدادات التوجيه والشهادات (SSL/TLS) | `cp` + GPG | أسبوعي |
+| **Ansible** | Playbooks و Roles و Inventory | Git | عند كل تعديل |
+| **Jenkins** | إعدادات خطوط الأنابيب والملفات المهمة | Jenkins Backup Plugin | أسبوعي |
+| **Git** | رقم Commit والإصدار المستخدم في النشر | Git (tag / commit hash) | كل عملية نشر |
+
+### أخذ نسخة احتياطية فورية
+
+```bash
+# Odoo 17 - النسخة 1
+bash automation/scripts/backup-db.sh 17 odoo17_prod 7
+
+# Odoo 18 - النسخة 1
+bash automation/scripts/backup-db.sh 18 odoo18_prod 7
+
+# Odoo 19 - النسخة 1
+bash automation/scripts/backup-db.sh 19 odoo19_prod 14
+
+# نسخ احتياطي لملفات المرفقات (Filestore)
+bash scripts/backup.sh instance1 /data/backups/odoo17
+bash scripts/backup.sh instance2 /data/backups/odoo17
+
+# نسخ احتياطي لإعدادات Traefik والشهادات
+tar -czf /data/backups/traefik_$(date +%Y%m%d).tar.gz /etc/traefik /opt/traefik
+
+# نسخ احتياطي لإعدادات Ansible و Jenkins
+tar -czf /data/backups/ansible_jenkins_$(date +%Y%m%d).tar.gz ansible/ Jenkins/
+```
+
+### محتويات النسخة الاحتياطية لكل قاعدة بيانات
+
+| الملف | الوصف | الصيغة |
+|-------|-------|--------|
+| `dump_odooXX_prod_YYYYMMDD_HHMMSS.sql.gz` | تفريغ قاعدة بيانات PostgreSQL (البيانات والمستخدمين والصلاحيات) | SQL مضغوط بـ gzip |
+| `filestore_odooXX_prod_YYYYMMDD_HHMMSS.tar.gz` | أرشيف مرفقات Odoo (Filestore - الصور والملفات المرفوعة) | tar.gz |
+| `custom_addons_odooXX_YYYYMMDD_HHMMSS.tar.gz` | الإضافات والتعديلات البرمجية المخصصة | tar.gz |
+| `odoo_config_XX_YYYYMMDD_HHMMSS.tar.gz` | ملفات إعدادات Odoo (`odoo.conf`) | tar.gz |
+| `docker_compose_XX_YYYYMMDD_HHMMSS.tar.gz` | ملفات Docker Compose لكل نسخة | tar.gz |
+| `env_encrypted_XX_YYYYMMDD_HHMMSS.gpg` | متغيرات البيئة والأسرار المشفرة | GPG مشفر |
+| `metadata_odooXX_prod_YYYYMMDD_HHMMSS.json` | بيانات وصفية وبصمة التشفير (SHA256) + رقم Commit Git | JSON |
+
+### استعادة قاعدة بيانات (مع تدابير الأمان)
+
+```bash
+# استعادة قاعدة بيانات Odoo 17
+bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_prod --force
+
+# استعادة قاعدة بيانات Odoo 18
+bash automation/scripts/restore-db.sh 18 /opt/odoo-infrastructure/backups/odoo18/dump_odoo18_prod_XXXX.sql.gz odoo18_prod --force
+
+# استعادة قاعدة بيانات Odoo 19
+bash automation/scripts/restore-db.sh 19 /opt/odoo-infrastructure/backups/odoo19/dump_odoo19_prod_XXXX.sql.gz odoo19_prod --force
+```
+
+> ⚠️ **أمان الاستعادة**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في مجلد `safety_pre_restore` قبل الكتابة فوق أي قاعدة بيانات قائمة، ويتطلب تأكيداً كتابياً صريحاً (`RESTORE-SNAPSHOT-<ID>`).
+
+## 🔄 طريقة الاستعادة (Restore)
+
+الاستعادة أهم من عملية النسخ نفسها. يجب ألا يكون زر الاستعادة مجرد فك ضغط للملفات.
+
+### أنواع الاستعادة المدعومة
+
+| النوع | الوصف | الاستخدام |
+|-------|-------|-----------|
+| **Restore to Existing Instance** | استعادة النسخة فوق نسخة موجودة بعد أخذ احتياط إضافي منها | الاستعادة العادية للإصدار الحالي |
+| **Restore as New Instance** | إنشاء نسخة جديدة مستقلة للاختبار دون التأثير على النسخة الأصلية | الاختبار والتطوير |
+
+### خطوات الاستعادة التلقائية
+
+عند اختيار نسخة احتياطية، ينفذ النظام الخطوات التالية:
+
+| الخطوة | الإجراء | التفاصيل |
+|-------|---------|----------|
+| 1 | فحص سلامة الملفات | التحقق من SHA256 و checksums لجميع ملفات النسخة |
+| 2 | التحقق من الإصدارات | التأكد من توافق إصدار Odoo و PostgreSQL مع النسخة الاحتياطية |
+| 3 | التحقق من المساحة | التأكد من وجود مساحة تخزين كافية للاستعادة |
+| 4 | إيقاف Odoo | إيقاف الحاوية المستهدفة قبل الاستبدال |
+| 5 | نسخة احتياطية للحالة الحالية | أخذ نسخة احتياطية من الحالة الحالية قبل الاستبدال (حالة الطوارئ) |
+| 6 | استعادة PostgreSQL | إنشاء قاعدة البيانات واستعادة البيانات من `pg_dump` |
+| 7 | استعادة Filestore | استعادة المرفقات والصور في مسارها الصحيح |
+| 8 | استعادة Custom Addons | استعادة الإضافات والتعديلات البرمجية المتوافقة |
+| 9 | ضبط الصلاحيات | تعيين صلاحيات الملفات والمجلدات correctamente |
+| 10 | تشغيل Odoo | إعادة تشغيل الحاوية وتأكيد عملها |
+| 11 | اختبارات التحقق | اختبار قاعدة البيانات والمرفقات والوصول عبر المتصفح |
+| 12 | تقرير الاستعادة | تسجيل تقرير كامل بعملية الاستعادة ونتيجتها |
+
+### ضمانات الاستعادة
+
+> ✅ **لا تحذف قاعدة البيانات الحالية أو تستبدل ملفاتها قبل التحقق من النسخة الاحتياطية الجديدة.**
+> ✅ **إذا فشلت الاستعادة، يتم العودة تلقائياً إلى الحالة السابقة.**
+> ✅ **عملية الإيقاف والإعادة محمية بـ `try/finally` لضمان عدم بقاء الخدمة متوقفة.**
+
+### أوامر الاستعادة
+
+```bash
+# استعادة إلى نسخة موجودة (Odoo 17)
+bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_prod --force
+
+# استعادة إلى نسخة موجودة (Odoo 18)
+bash automation/scripts/restore-db.sh 18 /opt/odoo-infrastructure/backups/odoo18/dump_odoo18_prod_XXXX.sql.gz odoo18_prod --force
+
+# استعادة إلى نسخة موجودة (Odoo 19)
+bash automation/scripts/restore-db.sh 19 /opt/odoo-infrastructure/backups/odoo19/dump_odoo19_prod_XXXX.sql.gz odoo19_prod --force
+
+# استعادة كنسخة جديدة (للاختبار)
+bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_test --new-instance
+```
+
+## 🔧 تشغيل النسخ الاحتياطي من Jenkins وTerminal
+
+### خطوط أنابيب Jenkins للنسخ الاحتياطي والاستعادة
+
+يوفر النظام ثلاثة خطوط أنابيب (Pipelines) مستقلة في Jenkins:
+
+| pipeline | الغرض | الزر |
+|----------|--------|------|
+| **Backup-Odoo** | نسخ احتياطي شامل لجميع نسخ Odoo 17 و19 أو نسخة محددة | `Build Now` |
+| **Restore-Odoo** | استعادة نسخة احتياطية مع تأكيد مطلوب | `Build Now` (يتطلب تأكيد) |
+| **Verify-Backups** | فحص سلامة الملفات وقواعد البيانات وتجربة الاستعادة في بيئة اختبار | `Build Now` |
+
+#### Pipeline 1: Backup-Odoo
+
+يؤدي نسخًا احتياطيًا شاملاً لبيانات Odoo وFilestore والإعدادات.
+
+```groovy
+// مراحل Backup-Odoo:
+// 1. اختيار الإصدار والنسخة (أو all)
+// 2. التحقق من مساحة التخزين
+// 3. أخذ نسخة احتياطية من PostgreSQL وFilestore
+// 4. إنشاء ملف Manifest و Checksums
+// 5. رفع النسخة إلى موقع التخزين الآمن
+```
+
+#### Pipeline 2: Restore-Odoo
+
+يؤدي استعادة نسخة احتياطية مع تأكيد صريح من المستخدم.
+
+```groovy
+// مراحل Restore-Odoo:
+// 1. اختيار النسخة الاحتياطية للتاريخ والإصدار
+// 2. تأكيد الاستعادة (مطلوب)
+// 3. فحص سلامة النسخة (SHA256)
+// 4. إيقاف Odoo المستهدف
+// 5. أخذ نسخة احتياطية من الحالة الحالية
+// 6. استعادة PostgreSQL وFilestore وAddons
+// 7. تشغيل Odoo وإجراء اختبارات التحقق
+// 8. تقرير الاستعادة النهائي
+```
+
+#### Pipeline 3: Verify-Backups
+
+يؤدي فحصًا تلقائيًا لسلامة جميع النسخ الاحتياطية.
+
+```groovy
+// مراحل Verify-Backups:
+// 1. فحص جميع ملفات النسخ الاحتياطية
+// 2. التحقق من SHA256 و checksums
+// 3. تجربة استعادة في بيئة اختبار معزولة
+// 4. تقرير التحقق النهائي
+```
+
+### التشغيل عبر Terminal
+
+```bash
+# نسخ احتياطي
+./scripts/backup.sh instance1 /data/backups/odoo17
+./scripts/backup.sh instance2 /data/backups/odoo17
+
+# استعادة
+bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
+
+# فحص صحة النسخ
+./scripts/health-check.sh instance1 8069 8072
+```
+
+### خطة الاستعاشة من الكوارث (Disaster Recovery Plan)
+
+| السيناريو | الإجراء | الوقت المستهدف للتعافي (RTO) |
+|-----------|---------|---------------------------|
+| فشل حاوية Odoo | إعادة تشغيل الحاوية من صورة Docker | < 5 دقائق |
+| تلف قاعدة بيانات | استعادة من أحدث نسخة احتياطية (pg_dump) | < 30 دقيقة |
+| فقدان ملفات المرفقات | استعادة من أرشيف Filestore (tar.gz) | < 15 دقيقة |
+| فقدان شهادات SSL | إعادة إصدار شهادات Let's Encrypt عبر Traefik | < 10 دقائق |
+| فشل الخادم بالكامل | نشر النظام على خادم جديد باستخدام Jenkins Pipeline | < ساعة واحدة |
+| تلف ملفات الإعداد (.env) | استعادة من نسخة Git أو النسخ الاحتياطية المشفرة | < 10 دقائق |
+
+### سياسة الاحتفاظ بالنسخ (Retention Policy)
+
+| نوع النسخة | فترة الاحتفاظ | الحذف التلقائي |
+|-----------|--------------|---------------|
+| نسخ يومية | 7 أيام | نعم (بعد انتهاء المدة) |
+| نسخ أسبوعية | 4 أسابيع | نعم |
+| نسخ شهرية | 3 أشهر | نعم |
+| نسخ سنوية | سنة واحدة | نعم |
+
+### 명령 النسخ الاحتياطي عبر Ansible
+
+```bash
+# نسخ احتياطي لجميع نسخ Odoo 17
+ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
+
+# نسخ احتياطي لنسخة محددة
+ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml -e "instance=instance1"
+```
+
+### أوامر النسخ الاحتياطي والاستعادة عبر Terminal (مستقلة)
+
+```bash
+# نسخ شامل لجميع نسخ Odoo
+sudo ./scripts/backup.sh --all
+
+# نسخ Odoo 17 فقط
+sudo ./scripts/backup.sh --version 17
+
+# نسخ Odoo 18 فقط
+sudo ./scripts/backup.sh --version 18
+
+# نسخ Odoo 19 فقط
+sudo ./scripts/backup.sh --version 19
+
+# نسخ نسخة محددة
+sudo ./scripts/backup.sh --instance odoo17-instance1
+sudo ./scripts/backup.sh --instance odoo18-instance1
+sudo ./scripts/backup.sh --instance odoo19-instance1
+
+# فحص النسخ الاحتياطية وسلامة الملفات
+sudo ./scripts/verify-backups.sh
+
+# عرض جميع النسخ الاحتياطية المتوفرة
+sudo ./scripts/list-backups.sh
+
+# استعادة نسخة احتياطية باستخدام معرف النسخة
+sudo ./scripts/restore.sh --backup-id BACKUP_ID
+
+# استعادة مع تحديد الإصدار والنسخة
+sudo ./scripts/restore.sh --version 17 --instance instance1 --backup-id odoo17-instance1-20261104
+```
+
+---
+
 ## النطاقات وشهادات SSL/TLS
 
 ### النطاقات المدعومة
