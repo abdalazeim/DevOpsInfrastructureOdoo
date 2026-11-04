@@ -1,0 +1,12 @@
+Next steps:
+   ./launch-odoo-infra.sh --action validate -p profiles/example.yaml
+   ./launch-odoo-infra.sh --action preflight
+   ./launch-odoo-infra.sh                     # interactive TUI
+==============================================================================
+root@odoo-com-OptiPlex-9030-AIO:/home/odoo-com/Documents/Infrastructure-manage-T# sudo bash launch-odoo-infra.sh
+: invalid option name line 15: set: pipefail
+root@odoo-com-OptiPlex-9030-AIO:/home/odoo-com/Documents/Infrastructure-manage-T# 
+
+
+
+

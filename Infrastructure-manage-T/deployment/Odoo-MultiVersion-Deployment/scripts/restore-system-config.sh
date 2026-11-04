@@ -1,10 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Odoo Multi-Version Deployment - Ubuntu System Configuration Restore
-# استعادة إعدادات نظام Ubuntu بعد إعادة التثبيت
-# مرحلية وآمنة - لا تستعيد الإعدادات الحساسة بشكل أعمى
+# Restore Ubuntu system configuration after reinstallation
+# Staged and safe - does not restore sensitive settings blindly
 # ==============================================================================
 set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 BACKUP_ROOT="/data/backups/system-config"
 TIMESTAMP="${1:-}"
@@ -20,174 +22,174 @@ print_success() { echo -e "${GREEN}[✓]${NC} $1"; }
 print_warning() { echo -e "${YELLOW}[!]${NC} $1"; }
 print_info() { echo -e "${BLUE}[i]${NC} $1"; }
 
-# التحقق من المعلمات
+# Verify parameters
 if [[ -z "$TIMESTAMP" ]]; then
-    print_error "يجب تحديد تاريخ النسخة الاحتياطية للاستعادة."
-    echo "الاستخدام: $0 <TIMESTAMP>"
-    echo "مثال: $0 2026-11-04_020000"
+    print_error "Backup timestamp must be specified for restore."
+    echo "Usage: $0 <TIMESTAMP>"
+    echo "Example: $0 2026-11-04_020000"
     echo ""
-    print_info "النسخ المتوفرة:"
+    print_info "Available backups:"
     if [[ -d "$BACKUP_ROOT" ]]; then
         ls -1 "$BACKUP_ROOT" 2>/dev/null || true
     fi
     exit 1
 fi
 
-# التحقق من صلاحيات الجذر
+# Check root privileges
 if [[ $EUID -ne 0 ]]; then
-    print_error "يجب تشغيل السكربت بصلاحيات الجذر (sudo)."
+    print_error "This script must be run with root privileges (sudo)."
     exit 1
 fi
 
 BACKUP_DIR="$BACKUP_ROOT/$TIMESTAMP"
 
 if [[ ! -d "$BACKUP_DIR" ]]; then
-    print_error "النسخة الاحتياطية غير موجودة: $BACKUP_DIR"
+    print_error "Backup not found: $BACKUP_DIR"
     exit 1
 fi
 
 echo -e "${BLUE}======================================${NC}"
 echo " Ubuntu System Configuration Restore"
 echo "======================================"
-echo "النسخة: $TIMESTAMP"
-echo "المجلد: $BACKUP_DIR"
+echo "Backup: $TIMESTAMP"
+echo "Directory: $BACKUP_DIR"
 echo -e "${BLUE}======================================${NC}"
 echo ""
 
-# التحقق من سلامة النسخة
-print_info "التحقق من سلامة النسخة الاحتياطية..."
+# Verify backup integrity
+print_info "Verifying backup integrity..."
 if [[ -f "$BACKUP_DIR/checksums.sha256" ]]; then
     cd "$BACKUP_DIR"
     if sha256sum -c checksums.sha256 >/dev/null 2>&1; then
-        print_success "التحقق من سلامة الملفات نجح"
+        print_success "File integrity verification succeeded"
     else
-        print_error "فشل التحقق من سلامة الملفات"
+        print_error "File integrity verification failed"
         exit 1
     fi
 else
-    print_warning "ملف checksums.sha256 غير موجود، تخطي التحقق من السلامة"
+    print_warning "checksums.sha256 not found, skipping integrity verification"
 fi
 
-# قراءة معلومات النسخة
+# Read backup info
 if [[ -f "$BACKUP_DIR/manifest.json" ]]; then
-    print_info "معلومات النسخة:"
-    python3 -c "import json; m=json.load(open('$BACKUP_DIR/manifest.json')); print(f'  النوع: {m.get(\"backup_type\")}'); print(f'  التاريخ: {m.get(\"created_at\")}'); print(f'  المضيف: {m.get(\"hostname\")}'); print(f'  النظام: {m.get(\"operating_system\")}')" 2>/dev/null || true
+    print_info "Backup info:"
+    python3 -c "import json; m=json.load(open('$BACKUP_DIR/manifest.json')); print(f'  type: {m.get(\"backup_type\")}'); print(f'  date: {m.get(\"created_at\")}'); print(f'  hostname: {m.get(\"hostname\")}'); print(f'  OS: {m.get(\"operating_system\")}')" 2>/dev/null || true
 fi
 
 echo ""
-print_warning "تنبيه أمني مهم:"
-print_warning "1. لا تستعيد إعدادات Netplan أو SSH أو fstab بشكل أعمى."
-print_warning "2. قد تتغير بطاقة الشبكة أو UUID الأقراص أو عناوين IP بعد إعادة التثبيت."
-print_warning "3. قد يؤدي الاستعادة العمياء إلى فقدان الوصول إلى الخادم."
-print_warning "4. الاستعادة مرحلية - يمكنك اختيار ما تستعيد."
+print_warning "Important security warning:"
+print_warning "1. Do not restore Netplan, SSH, or fstab settings blindly."
+print_warning "2. Network cards, disk UUIDs, or IP addresses may change after OS reinstallation."
+print_warning "3. Blind restoration may cause loss of server access."
+print_warning "4. Restore is staged - you can choose what to restore."
 echo ""
 
-# مرحلة 1: معلومات الأقراص وتقسيماتها
-echo -e "${BLUE}المرحلة 1: معلومات الأقراص وتقسيماتها${NC}"
-print_info "عرض معلومات الأقراص من النسخة الاحتياطية:"
+# Phase 1: Disk info and partitions
+echo -e "${BLUE}Phase 1: Disk info and partitions${NC}"
+print_info "Displaying disk info from backup..."
 cat "$BACKUP_DIR/system-info/lsblk.txt" 2>/dev/null || true
 cat "$BACKUP_DIR/system-info/findmnt.txt" 2>/dev/null || true
 echo ""
-read -p "هل تريد المتابعة إلى المرحلة التالية؟ (yes/no): " CONFIRM_PHASE1
+read -p "Continue to next phase? (yes/no): " CONFIRM_PHASE1
 if [[ "$CONFIRM_PHASE1" != "yes" ]]; then
-    print_warning "تم إلغاء الاستعادة من قبل المستخدم."
+    print_warning "Restore cancelled by user."
     exit 0
 fi
 
-# مرحلة 2: /etc/fstab بعد مطابقة UUID
-echo -e "${BLUE}المرحلة 2: /etc/fstab${NC}"
-print_warning "تحقق من مطابقة UUID الأقراص قبل استعادة fstab."
-print_info "محتوى fstab من النسخة الاحتياطية:"
+# Phase 2: /etc/fstab after UUID matching
+echo -e "${BLUE}Phase 2: /etc/fstab${NC}"
+print_warning "Verify disk UUIDs match before restoring fstab."
+print_info "fstab content from backup:"
 cat "$BACKUP_DIR/etc/fstab" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة /etc/fstab؟ (yes/no): " CONFIRM_FSTAB
+read -p "Restore /etc/fstab? (yes/no): " CONFIRM_FSTAB
 if [[ "$CONFIRM_FSTAB" == "yes" ]]; then
     cp -a "$BACKUP_DIR/etc/fstab" /etc/fstab
-    print_success "تم استعادة /etc/fstab"
+    print_success "/etc/fstab restored"
 else
-    print_warning "تم تخطي /etc/fstab"
+    print_warning "/etc/fstab skipped"
 fi
 
-# مرحلة 3: إعدادات Netplan
-echo -e "${BLUE}المرحلة 3: إعدادات Netplan${NC}"
-print_warning "تحقق من بطاقات الشبكة وعناوين IP قبل استعادة Netplan."
-print_info "ملفات Netplan من النسخة الاحتياطية:"
+# Phase 3: Netplan settings
+echo -e "${BLUE}Phase 3: Netplan settings${NC}"
+print_warning "Verify network cards and IP addresses before restoring Netplan."
+print_info "Netplan files from backup:"
 ls -la "$BACKUP_DIR/etc/netplan/" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة إعدادات Netplan؟ (yes/no): " CONFIRM_NETPLAN
+read -p "Restore Netplan settings? (yes/no): " CONFIRM_NETPLAN
 if [[ "$CONFIRM_NETPLAN" == "yes" ]]; then
     cp -a "$BACKUP_DIR/etc/netplan/" /etc/netplan/
-    print_success "تم استعادة إعدادات Netplan"
+    print_success "Netplan settings restored"
 else
-    print_warning "تم تخطي إعدادات Netplan"
+    print_warning "Netplan settings skipped"
 fi
 
-# مرحلة 4: إعدادات SSH
-echo -e "${BLUE}المرحلة 4: إعدادات SSH${NC}"
-print_warning "تحقق من مفاتيح المضيف قبل استعادة إعدادات SSH."
-print_info "مجلد SSH من النسخة الاحتياطية:"
+# Phase 4: SSH settings
+echo -e "${BLUE}Phase 4: SSH settings${NC}"
+print_warning "Verify host keys before restoring SSH settings."
+print_info "SSH directory from backup:"
 ls -la "$BACKUP_DIR/etc/ssh/" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة إعدادات SSH؟ (yes/no): " CONFIRM_SSH
+read -p "Restore SSH settings? (yes/no): " CONFIRM_SSH
 if [[ "$CONFIRM_SSH" == "yes" ]]; then
     cp -a "$BACKUP_DIR/etc/ssh/" /etc/ssh/
     chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true
-    print_success "تم استعادة إعدادات SSH"
+    print_success "SSH settings restored"
 else
-    print_warning "تم تخطي إعدادات SSH"
+    print_warning "SSH settings skipped"
 fi
 
-# مرحلة 5: Docker Daemon
-echo -e "${BLUE}المرحلة 5: Docker Daemon${NC}"
-print_info "إعدادات Docker من النسخة الاحتياطية:"
+# Phase 5: Docker Daemon
+echo -e "${BLUE}Phase 5: Docker Daemon${NC}"
+print_info "Docker settings from backup:"
 ls -la "$BACKUP_DIR/etc/docker/" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة إعدادات Docker Daemon؟ (yes/no): " CONFIRM_DOCKER
+read -p "Restore Docker Daemon settings? (yes/no): " CONFIRM_DOCKER
 if [[ "$CONFIRM_DOCKER" == "yes" ]]; then
     cp -a "$BACKUP_DIR/etc/docker/" /etc/docker/
-    print_success "تم استعادة إعدادات Docker Daemon"
+    print_success "Docker Daemon settings restored"
 else
-    print_warning "تم تخطي إعدادات Docker Daemon"
+    print_warning "Docker Daemon settings skipped"
 fi
 
-# مرحلة 6: مشاريع /opt
-echo -e "${BLUE}المرحلة 6: مشاريع /opt${NC}"
-print_info "مجلدات /opt من النسخة الاحتياطية:"
+# Phase 6: /opt projects
+echo -e "${BLUE}Phase 6: /opt projects${NC}"
+print_info "/opt directories from backup:"
 ls -la "$BACKUP_DIR/opt/" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة مجلد /opt؟ (yes/no): " CONFIRM_OPT
+read -p "Restore /opt directory? (yes/no): " CONFIRM_OPT
 if [[ "$CONFIRM_OPT" == "yes" ]]; then
     cp -a "$BACKUP_DIR/opt/" /opt/
-    print_success "تم استعادة مجلد /opt"
+    print_success "/opt directory restored"
 else
-    print_warning "تم تخطي مجلد /opt"
+    print_warning "/opt directory skipped"
 fi
 
-# مرحلة 7: الخدمات والجداول المجدولة
-echo -e "${BLUE}المرحلة 7: الخدمات والجداول المجدولة${NC}"
-print_info "الخدمات والجداول من النسخة الاحتياطية:"
+# Phase 7: systemd services and cron jobs
+echo -e "${BLUE}Phase 7: systemd services and cron jobs${NC}"
+print_info "Services and cron from backup:"
 ls -la "$BACKUP_DIR/etc/systemd/system/" 2>/dev/null || true
 ls -la "$BACKUP_DIR/etc/cron.d/" 2>/dev/null || true
 echo ""
-read -p "هل تريد استعادة الخدمات والجداول المجدولة؟ (yes/no): " CONFIRM_SERVICES
+read -p "Restore services and cron jobs? (yes/no): " CONFIRM_SERVICES
 if [[ "$CONFIRM_SERVICES" == "yes" ]]; then
     cp -a "$BACKUP_DIR/etc/systemd/system/" /etc/systemd/system/ 2>/dev/null || true
     cp -a "$BACKUP_DIR/etc/cron.d/" /etc/cron.d/ 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
-    print_success "تم استعادة الخدمات والجداول المجدولة"
+    print_success "Services and cron jobs restored"
 else
-    print_warning "تم تخطي الخدمات والجداول المجدولة"
+    print_warning "Services and cron jobs skipped"
 fi
 
-# مرحلة 8: فحص التشغيل والشبكة والحاويات
-echo -e "${BLUE}المرحلة 8: فحص التشغيل والشبكة والحاويات${NC}"
-print_info "فحص حالة النظام بعد الاستعادة..."
+# Phase 8: System status check
+echo -e "${BLUE}Phase 8: System status check${NC}"
+print_info "Checking system status after restore..."
 hostnamectl 2>/dev/null || true
 ip address 2>/dev/null || true
 docker version 2>/dev/null || true
 docker compose version 2>/dev/null || true
 echo ""
-print_success "اكتملت عملية الاستعادة للمراحل المحددة."
-print_info "يُوصى بإعادة تشغيل النظام بعد استعادة إعدادات الشبكة وSSH."
+print_success "Restore completed for selected phases."
+print_info "Reboot recommended after restoring network and SSH settings."
 
 exit 0

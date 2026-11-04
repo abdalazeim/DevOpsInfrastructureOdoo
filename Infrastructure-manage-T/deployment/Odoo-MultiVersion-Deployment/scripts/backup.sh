@@ -1,10 +1,12 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
 # Odoo Multi-Version Deployment - Backup Script
-# ينشئ نسخًا احتياطية لقواعد بيانات PostgreSQL ومجلدات البيانات
-# يدعم Odoo 17 و Odoo 19 مع نسخ متعددة لكل إصدار
+# Creates backups of PostgreSQL databases and data directories
+# Supports Odoo 17 and Odoo 19 with multiple instances per version
 # ==============================================================================
 set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 INSTANCE="${1:-instance1}"
 ODOO_VERSION="${2:-}"
@@ -36,7 +38,6 @@ elif echo "${INSTANCE}" | grep -qE "^odoo19|-19|19-"; then
 elif echo "${INSTANCE}" | grep -qE "^odoo18|-18|18-"; then
     VERSION="odoo18"
 else
-    # Default: check running containers to determine version
     if docker ps --format '{{.Names}}' | grep -q "^odoo17-${INSTANCE}-db$"; then
         VERSION="odoo17"
     elif docker ps --format '{{.Names}}' | grep -q "^odoo19-${INSTANCE}-db$"; then
@@ -44,9 +45,9 @@ else
     elif docker ps --format '{{.Names}}' | grep -q "^odoo18-${INSTANCE}-db$"; then
         VERSION="odoo18"
     else
-        print_error "لا يمكن تحديد إصدار Odoo للنسخة: ${INSTANCE}"
-        print_info "الاستخدام: $0 <INSTANCE> [ODOO_VERSION] [BACKUP_DIR]"
-        print_info "مثال: $0 instance1 odoo17 /data/backups"
+        print_error "Cannot determine Odoo version for instance: ${INSTANCE}"
+        print_info "Usage: $0 <INSTANCE> [ODOO_VERSION] [BACKUP_DIR]"
+        print_info "Example: $0 instance1 odoo17 /data/backups"
         exit 1
     fi
 fi
@@ -56,70 +57,68 @@ DB_CONTAINER="${VERSION}-${INSTANCE}-db"
 DATA_PATH="/data/${VERSION}/${INSTANCE}"
 CONFIG_PATH="/opt/${VERSION}/${INSTANCE}"
 
-print_info "الإصدار المحدد: ${VERSION}"
-print_info "حاوية Odoo: ${ODOO_CONTAINER}"
-print_info "حاوية DB: ${DB_CONTAINER}"
-print_info "مسار البيانات: ${DATA_PATH}"
-print_info "مسار الإعدادات: ${CONFIG_PATH}"
+print_info "Version selected: ${VERSION}"
+print_info "Odoo container: ${ODOO_CONTAINER}"
+print_info "DB container: ${DB_CONTAINER}"
+print_info "Data path: ${DATA_PATH}"
+print_info "Config path: ${CONFIG_PATH}"
 
 mkdir -p "${BACKUP_DIR}/${VERSION}/${INSTANCE}"
 
 TIMESTAMP=$(date +%Y%m%d_%H%M%S)
 
 # Backup PostgreSQL database
-print_info "إنشاء نسخة احتياطية لقاعدة بيانات PostgreSQL..."
+print_info "Creating PostgreSQL database backup..."
 if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    # Get database name from environment or list
     DB_NAME=$(docker exec "${DB_CONTAINER}" psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'odoo%';" 2>/dev/null | head -1 | xargs || echo "")
     if [ -z "${DB_NAME}" ]; then
-        # Try to get from container env
         DB_NAME=$(docker exec "${DB_CONTAINER}" env 2>/dev/null | grep POSTGRES_DB | cut -d= -f2 | head -1 || echo "")
     fi
     if [ -n "${DB_NAME}" ]; then
         docker exec -T "${DB_CONTAINER}" pg_dump -U postgres "${DB_NAME}" > "${BACKUP_DIR}/${VERSION}/${INSTANCE}/database_${TIMESTAMP}.sql"
-        print_success "تم نسخ قاعدة البيانات: ${DB_NAME}"
+        print_success "Database backed up: ${DB_NAME}"
     else
-        print_warning "لم يتم العثور على اسم قاعدة بيانات في حاوية: ${DB_CONTAINER}"
+        print_warning "Could not find database name in container: ${DB_CONTAINER}"
     fi
 else
-    print_error "حاوية DB غير موجودة: ${DB_CONTAINER}"
+    print_error "DB container not found: ${DB_CONTAINER}"
     exit 1
 fi
 
 # Backup Odoo filestore
-print_info "إنشاء نسخة احتياطية لملفات Odoo (filestore)..."
+print_info "Creating Odoo filestore backup..."
 if [ -d "${DATA_PATH}" ]; then
     tar --zstd -cf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/filestore_${TIMESTAMP}.tar.zst" -C "${DATA_PATH}" . 2>/dev/null || \
     tar -czf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/filestore_${TIMESTAMP}.tar.gz" -C "${DATA_PATH}" . 2>/dev/null || true
-    print_success "تم نسخ ملفات البيانات: ${DATA_PATH}"
+    print_success "Data files backed up: ${DATA_PATH}"
 else
-    print_warning "مجلد البيانات غير موجود: ${DATA_PATH}"
+    print_warning "Data directory not found: ${DATA_PATH}"
 fi
 
 # Backup custom addons
-print_info "إنشاء نسخة احتياطية للإضافات المخصصة..."
+print_info "Creating custom addons backup..."
 if [ -d "${CONFIG_PATH}/addons" ]; then
     tar --zstd -cf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/addons_${TIMESTAMP}.tar.zst" -C "${CONFIG_PATH}" addons 2>/dev/null || \
     tar -czf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/addons_${TIMESTAMP}.tar.gz" -C "${CONFIG_PATH}" addons 2>/dev/null || true
-    print_success "تم نسخ الإضافات المخصصة: ${CONFIG_PATH}/addons"
+    print_success "Custom addons backed up: ${CONFIG_PATH}/addons"
 else
-    print_warning "مجلد الإضافات غير موجود: ${CONFIG_PATH}/addons"
+    print_warning "Addons directory not found: ${CONFIG_PATH}/addons"
 fi
 
 # Backup Odoo configuration
-print_info "إنشاء نسخة احتياطية لإعدادات Odoo..."
+print_info "Creating Odoo configuration backup..."
 if [ -d "${CONFIG_PATH}/etc" ]; then
     tar --zstd -cf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/config_${TIMESTAMP}.tar.zst" -C "${CONFIG_PATH}" etc 2>/dev/null || \
     tar -czf "${BACKUP_DIR}/${VERSION}/${INSTANCE}/config_${TIMESTAMP}.tar.gz" -C "${CONFIG_PATH}" etc 2>/dev/null || true
-    print_success "تم نسخ إعدادات Odoo: ${CONFIG_PATH}/etc"
+    print_success "Odoo configuration backed up: ${CONFIG_PATH}/etc"
 else
-    print_warning "مجلد الإعدادات غير موجود: ${CONFIG_PATH}/etc"
+    print_warning "Config directory not found: ${CONFIG_PATH}/etc"
 fi
 
 # List backups
-print_info "النسخ الاحتياطية المتاحة:"
+print_info "Available backups:"
 ls -lh "${BACKUP_DIR}/${VERSION}/${INSTANCE}/" 2>/dev/null || true
 
 echo ""
-print_success "اكتملت النسخة الاحتياطية للنسخة: ${INSTANCE} (الإصدار: ${VERSION})"
+print_success "Backup completed for instance: ${INSTANCE} (version: ${VERSION})"
 exit 0
