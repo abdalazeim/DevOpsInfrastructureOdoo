@@ -2,7 +2,7 @@
 # ==============================================================================
 # Odoo 17 Private Repository - Installation Script
 #
-# يستمد الأفكار من odoo-17-docker-compose-master/run.sh
+# يستمد الأفكار من Odoo-MultiVersion-Deployment/run.sh
 # مع تحسينات لنظام مدير البنية التحتية.
 #
 # الاستخدام:
@@ -71,10 +71,10 @@ ODOO_DOMAIN=odoo17.localhost
 DOCKER_PROXY_NETWORK=proxy
 CERTSRESOLVER=letsencrypt
 POSTGRES_USER=odoo
-POSTGRES_PASSWORD=CHANGE_ME
+POSTGRES_PASSWORD=odoo17
 ODOO_DB_USER=odoo
-ODOO_DB_PASSWORD=CHANGE_ME
-ODOO_ADMIN_PASSWORD=CHANGE_ME
+ODOO_DB_PASSWORD=odoo17
+ODOO_ADMIN_PASSWORD=odoo17
 ODOO_DB_NAME=odoo17_prod
 EOF
 chmod 600 "${DESTINATION}/.env"

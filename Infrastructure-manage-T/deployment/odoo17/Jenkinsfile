@@ -111,7 +111,7 @@ pipeline {
                         # إنشاء ملف متغيرات الأسرار (vault)
                         cat > group_vars/vault.yml <<EOF
                         vault_odoo_admin_password: "${ODOO_ADMIN_PASSWORD:-ChangeMe_Admin456!}"
-                        vault_postgres_password: "${POSTGRES_PASSWORD:-ChangeMe_Secure123!}"
+                        vault_postgres_password: "${POSTGRES_PASSWORD:-odoo17}"
                         EOF
                         
                         # تشفير ملف vault

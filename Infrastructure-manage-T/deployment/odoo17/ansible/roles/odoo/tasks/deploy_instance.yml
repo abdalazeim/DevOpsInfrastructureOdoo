@@ -90,10 +90,10 @@
       DOCKER_PROXY_NETWORK={{ docker_network }}
       CERTSRESOLVER={{ traefik_certresolver }}
       POSTGRES_USER={{ item.db_user }}
-      POSTGRES_PASSWORD={{ vault_postgres_password | default('CHANGE_ME') }}
+      POSTGRES_PASSWORD={{ vault_postgres_password | default('odoo17') }}
       ODOO_DB_USER={{ item.db_user }}
-      ODOO_DB_PASSWORD={{ vault_postgres_password | default('CHANGE_ME') }}
-      ODOO_ADMIN_PASSWORD={{ vault_odoo_admin_password | default('CHANGE_ME') }}
+      ODOO_DB_PASSWORD={{ vault_postgres_password | default('odoo17') }}
+      ODOO_ADMIN_PASSWORD={{ vault_odoo_admin_password | default('odoo17') }}
       ODOO_DB_NAME={{ item.db_name }}
     dest: "{{ item.config_path }}/.env"
     owner: root

@@ -1,6 +1,6 @@
 # Odoo 17 Private Repository - Infrastructure Manager Edition
 #
-# مستودع خاص لـ Odoo 17 يعتمد على الأفكار من odoo-17-docker-compose-master
+# مستودع خاص لـ Odoo 17 يعتمد على الأفكار من Odoo-MultiVersion-Deployment
 # ولكن محسن ليتناسب مع نظام مدير البنية التحتية (Infrastructure Manager).
 #
 # الميزات:
