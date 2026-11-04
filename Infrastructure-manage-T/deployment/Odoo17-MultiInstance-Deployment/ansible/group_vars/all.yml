@@ -1,0 +1,29 @@
+# Odoo 17 Multi-Instance Group Variables
+# متغيرات عامة لكل نسخ Odoo 17
+
+odoo_version: "17"
+postgres_version: "16"
+
+odoo_image: "odoo:17"
+postgres_image: "postgres:16"
+
+proxy_network: "proxy"
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"
+
+odoo_workers: 3
+odoo_list_db: false
+odoo_proxy_mode: true
+
+postgres_data_path: "/var/lib/postgresql/data"
+postgres_maxconn: 64
+
+odoo_data_root: "/data/odoo17"
+odoo_config_root: "/opt/odoo17"
+
+backup_root: "/data/backups/odoo17"
+backup_retention_count: 5
+
+# كلمات المرور الآمنة (تُOverride عبر Ansible Vault أو Jenkins Credentials)
+vault_odoo_admin_password: "CHANGE_ME"
+vault_postgres_password: "CHANGE_ME"

@@ -1,0 +1,130 @@
+---
+# Odoo 17 Multi-Instance - Odoo Role Tasks - Deploy Instance
+# ينشر نسخة Odoo واحدة مع PostgreSQL مستقل باستخدام قوالب Jinja2
+
+- name: Create instance directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - "{{ item.data_path }}"
+    - "{{ item.data_path }}/postgresql"
+    - "{{ item.config_path }}"
+    - "{{ item.config_path }}/etc"
+    - "{{ item.config_path }}/addons"
+
+- name: Copy Docker Compose template
+  ansible.builtin.copy:
+    src: ../../../../templates/docker-compose.yml.j2
+    dest: "{{ item.config_path }}/docker-compose.yml.j2"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy Odoo config template
+  ansible.builtin.copy:
+    src: ../../../../templates/odoo.conf.j2
+    dest: "{{ item.config_path }}/etc/odoo.conf.j2"
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Copy entrypoint script
+  ansible.builtin.copy:
+    src: ../../../../templates/entrypoint.sh
+    dest: "{{ item.config_path }}/entrypoint.sh"
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Render Docker Compose file from template
+  ansible.builtin.template:
+    src: "{{ item.config_path }}/docker-compose.yml.j2"
+    dest: "{{ item.config_path }}/docker-compose.yml"
+    owner: root
+    group: root
+    mode: '0644'
+  vars:
+    container_name: "{{ item.container_name }}"
+    odoo_image: "{{ odoo_image }}"
+    postgres_image: "{{ postgres_image }}"
+    db_user: "{{ item.db_user }}"
+    db_password: "{{ vault_postgres_password | default('CHANGE_ME') }}"
+    db_name: "{{ item.db_name }}"
+    data_path: "{{ item.data_path }}"
+    http_port: "{{ item.http_port }}"
+    chat_port: "{{ item.chat_port }}"
+    internal_network: "{{ item.name }}_internal"
+    traefik_enabled: "{{ item.traefik_enabled | default(false) }}"
+    domain: "{{ item.domain }}"
+    proxy_network: "{{ docker_network }}"
+    certresolver: "{{ traefik_certresolver }}"
+
+- name: Render Odoo config file from template
+  ansible.builtin.template:
+    src: "{{ item.config_path }}/etc/odoo.conf.j2"
+    dest: "{{ item.config_path }}/etc/odoo.conf"
+    owner: root
+    group: root
+    mode: '0600'
+  vars:
+    instance_name: "{{ item.name }}"
+    admin_password: "{{ vault_odoo_admin_password | default('CHANGE_ME') }}"
+    db_user: "{{ item.db_user }}"
+    db_password: "{{ vault_postgres_password | default('CHANGE_ME') }}"
+    workers: "{{ odoo_workers }}"
+
+- name: Create .env file for instance
+  ansible.builtin.copy:
+    content: |
+      # Odoo 17 Instance Environment Variables
+      ODOO_IMAGE={{ odoo_image }}
+      PG_IMAGE={{ postgres_image }}
+      ODOO_HTTP_PORT={{ item.http_port }}
+      ODOO_CHAT_PORT={{ item.chat_port }}
+      ODOO_NETWORK={{ item.name }}_internal
+      ODOO_DOMAIN={{ item.domain }}
+      DOCKER_PROXY_NETWORK={{ docker_network }}
+      CERTSRESOLVER={{ traefik_certresolver }}
+      POSTGRES_USER={{ item.db_user }}
+      POSTGRES_PASSWORD={{ vault_postgres_password | default('CHANGE_ME') }}
+      ODOO_DB_USER={{ item.db_user }}
+      ODOO_DB_PASSWORD={{ vault_postgres_password | default('CHANGE_ME') }}
+      ODOO_ADMIN_PASSWORD={{ vault_odoo_admin_password | default('CHANGE_ME') }}
+      ODOO_DB_NAME={{ item.db_name }}
+    dest: "{{ item.config_path }}/.env"
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Deploy Odoo stack with Docker Compose
+  community.docker.docker_compose_v2:
+    project_src: "{{ item.config_path }}"
+    files:
+      - docker-compose.yml
+    state: present
+  register: compose_result
+  changed_when: compose_result.changed
+
+- name: Verify Odoo container is running
+  community.docker.docker_container_info:
+    name: "{{ item.container_name }}"
+  register: odoo_container_info
+  until: odoo_container_info.exists | default(false) | bool and odoo_container_info.container.State.Status | default('') == 'running'
+  retries: 10
+  delay: 10
+
+- name: Verify database container is running
+  community.docker.docker_container_info:
+    name: "{{ item.container_name }}-db"
+  register: db_container_info
+  until: db_container_info.exists | default(false) | bool and db_container_info.container.State.Status | default('') == 'running'
+  retries: 10
+  delay: 10
+
+- name: Instance deployed successfully
+  ansible.builtin.debug:
+    msg: "✓ تم نشر نسخة {{ item.name }} بنجاح على النطاق {{ item.domain }}"

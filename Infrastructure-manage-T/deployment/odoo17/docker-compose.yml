@@ -1,20 +1,17 @@
-# ==============================================================================
-# Odoo 17 + PostgreSQL 16 - Standalone Compose (minhng92 style)
+# Odoo 17 Private Repository - Infrastructure Manager Edition
 #
-# This file is copied by automation/scripts/install-odoo.sh into a dedicated
-# instance directory (default: /opt/odoo-infrastructure/odoo17) together with:
-#   postgresql/  addons/  etc/odoo.conf  entrypoint.sh  .env
+# مستودع خاص لـ Odoo 17 يعتمد على الأفكار من odoo-17-docker-compose-master
+# ولكن محسن ليتناسب مع نظام مدير البنية التحتية (Infrastructure Manager).
 #
-# Layout:
-#   postgresql/  -> /var/lib/postgresql/data
-#   addons/      -> /mnt/extra-addons
-#   etc/         -> /etc/odoo (contains odoo.conf)
-#
-# Direct access (no reverse proxy):
-#   http://localhost:10017  (web)
-#   http://localhost:20017  (live chat / longpolling)
-# ==============================================================================
-name: odoo17
+# الميزات:
+# - دعم متغيرات البيئة (لا كلمات مرور مكتوبة ضمنيًا)
+# - دعم ترافيك كبروكسي عكسي (HTTPS)
+# - وضع ستاندون (وصول مباشر)
+# - شبكة داخلية معزولة لكل ideal
+# - EntryPoint آمن مع انتظار PostgreSQL
+# - ملف .gitignore آمن يستبعد الأسرار والبيانات
+
+version: '3.8'
 
 services:
   db:
@@ -42,14 +39,15 @@ services:
     command: ["--config=/etc/odoo/odoo.conf"]
     environment:
       - HOST=db
+      - PORT=5432
       - USER=${POSTGRES_USER:-odoo}
       - PASSWORD=${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
       - PIP_BREAK_SYSTEM_PACKAGES=1
     ports:
       - "${ODOO_HTTP_PORT:-10017}:8069"
-      - "${ODOO_CHAT_PORT:-20017}:8072" # live chat
+      - "${ODOO_CHAT_PORT:-20017}:8072"
     volumes:
-      - ./entrypoint.sh:/entrypoint.sh
+      - ./entrypoint.sh:/entrypoint.sh:ro
       - ./addons:/mnt/extra-addons
       - ./etc:/etc/odoo
     networks:

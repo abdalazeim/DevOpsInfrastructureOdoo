@@ -1,0 +1,7 @@
+---
+# Odoo 17 Multi-Instance - Docker Role - Handlers
+
+- name: Restart Docker service
+  ansible.builtin.service:
+    name: docker
+    state: restarted

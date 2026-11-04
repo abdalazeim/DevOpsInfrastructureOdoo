@@ -5,8 +5,9 @@ Verifies discovery, compose generation, label creation, and backup/restore mecha
 
 import unittest
 import os
-import tempfile
+import platform
 import shutil
+import tempfile
 from app.services.traefik_manager import (
     TraefikDockerManager,
     TraefikConfig,
@@ -96,7 +97,10 @@ class TestTraefikDockerManager(unittest.TestCase):
         acme_path = dirs["acme_file"]
         self.assertTrue(os.path.exists(acme_path))
         perm = oct(os.stat(acme_path).st_mode)[-3:]
-        self.assertEqual(perm, "600")
+        if platform.system() == 'Windows':
+            self.assertIn(perm, ('600', '666'), 'Windows does not enforce Unix-style chmod')
+        else:
+            self.assertEqual(perm, "600")
 
     def test_traefik_backup_and_restore(self):
         # Write dummy files

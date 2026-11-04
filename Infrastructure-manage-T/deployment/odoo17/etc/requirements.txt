@@ -1,0 +1,6 @@
+# -----------------------
+# | Add Python packages |
+# -----------------------
+# packages to install at startup (optional)
+# -----------------------
+# paramiko==2.7.2 # for auto_backup module

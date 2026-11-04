@@ -1,0 +1,29 @@
+# Odoo 19 Multi-Instance Group Variables
+# متغيرات عامة لكل نسخ Odoo 19
+
+odoo_version: "19"
+postgres_version: "18"
+
+odoo_image: "odoo:19"
+postgres_image: "postgres:18"
+
+proxy_network: "proxy"
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"
+
+odoo_workers: 3
+odoo_list_db: false
+odoo_proxy_mode: true
+
+postgres_data_path: "/var/lib/postgresql/18/docker"
+postgres_maxconn: 64
+
+odoo_data_root: "/data/odoo19"
+odoo_config_root: "/opt/odoo19"
+
+backup_root: "/data/backups/odoo19"
+backup_retention_count: 5
+
+# كلمات المرور الآمنة (تُOverride عبر Ansible Vault أو Jenkins Credentials)
+vault_odoo_admin_password: "CHANGE_ME"
+vault_postgres_password: "CHANGE_ME"

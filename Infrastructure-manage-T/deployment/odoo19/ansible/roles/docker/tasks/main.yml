@@ -1,0 +1,29 @@
+---
+# Odoo 19 Multi-Instance - Docker Role Tasks
+# يتحقق من تثبيت Docker Engine و Docker Compose
+
+- name: Check Docker Engine installation
+  ansible.builtin.command: docker --version
+  register: docker_check
+  changed_when: false
+  failed_when: docker_check.rc != 0
+
+- name: Display Docker version
+  ansible.builtin.debug:
+    msg: "Docker Engine: {{ docker_check.stdout }}"
+
+- name: Check Docker Compose installation
+  ansible.builtin.command: docker compose version
+  register: compose_check
+  changed_when: false
+  failed_when: compose_check.rc != 0
+
+- name: Display Docker Compose version
+  ansible.builtin.debug:
+    msg: "Docker Compose: {{ compose_check.stdout }}"
+
+- name: Ensure Docker service is running
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: yes

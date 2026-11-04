@@ -1,0 +1,4 @@
+# Odoo 17 Multi-Instance - Docker Role - Defaults
+docker_compose_version: "v2"
+docker_service_state: started
+docker_service_enabled: yes

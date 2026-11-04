@@ -1,0 +1,70 @@
+---
+# Odoo 17 Multi-Instance - System Role Tasks
+# يتحقق من نظام التشغيل ويinstall المتطلبات النظامية
+
+- name: Check Ubuntu OS
+  ansible.builtin.command: lsb_release -ds
+  register: os_info
+  changed_when: false
+  failed_when: false
+
+- name: Display OS information
+  ansible.builtin.debug:
+    msg: "نظام التشغيل: {{ os_info.stdout }}"
+
+- name: Check available memory
+  ansible.builtin.command: free -m
+  register: memory_info
+  changed_when: false
+
+- name: Display memory information
+  ansible.builtin.debug:
+    msg: "{{ memory_info.stdout_lines | join(', ') }}"
+
+- name: Check available disk space
+  ansible.builtin.command: df -h /opt /data
+  register: disk_info
+  changed_when: false
+
+- name: Display disk space information
+  ansible.builtin.debug:
+    msg: "{{ disk_info.stdout_lines | join(', ') }}"
+
+- name: Create required system directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+  loop:
+    - /opt/odoo17
+    - /data/odoo17
+    - /data/backups/odoo17
+    - /data/odoo17/instance1
+    - /data/odoo17/instance2
+    - /data/odoo17/instance1/postgresql
+    - data/odoo17/instance2/postgresql
+    - /opt/odoo17/instance1
+    - /opt/odoo17/instance2
+    - /opt/odoo17/instance1/etc
+    - /opt/odoo17/instance1/addons
+    - /opt/odoo17/instance2/etc
+    - /opt/odoo17/instance2/addons
+
+- name: Install system packages
+  ansible.builtin.apt:
+    name:
+      - python3
+      - python3-pip
+      - pipx
+      - openssh-client
+      - sshpass
+      - git
+      - curl
+      - nano
+      - rsync
+      - software-properties-common
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"

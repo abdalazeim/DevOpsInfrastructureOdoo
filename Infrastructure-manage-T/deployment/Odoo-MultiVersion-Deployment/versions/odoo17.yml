@@ -1,0 +1,33 @@
+# Odoo 17 Multi-Instance Variables
+odoo_version: "17"
+postgres_version: "16"
+odoo_image: "odoo:17"
+postgres_image: "postgres:16"
+docker_network: "proxy"
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"
+
+odoo_instances:
+  - name: instance1
+    project: odoo17_instance1
+    domain: odoo1.devops-odoo.com
+    data_path: /data/odoo17/instance1
+    config_path: /opt/odoo17/instance1
+    http_port: 8069
+    chat_port: 8072
+    db_name: odoo17_db1
+    db_user: odoo17_instance1
+    container_name: odoo17-instance1
+    traefik_enabled: true
+
+  - name: instance2
+    project: odoo17_instance2
+    domain: odoo2.devops-odoo.com
+    data_path: /data/odoo17/instance2
+    config_path: /opt/odoo17/instance2
+    http_port: 8069
+    chat_port: 8072
+    db_name: odoo17_db2
+    db_user: odoo17_instance2
+    container_name: odoo17-instance2
+    traefik_enabled: true

@@ -12,10 +12,12 @@ import socket
 import json
 import hashlib
 import time
+import platform
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Any
 
 from app.services.archive_utils import safe_extractall
+from app.services.docker_installer import run_step
 
 
 DEFAULT_CONFIG_DIR = "/opt/odoo-infrastructure/traefik"
@@ -667,3 +669,356 @@ class TraefikDockerManager:
             results["details"].append(f"Port 443 check error: {e}")
 
         return results
+
+
+TRAEFIK_DIR = '/opt/traefik'
+TRAEFIK_LETSENCRYPT_DIR = os.path.join(TRAEFIK_DIR, 'letsencrypt')
+TRAEFIK_CONFIG_DIR = os.path.join(TRAEFIK_DIR, 'config')
+TRAEFIK_DATA_DIR = '/data/traefik'
+TRAEFIK_LOG_DIR = os.path.join(TRAEFIK_DATA_DIR, 'logs')
+TRAEFIK_COMPOSE_FILE = os.path.join(TRAEFIK_DIR, 'docker-compose.yml')
+TRAEFIK_ENV_FILE = os.path.join(TRAEFIK_DIR, '.env')
+TRAEFIK_ACME_FILE = os.path.join(TRAEFIK_LETSENCRYPT_DIR, 'acme.json')
+TRAEFIK_STATIC_CONFIG = os.path.join(TRAEFIK_CONFIG_DIR, 'traefik.yml')
+
+
+def docker_traefik_command(use_sudo=False):
+    return (['sudo', '-n'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []) + DOCKER
+
+
+def inspect_traefik(use_sudo=False):
+    """فحص حالة ترافيك على المحرك المحلي (مثبت / مفقود / تضارب / خطأ)."""
+    if not shutil.which('docker'):
+        return {'status': 'docker_missing', 'containers': [], 'error': 'جهّز Docker Engine أولًا.'}
+    code, output = probe(docker_traefik_command(use_sudo) + ['ps', '-a', '--format', '{{json .}}'])
+    if code:
+        return {'status': 'error', 'containers': [], 'error': output}
+    containers = []
+    collision = False
+    try:
+        for line in output.splitlines():
+            item = json.loads(line)
+            image = item.get('Image', '')
+            is_traefik = image.startswith('traefik')
+            if is_traefik or item.get('Names') == 'traefik':
+                containers.append(item)
+                collision |= not is_traefik
+    except (ValueError, AttributeError):
+        return {'status': 'error', 'containers': [], 'error': 'تعذر قراءة استجابة Docker.'}
+    return {'status': 'conflict' if collision else 'installed' if containers else 'missing',
+            'containers': containers, 'error': ''}
+
+
+def build_traefik_plan(use_sudo=False):
+    """بناء خطة إعداد وتركيب ترافيك (mkdir, touch, chmod)."""
+    docker = docker_traefik_command(use_sudo)
+    prefix = docker[:-len(DOCKER)]
+    return [
+        prefix + ['mkdir', '-p', f'{TRAEFIK_DIR}/config', f'{TRAEFIK_LETSENCRYPT_DIR}', f'{TRAEFIK_DATA_DIR}/logs'],
+        prefix + ['touch', TRAEFIK_ACME_FILE],
+        prefix + ['chmod', '600', TRAEFIK_ACME_FILE],
+        prefix + ['mkdir', '-p', TRAEFIK_DIR],
+    ]
+
+
+def _traefik_env_content():
+    return (
+        "TRAEFIK_IMAGE=traefik:v3.7\n"
+        "ACME_EMAIL=${ACME_EMAIL:-admin@example.com}\n"
+        "TRAEFIK_DASHBOARD_DOMAIN=traefik.local\n"
+        "TRAEFIK_BASIC_AUTH=admin:$$apr1$$xyz$$randomhash\n"
+        "DOCKER_PROXY_NETWORK=proxy\n"
+        f"ODOO_DATA_ROOT={TRAEFIK_DIR}\n"
+    )
+
+
+def _traefik_static_config():
+    return (
+        "# Traefik v3.7 static configuration\n"
+        "api:\n"
+        "  dashboard: true\n"
+        "  insecure: false\n"
+        "entryPoints:\n"
+        "  web:\n"
+        "    address: :80\n"
+        "    http:\n"
+        "      redirections:\n"
+        "        entryPoint:\n"
+        "          to: websecure\n"
+        "          scheme: https\n"
+        "  websecure:\n"
+        "    address: :443\n"
+        "certificatesResolvers:\n"
+        "  le:\n"
+        "    acme:\n"
+        "      email: ${ACME_EMAIL}\n"
+        "      storage: /letsencrypt/acme.json\n"
+        "      httpChallenge:\n"
+        "        entryPoint: web\n"
+        "providers:\n"
+        "  docker:\n"
+        "    endpoint: unix:///var/run/docker.sock\n"
+        "    exposedByDefault: false\n"
+        "    network: proxy\n"
+    )
+
+
+def _traefik_compose_content():
+    return (
+        "services:\n"
+        "  traefik:\n"
+        "    image: traefik:v3.7\n"
+        "    container_name: traefik\n"
+        "    restart: unless-stopped\n"
+        "    security_opt:\n"
+        "      - no-new-privileges:true\n"
+        "    ports:\n"
+        "      - \"80:80\"\n"
+        "      - \"443:443\"\n"
+        "    networks:\n"
+        "      - proxy\n"
+        "    volumes:\n"
+        "      - /var/run/docker.sock:/var/run/docker.sock:ro\n"
+        "      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro\n"
+        "      - ./letsencrypt/acme.json:/letsencrypt/acme.json\n"
+        "      - ./logs:/var/log/traefik\n"
+        "    environment:\n"
+        "      - ACME_EMAIL=${ACME_EMAIL}\n"
+        "    labels:\n"
+        "      - \"traefik.enable=true\"\n"
+        "networks:\n"
+        "  proxy:\n"
+        "    external: true\n"
+        "    name: proxy\n"
+    )
+
+
+def install_traefik(dry_run=False, use_sudo=False):
+    """تنصيب ترافيك إن لم يكن مثبتًا. إذا مثبت أو هناك تضارب، لا يُنفذ أي تغيير."""
+    try:
+        if platform.system() != 'Linux':
+            raise ValueError('هذا المثبت مخصص لمحرك Docker المحلي على Linux.')
+        report = inspect_traefik(use_sudo=use_sudo)
+        if report['status'] == 'installed':
+            print('Traefik مثبت بالفعل. حالة الحاوية موضحة أعلاه. لن يعاد التثبيت.')
+            return True
+        if report['status'] == 'conflict':
+            print('اسم traefik مستخدم من حاوية أخرى. لم تُجرَ تغييرات.')
+            return False
+        if report['status'] == 'error':
+            print(report['error'])
+            return False
+
+        for candidate in (80, 443):
+            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                sock.bind(('0.0.0.0', candidate))
+
+        commands = build_traefik_plan(use_sudo=use_sudo)
+        if dry_run:
+            for command in commands:
+                run_step(command, dry_run=True)
+            run_step(docker_traefik_command(use_sudo) + ['network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy'], dry_run=True)
+            run_step(docker_traefik_command(use_sudo) + ['compose', '-f', TRAEFIK_COMPOSE_FILE, 'up', '-d'], dry_run=True)
+            return True
+
+        for command in commands:
+            run_step(command)
+        run_step(docker_traefik_command(use_sudo) + ['network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy'])
+        with open(TRAEFIK_ENV_FILE, 'w') as f:
+            f.write(_traefik_env_content())
+        os.chmod(TRAEFIK_ENV_FILE, 0o600)
+        with open(TRAEFIK_STATIC_CONFIG, 'w') as f:
+            f.write(_traefik_static_config())
+        with open(TRAEFIK_COMPOSE_FILE, 'w') as f:
+            f.write(_traefik_compose_content())
+        run_step(docker_traefik_command(use_sudo) + ['compose', '-f', TRAEFIK_COMPOSE_FILE, 'up', '-d'])
+        code, state = probe(docker_traefik_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', 'traefik'])
+        if code or state != 'running':
+            print(f'أُنشئت الحاوية لكن الفحص لم يؤكد تشغيلها: {state}. راجع docker logs traefik.')
+            return False
+        run_step(docker_traefik_command(use_sudo) + ['ps', '-a'])
+        print(f'حاوية ترافيك تعمل. افتح https://<SERVER-IP> للوحة التحكم (Basic Auth) والمنافذ 80/443.')
+        return True
+    except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
+        print(f'توقف تثبيت ترافيك: {exc}. لم تُحذف بيانات أو حاويات قائمة؛ راجع المخرجات.')
+        return False
+
+
+def ufw_command(use_sudo=False):
+    return (['sudo', '-n'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []) + ['ufw']
+
+
+def ufw_installed():
+    return shutil.which('ufw') is not None
+
+
+def ufw_status(use_sudo=False):
+    if not ufw_installed():
+        return {'available': False, 'error': 'UFW غير مثبت على النظام.'}
+    code, output = probe(ufw_command(use_sudo) + ['status'])
+    return {'available': True, 'code': code, 'output': output, 'error': '' if code == 0 else output}
+
+
+def ufw_allow_port(port, protocol='tcp', use_sudo=False):
+    if not ufw_installed():
+        return False, 'UFW غير مثبت على النظام.'
+    code, output = probe(ufw_command(use_sudo) + ['allow', f'{port}/{protocol}'])
+    return code == 0, output if code != 0 else f'تم فتح المنفذ {port}/{protocol} بنجاح.'
+
+
+def setup_traefik_ufw(use_sudo=False):
+    """فتح منافذ ترافيك 80/TCP و 443/TCP عبر UFW إن كان موجودًا."""
+    if not ufw_installed():
+        print('UFW غير مثبت. لا يمكن إدارة جدار الحماية تلقائيًا.')
+        return False
+    code, output = probe(ufw_command(use_sudo) + ['status'])
+    if code != 0:
+        print(f'تعذر قراءة حالة UFW: {output}')
+        return False
+    ok80, msg80 = ufw_allow_port(80, 'tcp', use_sudo)
+    ok443, msg443 = ufw_allow_port(443, 'tcp', use_sudo)
+    print(msg80)
+    print(msg443)
+    return ok80 and ok443
+
+
+TRAEFIK_ISSUE_PORT_80 = 'port_80_in_use'
+TRAEFIK_ISSUE_PORT_443 = 'port_443_in_use'
+TRAEFIK_ISSUE_PROXY_NETWORK = 'proxy_network_missing'
+TRAEFIK_ISSUE_ACME_PERMS = 'acme_permissions_insecure'
+TRAEFIK_ISSUE_CONTAINER_NOT_RUNNING = 'traefik_container_not_running'
+
+
+def traefik_diagnose(use_sudo=False):
+    """تشخيص أخطاء ترافيك المحتملة وقائمة بالإصلاحات المقترحة."""
+    issues = []
+    repairs = []
+
+    if not shutil.which('docker'):
+        issues.append({
+            'id': 'traefik_docker_missing',
+            'component': 'Traefik',
+            'title': 'Docker Engine غير مثبت',
+            'description': 'لا يمكن تشغيل ترافيك دون Docker Engine.',
+            'severity': 'critical',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'ثبت Docker Engine أولاً عبر القائمة.',
+        })
+        return issues, repairs
+
+    report = inspect_traefik(use_sudo=use_sudo)
+
+    if report['status'] == 'error':
+        issues.append({
+            'id': 'traefik_daemon_error',
+            'component': 'Traefik',
+            'title': 'خطأ في التواصل مع Docker daemon',
+            'description': report.get('error', 'غير معلوم'),
+            'severity': 'critical',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'تحقق من تشغيل Docker وصلاحيات المستخدم.',
+        })
+        return issues, repairs
+
+    if report['status'] == 'conflict':
+        issues.append({
+            'id': 'traefik_name_conflict',
+            'component': 'Traefik',
+            'title': 'تضارب باسم الحاوية traefik',
+            'description': 'اسم traefik مستخدم من حاوية أخرى.',
+            'severity': 'high',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'غير اسم الحاوية الأخرى أو احذفها قبل التثبيت.',
+        })
+        return issues, repairs
+
+    # فحص المنافذ
+    for port, issue_id, title, desc in (
+        (80, TRAEFIK_ISSUE_PORT_80, 'المنفذ 80 (HTTP) مستخدم', 'المنفذ 80 مرتبط بعملية أخرى، مما يمنع ترافيك من الاستماع على HTTP.'),
+        (443, TRAEFIK_ISSUE_PORT_443, 'المنفذ 443 (HTTPS) مستخدم', 'المنفذ 443 مرتبط بعملية أخرى، مما يمنع ترافيك من الاستماع على HTTPS.'),
+    ):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.settimeout(0.2)
+            if s.connect_ex(('127.0.0.1', port)) == 0:
+                issues.append({
+                    'id': issue_id,
+                    'component': 'Traefik',
+                    'title': title,
+                    'description': desc,
+                    'severity': 'high',
+                    'auto_fix': False,
+                    'fix_command': None,
+                    'fix_description': 'أوقف الخدمة القائمة على المنفذ أو أعد تكوين ترافيك لاستخدام منافذ أخرى.',
+                })
+
+    # فحص شبكة البروكسي
+    if not report.get('proxy_network_exists'):
+        issues.append({
+            'id': TRAEFIK_ISSUE_PROXY_NETWORK,
+            'component': 'Traefik',
+            'title': 'شبكة Docker proxy غير موجودة',
+            'description': 'شبكة البروكسي المشتركة غير موجودة، حاويات Odoo won’t تتمكن من الاتصال بترافيك.',
+            'severity': 'high',
+            'auto_fix': True,
+            'fix_command': ['network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy'],
+            'fix_description': 'إنشاء شبكة Docker باسم proxy.',
+        })
+        repairs.append(('إنشاء شبكة proxy', ['docker', 'network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy']))
+
+    # فحص صلاحيات acme.json
+    acme_path = os.path.join('/opt/odoo-infrastructure', 'traefik', 'acme', 'acme.json')
+    if os.path.exists(acme_path):
+        try:
+            perm = oct(os.stat(acme_path).st_mode)[-3:]
+            if perm != '600':
+                issues.append({
+                    'id': TRAEFIK_ISSUE_ACME_PERMS,
+                    'component': 'Traefik',
+                    'title': 'صلاحيات acme.json غير آمنة',
+                    'description': f'صلاحية الملف حالياً {perm}، يجب أن تكون 600.',
+                    'severity': 'medium',
+                    'auto_fix': True,
+                    'fix_command': ['chmod', '600', acme_path],
+                    'fix_description': 'ضبط صلاحية acme.json إلى 0600.',
+                })
+                repairs.append(('ضبط صلاحية acme.json إلى 0600', ['chmod', '600', acme_path]))
+        except Exception:
+            pass
+
+    # فحص حالة الحاوية
+    if report['status'] == 'installed':
+        for c in report['containers']:
+            status = c.get('Status', '')
+            if 'Exited' in status or 'Created' in status:
+                issues.append({
+                    'id': TRAEFIK_ISSUE_CONTAINER_NOT_RUNNING,
+                    'component': 'Traefik',
+                    'title': 'حاوية ترافيك غير عاملة',
+                    'description': f"حالة الحاوية: {status}",
+                    'severity': 'high',
+                    'auto_fix': True,
+                    'fix_command': ['start', 'traefik'],
+                    'fix_description': 'تشغيل حاوية ترافيك المتوقفة.',
+                })
+                repairs.append(('تشغيل حاوية ترافيك', ['docker', 'start', 'traefik']))
+            break
+
+    return issues, repairs
+
+
+def traefik_repair(issue, use_sudo=False):
+    """تنفيذ إصلاح واحد لمشكلة ترافيك."""
+    fix_cmd = issue.get('fix_command')
+    if not fix_cmd:
+        return False, 'لا يوجد أمر إصلاح تلقائي لهذه المشكلة.'
+    docker = docker_traefik_command(use_sudo)
+    prefix = docker[:-len(DOCKER)]
+    full_cmd = prefix + fix_cmd
+    try:
+        run_step(full_cmd)
+        return True, 'تم التنفيذ بنجاح.'
+    except Exception as exc:
+        return False, str(exc)

@@ -29,13 +29,8 @@ def main():
     parser.add_argument("--dry-run", "-d", action="store_true", help="Simulate execution without modifying system")
     parser.add_argument("--action", "-a", choices=[
         "tui", "textual", "preflight", "prep", "traefik", "traefik-audit", "traefik-backup",
-        "odoo17", "odoo18", "odoo19", "full", "health", "validate", "api"
+        "odoo17", "odoo18", "odoo19", "full", "health", "validate", "runtimes"
     ], default="tui", help="Action to execute directly or launch interactive TUI")
-    parser.add_argument("--api-host", default=os.environ.get("API_HOST", "127.0.0.1"),
-                        help="Bind address for --action api (default: 127.0.0.1)")
-    parser.add_argument("--api-port", type=int, default=int(os.environ.get("API_PORT", "8787")),
-                        help="Port for --action api (default: 8787)")
-
     args = parser.parse_args()
 
     tui = TerminalUI(profile_path=args.profile)
@@ -48,6 +43,8 @@ def main():
         tui.show_menu()
     elif args.action == "preflight":
         tui.run_preflight_checks()
+    elif args.action == "runtimes":
+        tui.handle_runtime_setup(dry_run=args.dry_run)
     elif args.action == "validate":
         tui.validate_current_profile()
     elif args.action == "prep":
@@ -83,14 +80,7 @@ def main():
         step = HealthService.build_health_check_step()
         op = OperationRecord("op-health", "Health Diagnostic Check", "health", tui.profile.profile_name, steps=[step])
         tui.execute_workflow(op, dry_run=args.dry_run)
-    elif args.action == "api":
-        from app.api_server import run_api_server
-        run_api_server(
-            host=args.api_host,
-            port=args.api_port,
-            profile_path=args.profile,
-            dry_run=args.dry_run,
-        )
+
 
 if __name__ == "__main__":
     main()

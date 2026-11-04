@@ -1,0 +1,28 @@
+---
+# Odoo 17 Multi-Instance Backup Playbook
+# يقوم بعمل نسخة احتياطية لجميع نسخ Odoo 17 قبل أي تحديث
+
+- name: Backup Odoo 17 Instances
+  hosts: odoo_instances
+  become: yes
+  vars_files:
+    - ../../instances/odoo17.yml
+
+  tasks:
+    - name: Create backup root directory
+      ansible.builtin.file:
+        path: "{{ backup_root }}"
+        state: directory
+        owner: root
+        group: root
+        mode: '0755'
+
+    - name: Backup each instance data
+      ansible.builtin.include_tasks: roles/odoo/tasks/backup_instance.yml
+      loop: "{{ odoo_instances }}"
+      loop_control:
+        label: "{{ item.name }}"
+
+    - name: Backup completed
+      ansible.builtin.debug:
+        msg: "تم إنشاء النسخ الاحتياطية لجميع النسخ في: {{ backup_root }}"

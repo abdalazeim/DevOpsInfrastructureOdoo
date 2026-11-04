@@ -1,0 +1,38 @@
+# Odoo 17 Multi-Instance Deployment - .gitignore
+# يستثني مجلدات البيانات والأسرار والسجلات من التحكم بالإصدار.
+
+# أسرار ومتغيرات بيئة
+.env
+*.env
+group_vars/vault.yml
+.vault_pass
+/tmp/.vault_pass
+/tmp/.ansible_vault_pass
+
+# مجلدات البيانات
+postgresql/
+data/
+filestore/
+
+# سجلات
+*.log
+etc/odoo-server.log
+etc/sessions/
+
+# مجلدات النظام
+__pycache__/
+*.pyc
+.DS_Store
+.vscode/
+.idea/
+node_modules/
+
+# مجلدات النشر على الخادم
+/opt/odoo17/
+/data/odoo17/
+/data/backups/
+
+# ملفات مؤقتة
+*.tmp
+*.bak
+*~

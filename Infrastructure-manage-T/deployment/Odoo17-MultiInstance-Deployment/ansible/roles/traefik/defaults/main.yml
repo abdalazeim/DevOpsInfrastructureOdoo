@@ -1,0 +1,3 @@
+# Odoo 17 Multi-Instance - Traefik Role - Defaults
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"

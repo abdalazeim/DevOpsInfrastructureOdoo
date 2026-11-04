@@ -1,0 +1,35 @@
+# Odoo 19 Multi-Instance Variables
+# إعدادات كل نسخة على حدة - تُستخدم من قبل Ansible Playbook
+
+odoo_version: "19"
+postgres_version: "18"
+odoo_image: "odoo:19"
+postgres_image: "postgres:18"
+docker_network: "proxy"
+traefik_entrypoint: "websecure"
+traefik_certresolver: "letsencrypt"
+
+odoo_instances:
+  - name: instance1
+    project: odoo19_instance1
+    domain: odoo1.devops-odoo.com
+    data_path: /data/odoo19/instance1
+    config_path: /opt/odoo19/instance1
+    http_port: 10019
+    chat_port: 20019
+    db_name: odoo19_db1
+    db_user: odoo19_instance1
+    container_name: odoo19-instance1
+    traefik_enabled: true
+
+  - name: instance2
+    project: odoo19_instance2
+    domain: odoo2.devops-odoo.com
+    data_path: /data/odoo19/instance2
+    config_path: /opt/odoo19/instance2
+    http_port: 10019
+    chat_port: 20019
+    db_name: odoo19_db2
+    db_user: odoo19_instance2
+    container_name: odoo19-instance2
+    traefik_enabled: true

@@ -18,10 +18,10 @@
   - تشغيل **Odoo 19.0** مع **PostgreSQL 18** على المنفذ `10019`.
   - عزل كامل لكل إصدار في شبكة داخلية مستقلة (`odoo17_internal` / `odoo18_internal` / `odoo19_internal`)، مع ربطها بشبكة البروكسي المشتركة `proxy`.
   - تثبيت موحّد عبر `automation/scripts/install-odoo.sh <17|18|19>` بأسلوب minhng92 (مجلد مستقل، `postgresql/`، `addons/`، `etc/`، و`entrypoint.sh`).
-- **لوحة تحكم React متصلة بـ API محلي**:
-  - واجهة ويب تفاعلية في `src/` (Vite + React + TypeScript) مع Vite proxy على `/api`.
-  - API محلي مبني على مكتبة Python القياسية فقط يعمل افتراضيًا على `127.0.0.1:8787` عبر `--action api`.
-  - جلب حي للنسخ الاحتياطية والحاويات وTraefik وOdoo، وتنفيذ العمليات مع polling للخطوات، وfallback تلقائي إلى المحاكاة عند تعذر الاتصال.
+- **إدارة عبر الطرفية فقط**:
+  - واجهة قوائم نصية افتراضية وواجهة Textual تفاعلية.
+  - أوامر CLI لتنفيذ العمليات والأتمتة مع عرض الخطوات والسجلات.
+  - لا يتطلب مدير البنية التحتية Node.js أو واجهة ويب أو خادم HTTP محليًا.
 - **pgAdmin بأسلوب Websoft9**:
   - حاوية `dpage/pgadmin4` على شبكة `proxy` الخارجية.
   - بيانات الدخول من `.env` (`PGADMIN_DEFAULT_EMAIL` / `PGADMIN_DEFAULT_PASSWORD`) دون أي قاعدة PostgreSQL تجريبية.
@@ -74,11 +74,6 @@ odoo-infrastructure-manager/
 │   ├── odoo18/                 # Compose وإعدادات Odoo 18 + PostgreSQL 17
 │   ├── odoo19/                 # Compose وإعدادات Odoo 19 + PostgreSQL 18
 │   └── pgadmin/                # pgAdmin 4 على شبكة proxy الخارجية
-├── src/                        # لوحة React + TypeScript (Vite) المتصلة بالـ API
-│   ├── App.tsx
-│   ├── components/
-│   ├── data/defaultProfiles.ts
-│   └── services/apiClient.ts
 ├── profiles/                   # ملفات التكوين القابلة لإعادة الاستخدام (YAML)
 │   ├── example.yaml
 │   ├── devops-odoo-prod.yaml
@@ -87,7 +82,7 @@ odoo-infrastructure-manager/
 ├── tests/                      # اختبارات الوحدة والتكامل مع Pytest / Unittest
 ├── docs/                       # التوثيق الهندسي، الأمان، وخطة التعافي من الكوارث
 ├── bootstrap-odoo-infra.sh     # تثبيت Docker/Ansible وتوليد .env وأسرار عشوائية
-├── launch-odoo-infra.sh        # نقطة إطلاق موحدة (TUI افتراضيًا أو API)
+├── launch-odoo-infra.sh        # نقطة إطلاق موحدة (TUI افتراضيًا أو Textual)
 ├── .env.example                # نموذج المتغيرات البيئية والأسرار
 ├── .gitignore
 ├── pyproject.toml              # مواصفات الحزمة البرمجية
@@ -133,8 +128,8 @@ nano .env
 # واجهة Terminal التفاعلية (الافتراضي)
 ./launch-odoo-infra.sh
 
-# تشغيل الـ API المحلي للوحة React
-./launch-odoo-infra.sh --action api
+# تشغيل واجهة Textual داخل الطرفية
+./launch-odoo-infra.sh --action textual
 ```
 
 خيارات `bootstrap-odoo-infra.sh` المهمة:
@@ -178,18 +173,9 @@ python3 app/main.py --action full
 # فحص صحة الحاويات والخدمات والشبكة
 python3 app/main.py --action health
 
-# تشغيل الـ API المحلي الذي تستهلكه لوحة React
-python3 app/main.py --action api --api-host 127.0.0.1 --api-port 8787
+# تشغيل واجهة Textual داخل الطرفية
+python3 app/main.py --action textual
 ```
-
-### لوحة React (اختياري)
-```bash
-# في طرفية أخرى، وبعد تثبيت Node.js وnpm
-npm install
-npm run dev
-```
-تتصل اللوحة تلقائيًا بـ `/api` عبر Vite proxy؛ وعند تعذر الاتصال بالـ API تعمل
-ببيانات تجريبية ومحاكاة محلية بدلًا من التعطل.
 
 ---
 
@@ -253,7 +239,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 
 ## 🧪 الاختبارات وضمان الجودة
 
-لتشغيل حزمة الاختبارات الشاملة (54 اختبار وحدة وتكامل):
+لتشغيل حزمة الاختبارات:
 ```bash
 python3 -m unittest discover tests -v
 ```
@@ -263,7 +249,6 @@ python3 -m unittest discover tests -v
 - فحص تعارض المنافذ والنطاقات وصيغ البريد الإلكتروني وسجلات الـ Cron.
 - بناء أوامر Docker Compose و Ansible مع أعلام الفحص (`--check`) و (`--dry-run`).
 - اختبار تسلسل خطوات نشر Odoo 17 و Odoo 18 و Odoo 19 و Traefik.
-- اختبار الـ API المحلي (health/profiles/operations) وتسلسل JSON.
 
 ---
 
@@ -276,3 +261,63 @@ python3 -m unittest discover tests -v
 ---
 
 مرخص بموجب رخصة **Apache-2.0**. مطور بعناية لمهندسي الـ DevOps ومديري الأنظمة.
+
+## فحص Python وPostgreSQL واختيار مكان التثبيت
+
+من القائمة الرئيسية اختر `16`، أو شغّل:
+
+```bash
+./launch-odoo-infra.sh --action runtimes
+```
+
+اختر Python أو PostgreSQL، ثم الجهاز أو Docker. يعرض الفحص إصدارات ومسارات البرامج المكتشفة على الجهاز، أو صور Docker والحاويات وحالتها. لا يعد وجود عميل PostgreSQL وحده تثبيتًا للخادم، ولا يعني وجود صورة Docker تشغيل حاوية.
+
+خيارات Python: 3.10 و3.11 و3.12 وإدخال إصدار أحدث. خيارات PostgreSQL: 15 و16 و17 و18. الفحص محدود بالمسارات والصور المعروفة؛ يعرض أخطاء الوصول منفصلة عن عدم العثور على تثبيت.
+
+توصيات المشروع التي تظهر عند اختيار Python، وفق إعدادات صاحب المشروع:
+
+- Odoo 17: Python 3.10 أو 3.11.
+- Odoo 18: Python 3.11 موصى به.
+- Odoo 19: Python 3.12 موصى به بشدة.
+
+هذه توصيات للاختيار وليست منعًا لبقية الإصدارات. تثبيت Python على الجهاز لا يغيّر إصدار Python داخل حاويات Odoo.
+
+تثبيت Python على Ubuntu متاح للإصدارات 3.10 و3.11 و3.12: يعرض أوامر apt، ويضيف deadsnakes PPA للإصدارين 3.11 و3.12، ثم يطلب تأكيد التنفيذ ويعرض المخرجات مباشرة. يتوقف عند فشل أي أمر ويتحقق من الإصدار وvenv وensurepip بعد التثبيت. توفر الحزم يعتمد على إصدار Ubuntu والمستودعات؛ لا يغيّر python3 الافتراضي ولا ينزل get-pip.py. يمكن معاينة الأوامر فقط باستخدام `--action runtimes --dry-run`. تثبيت Python وPostgreSQL داخل Docker وإصدارات Python الأحدث ما زال ينتظر طرق التثبيت. يتطلب تشغيل المدير نفسه وجود Python مسبقًا؛ تثبيته الأولي يجب أن يتم من سكربت الإقلاع قبل تشغيل المدير.
+
+### PostgreSQL على Ubuntu
+
+يدعم خيار `runtimes` تثبيت PostgreSQL 15 و16 و17 و18 على الجهاز. يعرض الخطة ويطلب التأكيد، ثم يثبت `postgresql-common` ويشغل سكربت إعداد PGDG الرسمي تفاعليًا، ويحدث فهرس apt ويثبت الخادم والعميل المطابقين للإصدار و`libpq-dev`. يعرض إصدار الخادم و`pg_lsclusters` وحالة خدمة PostgreSQL دون pager. يتوقف عند أول فشل؛ نجاح الخدمة العامة لا يثبت جاهزية كل cluster.
+
+يمكن اختيار حزمة `postgresql-<version>-pgvector` أيضًا. تثبيت الحزمة منفصل عن تفعيل الإضافة: بعد إنشاء قاعدة Odoo والاتصال بها، ينفذ المسؤول `CREATE EXTENSION IF NOT EXISTS vector;`. لا تنفذ الأداة SQL تلقائيًا على قاعدة بيانات.
+
+المصدر: [دليل PostgreSQL الرسمي لتثبيت Ubuntu](https://www.postgresql.org/download/linux/ubuntu/). توفر الحزم يعتمد على إصدار Ubuntu والمعمارية والمستودع.
+
+### فحص Docker Engine
+
+من القائمة `16` اختر `3. Docker Engine`. يعرض الفحص مسار العميل وإصداره، وإصدار المحرك وDocker context وCompose ومعلومات الحاويات والتخزين المتاحة. يميز بين عدم اكتشاف التثبيت، وعميل لا يعمل، ورفض الصلاحيات، وعدم الوصول للمحرك، والمحرك المستجيب. عدم الوصول لا يعني أن Docker غير مثبت. الفحص نفسه لا يعدل الخدمات؛ ويمكن بعده فتح خطة تثبيت المحرك المحلي. قد يكون اتصال الفحص الحالي بمحرك بعيد. يستخدم الفحص المسبق نفس التشخيص.
+
+### تثبيت Docker Engine من القائمة
+
+اختر `16` ثم `3`، وافتح خطة التثبيت بعد عرض الحالة. يتوفر أحدث إصدار مستقر أو اختيار VERSION_STRING من الإصدارات المشتركة بين docker-ce وdocker-ce-cli بعد إعداد المستودع. يكتشف المثبت Ubuntu codename والمعمارية، ويضيف مفتاح Docker وملف docker.sources، ثم يثبت Engine وCLI وcontainerd.io وBuildx وCompose.
+
+تعرض الحزم المتعارضة قبل التنفيذ، ويطلب apt تأكيد الإزالة مع عرض تأثيرها. لا ينفذ المثبت purge أو حذف بيانات Docker. إزالة الحزم قد توقف خدمات قائمة. إذا ألغيت اختيار الإصدار بعد إعداد المستودع، يبقى إعداد المستودع محفوظًا.
+
+يتحقق المسار من خدمة Docker والمحرك المحلي وCompose وBuildx. يمكن تفعيل اختبار hello-world؛ ينزل الصورة ويشغل حاوية مؤقتة. إضافة مستخدم إلى مجموعة docker اختيارية، تمنحه صلاحيات واسعة، وتتطلب تسجيل الخروج والدخول لتفعيلها.
+
+للمعاينة دون تعديل استخدم `./launch-odoo-infra.sh --action runtimes --dry-run`. يتطلب اكتشاف الحزم والمعمارية Ubuntu وdpkg حتى في المعاينة. هذا المسار مستقل عن خيار Docker القديم في bootstrap.
+
+المصدر: [تثبيت Docker Engine على Ubuntu](https://docs.docker.com/engine/install/ubuntu/).
+
+### Docker Compose كإضافة مستقلة
+
+اختر القائمة `16` ثم `4` لعرض نتيجة `docker compose version`. إذا كانت الإضافة تعمل يعرض الإصدار دون إعادة التثبيت. إذا غاب عميل Docker يوجهك لإعداد Engine أولًا. عند تعذر تشغيل Compose يعرض الخطأ وخطة `apt-get update` ثم `apt-get install -y docker-compose-plugin`، ويتحقق بعد التنفيذ. يجب أن يكون مستودع Docker الرسمي مجهزًا؛ مسار تثبيت Engine يجهزه. تدعم هذه القائمة `--dry-run` ولا تحتاج إلى اتصال بالمحرك لقراءة إصدار Compose.
+
+### Portainer
+
+اختر القائمة `16` ثم `5`. يفحص المسار حاويات Portainer CE/EE والصورة القديمة المعروفة، بما فيها الحاويات المتوقفة أو ذات الاسم المخصص، ويعرض الاسم والصورة والحالة والمنافذ. يرفض التثبيت عند تعذر الاتصال أو تعارض الاسم؛ الصور المخصصة غير المعروفة قد لا تُكتشف.
+
+إذا لم توجد حاوية يعرض خطة Portainer CE LTS على محرك Linux المحلي، مع volume دائم `portainer_data` (يعاد استخدامه إن وجد)، ومقبس Docker، ومنفذ HTTPS قابل للاختيار افتراضيًا 9443. منفذ Edge 8000 اختياري. بعد موافقة المستخدم يفحص تعارض المنافذ ويثبت الحاوية ويتحقق من حالتها دون حذف حاويات قائمة. يتطلب صلاحية الوصول للمقبس `/var/run/docker.sock`؛ لا يحاول تشغيل الأوامر تلقائيًا بـ sudo.
+
+إدارة التثبيت تتم عبر Terminal؛ Portainer نفسه يوفر لوحة ويب على `https://<SERVER-IP>:9443` لإكمال الإعداد الأولي. الشهادة الافتراضية ذاتية التوقيع، وقد يلزم رمز إعداد من سجلات الحاوية. تحقق تشغيل الحاوية لا يعني اختبار جاهزية HTTPS. يمكن استخدام `--action runtimes --dry-run` للمعاينة.
+
+المصدر: [تثبيت Portainer CE على Docker/Linux](https://docs.portainer.io/start/install-ce/server/docker/linux).

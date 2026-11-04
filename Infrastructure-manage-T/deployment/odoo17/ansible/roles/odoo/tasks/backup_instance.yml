@@ -1,0 +1,49 @@
+---
+# Odoo Role - Odoo Tasks - Backup Instance
+# يقوم بعمل نسخة احتياطية لنسخة Odoo واحدة
+
+- name: Create instance backup directory
+  ansible.builtin.file:
+    path: "{{ backup_root }}/{{ item.name }}"
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Dump PostgreSQL database
+  community.docker.docker_container_exec:
+    container: "{{ item.container_name }}-db"
+    command: pg_dumpall -U {{ item.db_user }}
+  register: db_dump
+  changed_when: false
+
+- name: Save database dump to file
+  ansible.builtin.copy:
+    content: "{{ db_dump.stdout }}"
+    dest: "{{ backup_root }}/{{ item.name }}/odoo17_{{ item.name }}_{{ ansible_date_time.date }}_db.sql"
+    owner: root
+    group: root
+    mode: '0600'
+  changed_when: false
+
+- name: Create archive of instance data
+  ansible.builtin.archive:
+    path:
+      - "{{ item.data_path }}/postgresql"
+      - "{{ backup_root }}/{{ item.name }}/odoo17_{{ item.name }}_{{ ansible_date_time.date }}_db.sql"
+    dest: "{{ backup_root }}/{{ item.name }}/odoo17_{{ item.name }}_{{ ansible_date_time.date }}.tar.gz"
+    format: gz
+
+- name: Remove temporary database dump
+  ansible.builtin.file:
+    path: "{{ backup_root }}/{{ item.name }}/odoo17_{{ item.name }}_{{ ansible_date_time.date }}_db.sql"
+    state: absent
+
+- name: Clean old backups (keep last {{ backup_retention_count }})
+  ansible.builtin.shell: |
+    ls -1t {{ backup_root }}/{{ item.name }}/odoo17_{{ item.name }}_*.tar.gz 2>/dev/null | tail -n +{{ backup_retention_count + 1 }} | xargs -r rm -f
+  changed_when: false
+
+- name: Backup completed for instance
+  ansible.builtin.debug:
+    msg: "تم إنشاء نسخة احتياطية للنسخة {{ item.name }}"

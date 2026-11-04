@@ -1,0 +1,17 @@
+# Odoo Role - Odoo Role - Meta
+galaxy_info:
+  author: Infrastructure Manager
+  description: Odoo 17 multi-instance deployment
+  license: Private
+  min_ansible_version: "2.12"
+  platforms:
+    - name: Ubuntu
+      versions:
+        - focal
+        - jammy
+  galaxy_tags:
+    - odoo
+    - erp
+    - docker
+
+dependencies: []

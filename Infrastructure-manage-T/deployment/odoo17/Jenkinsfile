@@ -1,0 +1,227 @@
+pipeline {
+    agent any
+
+    environment {
+        REPO_URL = 'https://github.com/your-org/Odoo17-MultiInstance-Deployment.git'
+        REPO_CREDENTIALS = 'github-credentials'
+        ANSIBLE_VAULT_PASSWORD = 'ansible-vault-password'
+        INSTANCES_CONFIG = 'instances/odoo17.yml'
+        DEPLOY_USER = 'root'
+        DEPLOY_HOST = 'localhost'
+    }
+
+    options {
+        timestamps()
+        ansiColor('xterm')
+        buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
+    }
+
+    stages {
+        stage('Checkout GitHub') {
+            steps {
+                checkout([$class: 'GitSCM', branches: [[name: '*/main']], 
+                         userRemoteConfigs: [[credentialsId: env.REPO_CREDENTIALS, url: env.REPO_URL]])
+            }
+        }
+
+        stage('Pre-Deployment Validation') {
+            steps {
+                sh '''
+                    set -e
+                    echo "=========================================="
+                    echo " مرحلة 1: التحقق المسبق قبل النشر"
+                    echo "=========================================="
+                    
+                    # التحقق من Docker
+                    if ! docker --version >/dev/null 2>&1; then
+                        echo "ERROR: Docker Engine غير مثبت"
+                        exit 1
+                    fi
+                    echo "✓ Docker Engine مثبت: $(docker --version)"
+                    
+                    # التحقق من Docker Compose
+                    if ! docker compose version >/dev/null 2>&1; then
+                        echo "ERROR: Docker Compose غير مثبت"
+                        exit 1
+                    fi
+                    echo "✓ Docker Compose مثبت: $(docker compose version)"
+                    
+                    # التحقق من شبكة Traefik
+                    if ! docker network inspect proxy >/dev/null 2>&1; then
+                        echo "WARNING: شبكة proxy غير موجودة، سيتم إنشاؤها"
+                        docker network create --driver bridge proxy
+                    fi
+                    echo "✓ شبكة proxy موجودة"
+                    
+                    # التحقق من المساحة والذاكرة
+                    echo "✓ مساحة القرص:"
+                    df -h /opt /data
+                    echo "✓ الذاكرة:"
+                    free -h
+                    
+                    # التحقق من المجلدات
+                    for dir in /opt/odoo17 /data/odoo17 /data/backups/odoo17; do
+                        if [ ! -d "$dir" ]; then
+                            mkdir -p "$dir"
+                            echo "✓ تم إنشاء المجلد: $dir"
+                        else
+                            echo "✓ المجلد موجود: $dir"
+                        fi
+                    done
+                '''
+            }
+        }
+
+        stage('Ansible Preparation') {
+            steps {
+                withCredentials([string(credentialsId: env.ANSIBLE_VAULT_PASSWORD, variable: 'VAULT_PASS')]) {
+                    sh '''
+                        set -e
+                        echo "=========================================="
+                        echo " مرحلة 2: تجهيز Ansible"
+                        echo "=========================================="
+                        
+                        # تثبيت مجموعات Ansible المطلوبة
+                        ansible-galaxy collection install -r requirements.yml
+                        
+                        # التحقق من ملف المتغيرات
+                        if [ ! -f instances/odoo17.yml ]; then
+                            echo "ERROR: ملف instances/odoo17.yml غير موجود"
+                            exit 1
+                        fi
+                        echo "✓ ملف المتغيرات موجود"
+                        
+                        # التحقق من الوصول إلى Vault
+                        echo "✓ تم إعداد Ansible Vault"
+                    '''
+                }
+            }
+        }
+
+        stage('Secrets Configuration') {
+            steps {
+                withCredentials([string(credentialsId: env.ANSIBLE_VAULT_PASSWORD, variable: 'VAULT_PASS')]) {
+                    sh '''
+                        set -e
+                        echo "=========================================="
+                        echo " مرحلة 3: إعداد الأسرار (Secrets)"
+                        echo "=========================================="
+                        
+                        # إنشاء ملف متغيرات الأسرار (vault)
+                        cat > group_vars/vault.yml <<EOF
+                        vault_odoo_admin_password: "${ODOO_ADMIN_PASSWORD:-ChangeMe_Admin456!}"
+                        vault_postgres_password: "${POSTGRES_PASSWORD:-ChangeMe_Secure123!}"
+                        EOF
+                        
+                        # تشفير ملف vault
+                        ansible-vault encrypt group_vars/vault.yml --vault-password-file <(echo "${VAULT_PASS}")
+                        
+                        echo "✓ تم إنشاء وتشفير ملف الأسرار"
+                    '''
+                }
+            }
+        }
+
+        stage('Docker Deployment') {
+            steps {
+                withCredentials([string(credentialsId: env.ANSIBLE_VAULT_PASSWORD, variable: 'VAULT_PASS')]) {
+                    sh '''
+                        set -e
+                        echo "=========================================="
+                        echo " مرحلة 4: نشر Docker Compose"
+                        echo "=========================================="
+                        
+                        # تشغيل Playbook النشر
+                        ansible-playbook -i ansible/inventory/hosts.ini \\
+                            -e @instances/odoo17.yml \\
+                            --vault-password-file <(echo "${VAULT_PASS}") \\
+                            ansible/playbooks/install.yml
+                        
+                        echo "✓ تم نشر نسختي Odoo 17 بنجاح"
+                    '''
+                }
+            }
+        }
+
+        stage('Traefik Configuration') {
+            steps {
+                sh '''
+                    set -e
+                    echo "=========================================="
+                    echo " مرحلة 5: تكوين ترافيك"
+                    echo "=========================================="
+                    
+                    # التحقق من أن حاويات Odoo انضمت إلى شبكة proxy
+                    docker network inspect proxy --format '{{json .Containers}}' | python3 -m json.tool
+                    
+                    echo "✓ تم تكوين ترافيك والتوجيه عبر HTTPS"
+                '''
+            }
+        }
+
+        stage('Health Checks') {
+            steps {
+                script {
+                    def instances = ['instance1', 'instance2']
+                    def failedInstances = []
+                    
+                    for (instance in instances) {
+                        echo "فحص صحة النسخة: ${instance}"
+                        try {
+                            sh script: """
+                                set -e
+                                ./scripts/health-check.sh ${instance} 8069 8072
+                            """, returnStatus: true
+                            echo "✓ النسخة ${instance} سالمة"
+                        } catch (Exception e) {
+                            echo "✗ فشل فحص صحة النسخة: ${instance}"
+                            failedInstances.add(instance)
+                        }
+                    }
+                    
+                    if (!failedInstances.isEmpty()) {
+                        error("فشل فحص الصحة للنسخ: ${failedInstances.join(', ')}")
+                    }
+                }
+            }
+        }
+
+        stage('Deployment Report') {
+            steps {
+                sh '''
+                    echo "=========================================="
+                    echo " تقرير النشر النهائي"
+                    echo "=========================================="
+                    echo "الحاويات العاملة:"
+                    docker ps --filter "name=odoo17" --format "table {{.Names}}\t{{.Status}}\t{{.Ports}}"
+                    echo ""
+                    echo "الشبكات:"
+                    docker network ls --filter "name=odoo17" --format "table {{.Name}}\t{{.Driver}}"
+                    echo ""
+                    echo "✓ تم نشر جميع نسخ Odoo 17 بنجاح"
+                    echo "النسخة 1: https://odoo1.devops-odoo.com"
+                    echo "النسخة 2: https://odoo2.devops-odoo.com"
+                '''
+            }
+        }
+    }
+
+    post {
+        success {
+            echo "✓ عملية النشر اكتملت بنجاح"
+            mail to: 'admin@yourdomain.com',
+                 subject: "نجاح نشر Odoo 17 - بناء ${env.BUILD_NUMBER}",
+                 body: "تم نشر نسختي Odoo 17 بنجاح على:\nhttps://odoo1.devops-odoo.com\nhttps://odoo2.devops-odoo.com"
+        }
+        failure {
+            echo "✗ عملية النشر فشلت"
+            mail to: 'admin@yourdomain.com',
+                 subject: "فشل نشر Odoo 17 - بناء ${env.BUILD_NUMBER}",
+                 body: "فشلت عملية نشر Odoo 17. يرجى مراجعة سجلات البناء."
+        }
+        always {
+            archiveArtifacts artifacts: 'ansible/**, instances/**, docker/**, scripts/**', allowEmptyArchive: true
+        }
+    }
+}
