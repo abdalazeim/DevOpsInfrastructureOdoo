@@ -1,6 +1,6 @@
-#!/bin/bash
+#!/usr/bin/env bash
 # ==============================================================================
-# Odoo Multi-Version Deployment - Launch Infrastructure Script
+# Odoo Multi-Version Deployment - Launch Infrastructure
 # يشغل المشروع بجميع الصلاحيات اللازمة
 # Launches the project with all necessary permissions
 # ==============================================================================
@@ -29,19 +29,25 @@ print_info()    { echo -e "${BLUE}[i]${NC} $1"; }
 # التحقق من صلاحيات الجذر
 if [[ $EUID -ne 0 ]]; then
     print_error "هذا السكربت يتطلب صلاحيات الجذر (root/sudo)."
+    echo ""
     echo "الاستخدام: sudo $0"
+    echo "أو:         bash $0 (مع sudo)"
     exit 1
 fi
 
-# متغيرات المسارات
-PROJECT_DIR="/opt/Odoo-MultiVersion-Deployment"
-BOOTSTRAP_SCRIPT="${PROJECT_DIR}/scripts/bootstrap-odoo-infra.sh"
-INSTALL_ODOO17="${PROJECT_DIR}/scripts/install-odoo17.sh"
-INSTALL_ODOO19="${PROJECT_DIR}/scripts/install-odoo19.sh"
-HEALTH_CHECK="${PROJECT_DIR}/scripts/health-check.sh"
+# تحديد المسارات ديناميكياً بناءً على موقع السكربت
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PROJECT_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
+
+BOOTSTRAP_SCRIPT="${SCRIPT_DIR}/bootstrap-odoo-infra.sh"
+INSTALL_ODOO17="${SCRIPT_DIR}/install-odoo17.sh"
+INSTALL_ODOO19="${SCRIPT_DIR}/install-odoo19.sh"
+HEALTH_CHECK="${SCRIPT_DIR}/health-check.sh"
 
 print_header "Odoo Multi-Version Deployment - Launcher"
 print_info "بدء تشغيل المشروع بجميع الصلاحيات المطلوبة..."
+print_info "مجلد السكربتات: ${SCRIPT_DIR}"
+print_info "مجلد المشروع: ${PROJECT_DIR}"
 
 # ==============================================================================
 # الخطوة 1: تشغيل Bootstrapper لتثبيت الملاحقات وإعداد البيئة
@@ -49,9 +55,10 @@ print_info "بدء تشغيل المشروع بجميع الصلاحيات ال�
 print_header "الخطوة 1: تثبيت الملاحقات وإعداد البيئة (Bootstrap)"
 
 if [[ -f "${BOOTSTRAP_SCRIPT}" ]]; then
-    print_info "تشغيل السكربت التحضيري: ${BOOTSTRAP_SCRIPT}"
     chmod +x "${BOOTSTRAP_SCRIPT}"
-    bash "${BOOTSTRAP_SCRIPT}" || {
+    print_info "تشغيل السكربت التحضيري: ${BOOTSTRAP_SCRIPT}"
+    # تشغيل السكربت التحضيري في نفس الجلسة (لا نستخدم subprocess منفصل)
+    source "${BOOTSTRAP_SCRIPT}" 2>/dev/null || bash "${BOOTSTRAP_SCRIPT}" || {
         print_error "فشل تشغيل السكربت التحضيري. يرجى مراجعة الأخطاء أعلاه."
         exit 1
     }
@@ -74,7 +81,7 @@ fi
 
 print_success "مجلد المشروع موجود: ${PROJECT_DIR}"
 
-# التأكد من وجود ملفات التثبيت الأساسية
+# التأكد من وجود ملفات التثبيت الأساسية وجعلها قابلة للتنفيذ
 for file in "${INSTALL_ODOO17}" "${INSTALL_ODOO19}" "${HEALTH_CHECK}"; do
     if [[ -f "${file}" ]]; then
         chmod +x "${file}"
@@ -162,26 +169,16 @@ print_header "الخطوة 7: فحص صحة جميع الخدمات"
 
 ALL_HEALTHY=true
 
-# فحص Odoo 17
-for instance in instance1 instance2; do
-    print_info "فحص صحة Odoo 17 - ${instance}..."
-    if bash "${HEALTH_CHECK}" "${instance}" 8069 8072 2>/dev/null; then
-        print_success "Odoo 17 - ${instance}: يعمل بشكل طبيعي"
-    else
-        print_warning "Odoo 17 - ${instance}: قد يحتاج إلى وقت إضافي للبدء"
-        ALL_HEALTHY=false
-    fi
-done
-
-# فحص Odoo 19
-for instance in instance1 instance2; do
-    print_info "فحص صحة Odoo 19 - ${instance}..."
-    if bash "${HEALTH_CHECK}" "${instance}" 8069 8072 2>/dev/null; then
-        print_success "Odoo 19 - ${instance}: يعمل بشكل طبيعي"
-    else
-        print_warning "Odoo 19 - ${instance}: قد يحتاج إلى وقت إضافي للبدء"
-        ALL_HEALTHY=false
-    fi
+for version in odoo17 odoo19; do
+    for instance in instance1 instance2; do
+        print_info "فحص صحة ${version} - ${instance}..."
+        if bash "${HEALTH_CHECK}" "${instance}" 8069 8072 2>/dev/null; then
+            print_success "${version} - ${instance}: يعمل بشكل طبيعي"
+        else
+            print_warning "${version} - ${instance}: قد يحتاج إلى وقت إضافي للبدء"
+            ALL_HEALTHY=false
+        fi
+    done
 done
 
 # ==============================================================================
@@ -192,10 +189,10 @@ print_header "تقرير التشغيل النهائي"
 echo -e "${GREEN}✓${NC} تم تشغيل المشروع بنجاح!"
 echo ""
 echo -e "${BLUE}الخدمات المُنشأة:${NC}"
-echo "  ┌─ Odoo 17 - Instance 1: odoo1.devops-odoo.com"
-echo "  ├─ Odoo 17 - Instance 2: odoo2.devops-odoo.com"
-echo "  ├─ Odoo 19 - Instance 1: odoo19-1.devops-odoo.com"
-echo "  └─ Odoo 19 - Instance 2: odoo19-2.devops-odoo.com"
+echo "  ┌─ Odoo 17 - Instance 1: https://odoo1.devops-odoo.com"
+echo "  ├─ Odoo 17 - Instance 2: https://odoo2.devops-odoo.com"
+echo "  ├─ Odoo 19 - Instance 1: https://odoo19-1.devops-odoo.com"
+echo "  └─ Odoo 19 - Instance 2: https://odoo19-2.devops-odoo.com"
 echo ""
 echo -e "${BLUE}الحاويات النشطة:${NC}"
 docker ps --filter "name=odoo17" --filter "name=odoo19" \
@@ -222,11 +219,11 @@ fi
 
 echo ""
 echo -e "${BLUE}الأوامر المفيدة:${NC}"
-echo "  فحص الصحة:    sudo ${HEALTH_CHECK} instance1 8069 8072"
-echo "  النسخ الاحتياطي: sudo ${PROJECT_DIR}/scripts/backup.sh instance1 odoo17 /data/backups/odoo17"
-echo "  الاستعادة:      sudo ${PROJECT_DIR}/scripts/restore.sh <backup_id> odoo17 instance1 existing"
-echo "  التحقق:         sudo ${PROJECT_DIR}/scripts/verify-backups.sh /data/backups"
-echo "  عرض النسخ:      sudo ${PROJECT_DIR}/scripts/list-backups.sh /data/backups"
+echo "  فحص الصحة:     sudo ${HEALTH_CHECK} instance1 8069 8072"
+echo "  النسخ الاحتياطي: sudo ${SCRIPT_DIR}/backup.sh instance1 odoo17 /data/backups/odoo17"
+echo "  الاستعادة:       sudo ${SCRIPT_DIR}/restore.sh <backup_id> odoo17 instance1 existing"
+echo "  التحقق:          sudo ${SCRIPT_DIR}/verify-backups.sh /data/backups"
+echo "  عرض النسخ:       sudo ${SCRIPT_DIR}/list-backups.sh /data/backups"
 echo ""
 echo -e "${GREEN}✓${NC} اكتمل تشغيل المشروع بجميع الصلاحيات!"
 echo ""
