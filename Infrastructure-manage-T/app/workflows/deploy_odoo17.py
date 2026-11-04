@@ -2,7 +2,7 @@
 Workflow: Deploy Odoo 17 and PostgreSQL 16.
 
 Delegates to automation/scripts/install-odoo.sh, which follows the
-minhng92/odoo-17-docker-compose layout (dedicated folder, postgresql/,
+Odoo-MultiVersion-Deployment layout (dedicated folder, postgresql/,
 addons/, etc/, entrypoint.sh, direct ports 10017/20017) while reading
 secrets from the protected .env file.
 """
@@ -39,7 +39,7 @@ class DeployOdoo17Workflow:
                 id="verify-odoo17-dirs",
                 name="Ensure Odoo 17 Instance Directories Exist",
                 description=(
-                    f"Creates the minhng92-style layout under {destination} "
+                    f"Creates the Odoo-MultiVersion-Deployment layout under {destination} "
                     "(addons/, etc/, postgresql/, backup/)"
                 ),
                 command=[

@@ -2,7 +2,7 @@
 # ==============================================================================
 # Generic Odoo entrypoint wrapper (used by deployment/odoo17|18|19).
 #
-# The instance directory is laid out like the minhng92 reference repos:
+# The instance directory is laid out like the Odoo-MultiVersion-Deployment repo:
 #   ./etc/odoo.conf   -> /etc/odoo/odoo.conf (rendered by install-odoo.sh)
 #   ./addons          -> /mnt/extra-addons
 #   ./postgresql      -> PostgreSQL data directory

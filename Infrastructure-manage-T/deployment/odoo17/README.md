@@ -227,7 +227,7 @@ odoo_instances:
 
 ```bash
 # 1. نسخ المستودع
-git clone https://github.com/your-org/Odoo17-MultiInstance-Deployment.git
+git clone https://github.com/your-org/Odoo-MultiVersion-Deployment.git
 cd Odoo17-MultiInstance-Deployment
 
 # 2. تثبيت مجموعات Ansible

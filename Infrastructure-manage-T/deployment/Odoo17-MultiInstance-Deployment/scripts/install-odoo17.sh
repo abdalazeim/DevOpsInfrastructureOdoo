@@ -25,7 +25,7 @@ REQUIREMENTS_FILE="${PROJECT_ROOT}/requirements.yml"
 ODOO_ADMIN_PASSWORD="${ODOO_ADMIN_PASSWORD:-}"
 POSTGRES_PASSWORD="${POSTGRES_PASSWORD:-}"
 ANSIBLE_VAULT_PASSWORD="${ANSIBLE_VAULT_PASSWORD:-}"
-GITHUB_REPO="${GITHUB_REPO:-https://github.com/your-org/Odoo17-MultiInstance-Deployment.git}"
+GITHUB_REPO="${GITHUB_REPO:-https://github.com/your-org/Odoo-MultiVersion-Deployment.git}"
 
 print_header() {
     echo ""

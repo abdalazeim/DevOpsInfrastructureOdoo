@@ -2,7 +2,7 @@
 Workflow: Deploy Odoo 18 and PostgreSQL 17.
 
 Uses the same installer/layout as Odoo 17 and 19:
-  https://github.com/minhng92/odoo-18-docker-compose
+  Odoo-MultiVersion-Deployment
 """
 from typing import List
 from app.models.profile import InfrastructureProfile
@@ -37,7 +37,7 @@ class DeployOdoo18Workflow:
                 id="verify-odoo18-dirs",
                 name="Ensure Odoo 18 Instance Directories Exist",
                 description=(
-                    f"Creates the minhng92-style layout under {destination} "
+                    f"Creates the Odoo-MultiVersion-Deployment layout under {destination} "
                     "(addons/, etc/, postgresql/, backup/)"
                 ),
                 command=[
