@@ -1,7 +1,7 @@
 """
 Reorganized Menu System for Odoo Infrastructure Manager.
 
-Organizes all functionality into 8 professional categories:
+Organizes all functionality into 11 professional categories:
 1. Dashboard - System Overview, Installation Progress, Infrastructure Health, Recent Events
 2. System - System Information, OS & Updates, Hardware & Storage, Users & Permissions
 3. Setup & Installation - Pre-Installation Checks, Install Missing Components, Installation History, Failed Installations
@@ -11,6 +11,8 @@ Organizes all functionality into 8 professional categories:
 7. Data Protection - Backup Management, Restore Management, Backup Verification, Disaster Recovery
 8. Operations - Monitoring & Logs, Infrastructure Health Check, Troubleshooting, Error Diagnosis & Auto-Repair
 9. Reports - Infrastructure Report, Installation Report, Service Health Report, Backup & Recovery Report, Audit History
+10. Command Notebook - Browse, edit, save, search, and copy commands (read-only, never executes)
+11. Installation Pipeline - Dependency-aware sequential installation with verification
 """
 from __future__ import annotations
 
@@ -217,6 +219,26 @@ class MenuSystem:
                              "Generate backup and recovery status report"),
                     MenuItem("5", "Audit History", self.tui.handle_audit_history,
                              "View audit history of infrastructure changes"),
+                ],
+            ),
+            MenuCategory(
+                key="10",
+                label="Command Notebook",
+                icon="",
+                description="Browse, edit, save, search, and copy commands (read-only, never executes)",
+                items=[
+                    MenuItem("1", "Open Command Notebook", self.tui.handle_command_notebook,
+                             "Launch the interactive command notebook library"),
+                ],
+            ),
+            MenuCategory(
+                key="11",
+                label="Installation Pipeline",
+                icon="",
+                description="Dependency-aware sequential installation with per-component verification",
+                items=[
+                    MenuItem("1", "Run Installation Pipeline", self.tui.handle_installation_pipeline,
+                             "Run the full sequential installation pipeline with Odoo version selection"),
                 ],
             ),
         ]

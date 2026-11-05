@@ -1705,3 +1705,15 @@ Status: Operational & Compliant
             f.write(report)
         print(f"{GREEN}✓ Report generated successfully: {report_file}{RESET}")
         print(report)
+
+    def handle_command_notebook(self):
+        """Launch the Command Notebook module."""
+        from app.ui.command_notebook_ui import CommandNotebookUI
+        notebook_ui = CommandNotebookUI(self)
+        notebook_ui.run()
+
+    def handle_installation_pipeline(self):
+        """Launch the Sequential Installation Pipeline module."""
+        from app.ui.installation_pipeline_ui import InstallationPipelineUI
+        pipeline_ui = InstallationPipelineUI(self)
+        pipeline_ui.run()

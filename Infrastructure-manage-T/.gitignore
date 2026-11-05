@@ -1,0 +1,5 @@
+# Command Notebook runtime data (generated library/backups)
+/Infrastructure-manage-T/data/command_notebook/*.json
+/Infrastructure-manage-T/data/command_notebook/*.backup_*.json
+data/command_notebook/*.json
+data/command_notebook/*.backup_*.json

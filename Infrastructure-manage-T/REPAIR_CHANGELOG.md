@@ -129,3 +129,28 @@ All P0 syntax errors that prevented the application from starting have been fixe
 18. `deployment/odoo18/ansible/roles/odoo/tasks/main.yml` — F29: `.container.State.Status`
 19. `deployment/Odoo-MultiVersion-Deployment/ansible/roles/odoo/tasks/main.yml` — F29: `.container.State.Status`
 20. `deployment/Odoo-MultiVersion-Deployment/ansible/roles/restore/tasks/main.yml` — F29: `.container.State.Status`
+
+## New Feature — Command Notebook
+
+Added a new "Command Notebook" module (category 10 in the main menu) that provides a fully interactive terminal-based command library for viewing, editing, saving, searching, and copying commands.
+
+**Files created:**
+- `app/ui/command_notebook.py` — Core notebook logic (JSON storage, CRUD, search, import/export, backup)
+- `app/ui/command_notebook_ui.py` — Terminal UI for the command notebook
+- `tests/test_command_notebook.py` — 19 unit tests covering all notebook functionality
+- `data/command_notebook/library.json` — Command library storage (auto-created)
+
+**Files modified:**
+- `app/ui/menu_system.py` — Added category 10 "Command Notebook" to the main menu
+- `app/ui/app.py` — Added `handle_command_notebook()` handler method
+
+**Key design decisions:**
+- Commands are NEVER executed — no subprocess, Ansible, Docker, or Jenkins integration
+- Data stored in dedicated JSON files under `data/command_notebook/`
+- Automatic backups created before any modification (keeps last 10)
+- Built-in commands (pre-defined) vs user-created commands are clearly distinguished
+- 18 categories covering Ubuntu, Python, Git, Docker, Traefik, Ansible, Jenkins, PostgreSQL, Odoo 17/18/19, Django, Portainer, Backup/Restore, SSL, and Monitoring
+- Supports multiline commands, automatic numbering, search, export/import, and restore to built-in defaults
+
+**Tests:** 19 new tests, all passing (total: 104 tests)
+
