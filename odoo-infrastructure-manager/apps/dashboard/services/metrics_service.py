@@ -103,7 +103,17 @@ class MetricsService:
             return result
         base = settings.PROMETHEUS_URL.rstrip("/")
         parts = urlsplit(base)
-        if not parts.hostname or (parts.scheme != "https" and parts.hostname not in {"localhost", "127.0.0.1", "::1"}):
+        if (
+            not parts.hostname
+            or parts.username
+            or parts.password
+            or parts.query
+            or parts.fragment
+            or (
+                parts.scheme != "https"
+                and parts.hostname not in {"localhost", "127.0.0.1", "::1"}
+            )
+        ):
             result["reason"] = "Prometheus must use HTTPS unless it is local."
             return result
 
@@ -116,7 +126,10 @@ class MetricsService:
                     return None
                 values = data.get("data", {}).get("result", [])
                 return float(values[0]["value"][1]) if values else None
-            except (HTTPError, URLError, TimeoutError, OSError, ValueError, KeyError, IndexError, TypeError):
+            except (
+                HTTPError, URLError, TimeoutError, OSError, ValueError,
+                KeyError, IndexError, TypeError, AttributeError,
+            ):
                 return None
 
         label = f'instance="{instance}"'

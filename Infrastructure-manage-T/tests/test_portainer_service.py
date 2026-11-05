@@ -70,4 +70,4 @@ class TestPortainerService(unittest.TestCase):
         with redirect_stdout(output):
             self.assertFalse(install_portainer())
         self.assertEqual(run.call_count, 2)
-        self.assertNotIn('حاوية Portainer تعمل', output.getvalue())
+        self.assertNotIn('Portainer container is running', output.getvalue())

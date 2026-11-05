@@ -6,12 +6,16 @@ Mutations remain disabled until a durable task dispatcher is installed.
 """
 
 from dataclasses import dataclass, field
+from datetime import timedelta
+import re
 from typing import Any, Callable
 
 from django.conf import settings
 from django.utils import timezone
 
 from apps.accounts.services.permission_service import has_permission, is_identity_active
+from apps.containers.models import DockerContainer, DockerEngine
+from apps.containers.services.inventory import DockerInventoryService
 from apps.core.services.audit_service import log_audit
 from apps.infrastructure.models import ManagedHost
 from apps.infrastructure.services.discovery import discover_host
@@ -19,6 +23,10 @@ from infrastructure_engine.adapters.ssh.connection import (
     SSHConnectionAdapter,
     SSHConnectionConfigurationError,
     SSHConnectionError,
+)
+from infrastructure_engine.adapters.docker.client import (
+    DockerAdapterError,
+    perform_container_action,
 )
 from infrastructure_engine.adapters.systemd.service_manager import SystemdOperationError, SystemdServiceManager
 from infrastructure_engine.security.command_validator import (
@@ -68,7 +76,7 @@ def _discover_server(*, host, parameters):
     except ValueError as exc:
         raise OperationRejected(str(exc), status_code=409) from exc
     available = sum(item.get("status") == "available" for item in snapshot.availability.values())
-    return {
+    data = {
         "snapshot_id": snapshot.pk,
         "source": snapshot.source,
         "snapshot_status": snapshot.status,
@@ -78,6 +86,10 @@ def _discover_server(*, host, parameters):
         "total_sections": len(snapshot.availability),
         "collection_duration_ms": snapshot.collection_duration_ms,
     }
+    connection = snapshot.availability.get("connection", {})
+    if connection.get("reason") == "configuration":
+        data["_operation_status"] = "not_configured"
+    return data
 
 
 def _restart_systemd_service(*, host, parameters):
@@ -89,6 +101,59 @@ def _restart_systemd_service(*, host, parameters):
         raise OperationRejected(str(exc), status_code=exc.status_code) from exc
 
 
+def _discover_docker(*, host, parameters):
+    if parameters:
+        raise OperationRejected("This operation does not accept client-supplied parameters.")
+    try:
+        engine = host.docker_engine
+    except DockerEngine.DoesNotExist as exc:
+        raise OperationRejected("Register a Docker engine for this server first.", status_code=409) from exc
+    result = DockerInventoryService.discover(engine)
+    if not result["available"]:
+        result["_operation_status"] = "failed"
+    return result
+
+
+def _docker_container_action(action):
+    def handle(*, host, parameters):
+        container_id = parameters.get("container_id")
+        try:
+            container = DockerContainer.objects.select_related(
+                "engine", "engine__host"
+            ).get(engine__host=host, docker_id=container_id)
+        except DockerContainer.DoesNotExist as exc:
+            raise OperationRejected(
+                "The container is not in this server's managed Docker inventory.",
+                status_code=404,
+            ) from exc
+        if timezone.now() - container.observed_at > timedelta(minutes=5):
+            raise OperationRejected(
+                "Refresh Docker inventory before requesting this action.",
+                status_code=409,
+            )
+
+        if container.state not in _DOCKER_ACTION_STATES[action]:
+            raise OperationRejected(
+                f"The container state does not allow {action}.", status_code=409
+            )
+        try:
+            return perform_container_action(
+                container.engine, container.docker_id, action
+            )
+        except DockerAdapterError as exc:
+            raise OperationRejected(
+                f"Docker {action} failed: {exc}", status_code=503
+            ) from exc
+
+    return handle
+
+
+def _execute_automation_template(*, host, parameters, actor):
+    from apps.automation.services.execution import execute_automation_run
+
+    return execute_automation_run(host, parameters["run_id"], actor)
+
+
 OPERATIONS = {
     "server.test_connection": OperationSpec(
         code="server.test_connection",
@@ -98,8 +163,8 @@ OPERATIONS = {
     ),
     "server.discover": OperationSpec(
         code="server.discover",
-        permission="server.view",
-        legacy_permissions=("infrastructure_view",),
+        permission="server.discover",
+        legacy_permissions=("server.view", "infrastructure_view"),
         handler=_discover_server,
     ),
     "linux.service.restart": OperationSpec(
@@ -110,7 +175,41 @@ OPERATIONS = {
         handler=_restart_systemd_service,
         parameter_keys=("unit",),
     ),
+    "docker.engine.discover": OperationSpec(
+        code="docker.engine.discover",
+        permission="docker.container.view",
+        handler=_discover_docker,
+    ),
+    "automation.template.execute": OperationSpec(
+        code="automation.template.execute",
+        permission="automation.playbook.execute",
+        legacy_permissions=("infrastructure_manage",),
+        mutating=True,
+        requires_confirmation=True,
+        handler=_execute_automation_template,
+        parameter_keys=("run_id",),
+    ),
 }
+_DOCKER_ACTION_STATES = {
+    "start": {"created", "exited", "dead"},
+    "stop": {"running"},
+    "restart": {"running"},
+    "pause": {"running"},
+    "resume": {"paused"},
+    "remove": {"created", "exited", "dead"},
+}
+for _action in ("start", "stop", "restart", "pause", "resume", "remove"):
+    OPERATIONS[f"docker.container.{_action}"] = OperationSpec(
+        code=f"docker.container.{_action}",
+        permission=(
+            "docker.container.delete" if _action == "remove"
+            else f"docker.container.{_action}"
+        ),
+        mutating=True,
+        requires_confirmation=True,
+        handler=_docker_container_action(_action),
+        parameter_keys=("container_id",),
+    )
 
 
 class InfrastructureEngine:
@@ -153,6 +252,31 @@ class InfrastructureEngine:
                 SystemdServiceManager.validate(host, parameters.get("unit"))
             except SystemdOperationError as exc:
                 raise OperationRejected(str(exc), status_code=exc.status_code) from exc
+        if spec.code.startswith("docker.container."):
+            if not getattr(settings, "INFRA_DOCKER_WRITE_ENABLED", False):
+                raise OperationRejected("Docker write operations are disabled.", status_code=503)
+            if not confirmation:
+                raise OperationRejected("Explicit confirmation is required.", status_code=400)
+            container_id = parameters.get("container_id", "")
+            if not isinstance(container_id, str) or not re.fullmatch(r"[0-9a-f]{64}", container_id):
+                raise OperationRejected("A full Docker container ID is required.", status_code=400)
+            try:
+                engine = DockerEngine.objects.get(host=host, enabled=True)
+            except DockerEngine.DoesNotExist as exc:
+                raise OperationRejected("No enabled Docker engine is registered for this server.", status_code=409) from exc
+            if not host.is_local or engine.status != DockerEngine.Status.AVAILABLE:
+                raise OperationRejected("Only an available local Docker engine can be modified.", status_code=409)
+            try:
+                container = DockerContainer.objects.get(engine=engine, docker_id=container_id)
+            except DockerContainer.DoesNotExist as exc:
+                raise OperationRejected("The container is not in this server's managed Docker inventory.", status_code=404) from exc
+            if timezone.now() - container.observed_at > timedelta(minutes=5):
+                raise OperationRejected("Refresh Docker inventory before requesting this action.", status_code=409)
+            action = spec.code.rsplit(".", 1)[-1]
+            if container.state not in _DOCKER_ACTION_STATES[action]:
+                raise OperationRejected(
+                    f"The container state does not allow {action}.", status_code=409
+                )
         return spec, host, parameters
 
     @classmethod
@@ -166,7 +290,10 @@ class InfrastructureEngine:
         old_status = host.connection_status
         checked_at = timezone.now()
         try:
-            data = spec.handler(host=host, parameters=parameters or {})
+            handler_args = {"host": host, "parameters": parameters or {}}
+            if spec.code == "automation.template.execute":
+                handler_args["actor"] = actor
+            data = spec.handler(**handler_args)
         except SSHConnectionConfigurationError as exc:
             cls._audit(request, actor, spec, host, old_status, "not_configured")
             return OperationResult(spec.code, "not_configured", str(exc))
@@ -196,7 +323,13 @@ class InfrastructureEngine:
             host.architecture = data.get("architecture", host.architecture)
             host.save(update_fields=["connection_status", "last_checked_at", "last_connection_at",
                                      "operating_system", "os_version", "architecture", "updated_at"])
-        result_status = "failed" if spec.code == "server.discover" and data.get("snapshot_status") == "failed" else "success"
+        result_status = data.pop("_operation_status", None)
+        if result_status is None:
+            result_status = (
+                "failed"
+                if spec.code == "server.discover" and data.get("snapshot_status") == "failed"
+                else "success"
+            )
         cls._audit(request, actor, spec, host, old_status, result_status, data)
         message = data.get("message", f"{spec.code} completed.")
         if spec.code == "server.discover":

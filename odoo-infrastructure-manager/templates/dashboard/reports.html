@@ -1,0 +1,120 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Reports · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}?v=3">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard reports-page">
+  <header class="infra-heading">
+    <div><div class="eyebrow">OPERATIONS</div><h1>Reports</h1><p>Preview and export live operational records. Sensitive connection and backup references are excluded.</p></div>
+  </header>
+  {% if reports %}
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Report filters</h2><p>Dates are inclusive; exports are limited to 5,000 CSV rows and 300 PDF rows.</p></div></div>
+    <form id="report-form" class="report-filter-form">
+      <label for="report-type">Report</label>
+      <select id="report-type" name="report" required>
+        {% for report in reports %}<option value="{{ report.slug }}" data-export="{{ report.can_export|yesno:'true,false' }}">{{ report.title }}</option>{% endfor %}
+      </select>
+      <label for="report-from">From</label><input id="report-from" name="from" type="date">
+      <label for="report-to">To</label><input id="report-to" name="to" type="date">
+      <label for="report-host">Host ID</label><input id="report-host" name="host" type="number" min="1" step="1" inputmode="numeric">
+      <button class="infra-button primary" type="submit">Preview report</button>
+    </form>
+    <div id="report-message" class="infra-message" role="status" hidden></div>
+    <div id="report-export-actions" class="report-export-actions" hidden>
+      <a id="report-csv" class="infra-button secondary small" href="#">Download CSV</a>
+      <a id="report-pdf" class="infra-button secondary small" href="#">Download PDF</a>
+    </div>
+  </section>
+  <section class="infra-panel table-panel" aria-live="polite">
+    <div class="panel-heading"><div><h2 id="report-results-title">Preview</h2><p id="report-results-meta">Select a report and load a preview.</p></div></div>
+    <div id="report-results" class="table-responsive"></div>
+  </section>
+  {{ reports|json_script:"reports-catalog" }}
+  <script>
+    (() => {
+      const form = document.getElementById("report-form");
+      const message = document.getElementById("report-message");
+      const results = document.getElementById("report-results");
+      const resultsTitle = document.getElementById("report-results-title");
+      const resultsMeta = document.getElementById("report-results-meta");
+      const exports = document.getElementById("report-export-actions");
+      const catalog = JSON.parse(document.getElementById("reports-catalog").textContent);
+
+      function queryString(withFormat) {
+        const params = new URLSearchParams();
+        for (const key of ["from", "to", "host"]) {
+          const value = form.elements[key].value.trim();
+          if (value) params.set(key, value);
+        }
+        if (withFormat) params.set("format", withFormat);
+        return params.toString();
+      }
+
+      function showMessage(text, isError) {
+        message.textContent = text;
+        message.className = `infra-message ${isError ? "warning" : "success"}`;
+        message.hidden = !text;
+      }
+
+      function renderTable(report, items) {
+        results.replaceChildren();
+        const table = document.createElement("table");
+        table.className = "infra-table";
+        const head = table.createTHead().insertRow();
+        for (const column of report.columns) {
+          const cell = document.createElement("th");
+          cell.scope = "col";
+          cell.textContent = column.label;
+          head.appendChild(cell);
+        }
+        const body = table.createTBody();
+        for (const item of items) {
+          const row = body.insertRow();
+          for (const column of report.columns) {
+            const cell = row.insertCell();
+            const value = item[column.key];
+            cell.textContent = value === null || value === undefined ? "" : String(value);
+          }
+        }
+        results.appendChild(table);
+      }
+
+      form.addEventListener("submit", async (event) => {
+        event.preventDefault();
+        exports.hidden = true;
+        showMessage("", false);
+        results.replaceChildren();
+        const slug = form.elements.report.value;
+        try {
+          const response = await fetch(`/api/v1/reports/${encodeURIComponent(slug)}/?${queryString(false)}`, {
+            credentials: "same-origin",
+            headers: {"Accept": "application/json"}
+          });
+          const payload = await response.json();
+          if (!response.ok || !payload.success) {
+            throw new Error(payload.message || "Unable to load this report.");
+          }
+          const data = payload.data;
+          renderTable(data.report, data.items);
+          resultsTitle.textContent = data.report.title;
+          resultsMeta.textContent = `${data.meta.total} row(s) · Page ${data.meta.page} of ${data.meta.pages}`;
+          showMessage("Preview loaded from current source records.", false);
+          const selected = catalog.find((item) => item.slug === slug);
+          if (selected && selected.can_export) {
+            const query = queryString("csv");
+            document.getElementById("report-csv").href = `/api/v1/reports/${encodeURIComponent(slug)}/export/?${query}`;
+            document.getElementById("report-pdf").href = `/api/v1/reports/${encodeURIComponent(slug)}/export/?${queryString("pdf")}`;
+            exports.hidden = false;
+          }
+        } catch (error) {
+          showMessage(error.message, true);
+        }
+      });
+    })();
+  </script>
+  {% else %}
+  <section class="infra-panel"><div class="empty-state compact"><i class="fas fa-chart-pie"></i><strong>No reports are available</strong><span>Ask an administrator for report and source-data permissions.</span></div></section>
+  {% endif %}
+</main>
+{% endblock %}

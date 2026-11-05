@@ -1,5 +1,8 @@
 from django.urls import path
 
+from apps.notifications import views as notification_views
+from apps.reports.views import reports_page
+
 from . import views
 
 app_name = "dashboard"
@@ -10,8 +13,12 @@ urlpatterns = [
     path("tasks/", views.tasks_list, name="tasks"),
     path("tasks/<uuid:task_id>/", views.task_detail, name="task_detail"),
     path("tasks/<uuid:task_id>/cancel/", views.cancel_task, name="cancel_task"),
+    path("tasks/<uuid:task_id>/retry/", views.retry_task, name="retry_task"),
+    path("reports/", reports_page, name="reports"),
     path("containers/", views.containers, name="containers"),
     path("inventory/", views.inventory, name="inventory"),
+    path("inventory/groups/create/", views.create_server_group, name="create_server_group"),
+    path("inventory/tags/create/", views.create_server_tag, name="create_server_tag"),
     path("inventory/<str:item_type>/create/", views.create_inventory_item, name="create_inventory_item"),
     path("inventory/hosts/<int:host_id>/test-connection/", views.test_server_connection, name="test_server_connection"),
     path("inventory/hosts/<int:host_id>/queue-connection-test/", views.queue_server_connection_test, name="queue_server_connection_test"),
@@ -24,13 +31,21 @@ urlpatterns = [
     path("automation/templates/", views.automation_templates, name="automation_templates"),
     path("automation/templates/create/", views.create_automation_template, name="create_automation_template"),
     path("automation/templates/<int:template_id>/toggle/", views.toggle_automation_template, name="toggle_automation_template"),
+    path("automation/templates/<int:template_id>/schedule/", views.save_automation_schedule, name="save_automation_schedule"),
     path("docker/<str:resource_type>/", views.docker_resources, name="docker_resources"),
-    path("containers/<str:container_name>/logs/", views.container_logs, name="container_logs"),
+    path("containers/<str:container_id>/logs/", views.container_logs, name="container_logs"),
     path("services/odoo/", views.odoo_services, name="odoo_services"),
     path("services/django/", views.django_projects, name="django_projects"),
     path("databases/", views.database_services, name="database_services"),
     path("backups/", views.backups, name="backups"),
     path("backups/policies/save/", views.save_backup_policy, name="save_backup_policy"),
+    path("backups/policies/<int:policy_id>/run/", views.run_backup_policy, name="run_backup_policy"),
+    path("backups/artifacts/<int:artifact_id>/refresh/", views.refresh_backup_artifact, name="refresh_backup_artifact"),
+    path("backups/artifacts/<int:artifact_id>/restore/", views.restore_backup_artifact, name="restore_backup_artifact"),
+    path("notifications/", notification_views.notification_center, name="notifications"),
+    path("notifications/read-all/", notification_views.mark_all_notifications_read, name="notifications_read_all"),
+    path("notifications/<int:notification_id>/read/", notification_views.mark_notification_read, name="notification_read"),
+    path("notifications/preferences/", notification_views.update_notification_preferences, name="notification_preferences"),
     path("alerts/", views.alerts, name="alerts"),
     path("alerts/rules/save/", views.save_alert_rule, name="save_alert_rule"),
     path("audit/", views.audit_log, name="audit"),

@@ -34,6 +34,7 @@ env = environ.Env(
     APP_FONT_FAMILY=(str, "Arial"),
     ENABLE_DOMAIN_SAMPLES=(bool, False),
     INFRA_DOCKER_READ_ENABLED=(bool, False),
+    INFRA_DOCKER_WRITE_ENABLED=(bool, False),
     INFRA_SSH_TIMEOUT_SECONDS=(int, 8),
     INFRA_OPERATION_TIMEOUT_SECONDS=(int, 300),
     MONITORING_COLLECTION_INTERVAL_SECONDS=(int, 60),
@@ -42,7 +43,6 @@ env = environ.Env(
     SEMAPHORE_URL=(str, ""),
     SEMAPHORE_API_TOKEN=(str, ""),
     SEMAPHORE_TIMEOUT_SECONDS=(int, 8),
-    INFRA_ALERT_EMAILS=(list, []),
     TRAEFIK_API_URL=(str, ""),
     TRAEFIK_API_TOKEN=(str, ""),
 )
@@ -84,10 +84,12 @@ INSTALLED_APPS = [
     "apps.tasks.apps.TasksConfig",
     "apps.infrastructure",
     "apps.dashboard",
-    "apps.containers",
+    "apps.containers.apps.ContainersConfig",
     "apps.automation",
     "apps.monitoring",
     "apps.backup",
+    "apps.notifications.apps.NotificationsConfig",
+    "apps.reports.apps.ReportsConfig",
     "apps.databases",
     "apps.django_projects",
     "apps.modules.example",
@@ -167,6 +169,7 @@ else:
     }
 
 INFRA_DOCKER_READ_ENABLED = env.bool("INFRA_DOCKER_READ_ENABLED", default=False)
+INFRA_DOCKER_WRITE_ENABLED = env.bool("INFRA_DOCKER_WRITE_ENABLED", default=False)
 INFRA_SSH_TIMEOUT_SECONDS = max(1, env.int("INFRA_SSH_TIMEOUT_SECONDS", default=8))
 INFRA_OPERATION_TIMEOUT_SECONDS = max(1, env.int("INFRA_OPERATION_TIMEOUT_SECONDS", default=300))
 CELERY_BROKER_URL = env("CELERY_BROKER_URL", default="")
@@ -199,7 +202,6 @@ PROMETHEUS_URL = env("PROMETHEUS_URL")
 SEMAPHORE_URL = env("SEMAPHORE_URL").rstrip("/")
 SEMAPHORE_API_TOKEN = env("SEMAPHORE_API_TOKEN")
 SEMAPHORE_TIMEOUT_SECONDS = env.int("SEMAPHORE_TIMEOUT_SECONDS", default=8)
-INFRA_ALERT_EMAILS = env.list("INFRA_ALERT_EMAILS", default=[])
 TRAEFIK_API_URL = env("TRAEFIK_API_URL").rstrip("/")
 TRAEFIK_API_TOKEN = env("TRAEFIK_API_TOKEN")
 

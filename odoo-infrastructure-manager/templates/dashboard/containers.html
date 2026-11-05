@@ -4,11 +4,93 @@
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
 {% block app_content %}
 <main class="infra-dashboard">
-  <header class="infra-heading"><div><div class="eyebrow">DOCKER MANAGER</div><h1>Containers</h1><p>Read-only inventory from the configured local Docker provider</p></div><a href="{% url 'dashboard:index' %}" class="infra-button secondary"><i class="fas fa-arrow-left"></i> Dashboard</a></header>
-  {% if not discovery.available %}<div class="provider-notice"><i class="fas fa-circle-info"></i><div><strong>Docker provider unavailable</strong><span>{{ discovery.reason }} Enable read-only discovery only after reviewing the Docker access model.</span></div></div>{% endif %}
-  <section class="infra-panel table-panel"><div class="panel-heading"><div><h2>Container inventory</h2><p>{{ containers|length }} resources returned{% if discovery.available %} · live Docker query{% endif %}</p><div class="resource-links"><a href="{% url 'dashboard:docker_resources' 'images' %}">Images</a><a href="{% url 'dashboard:docker_resources' 'networks' %}">Networks</a><a href="{% url 'dashboard:docker_resources' 'volumes' %}">Volumes</a><a href="{% url 'dashboard:docker_resources' 'compose' %}">Compose</a></div></div><input class="table-filter" id="container-filter" type="search" placeholder="Search containers" aria-label="Search containers"></div>
-  {% if containers %}<div class="table-responsive"><table class="infra-table" id="container-table"><thead><tr><th>Name</th><th>Image</th><th>State</th><th>Health</th><th>Ports</th><th>Created</th><th>Logs</th></tr></thead><tbody>{% for item in containers %}<tr><td><strong>{{ item.name }}</strong><small>{{ item.id }}</small></td><td>{{ item.image }}</td><td><span class="status-chip {{ item.state }}"><i></i>{{ item.state|title }}</span><small>{{ item.status }}</small></td><td>{{ item.health|title }}</td><td class="ports-cell">{{ item.ports|default:"—" }}</td><td>{{ item.created|default:"—" }}</td><td><a class="infra-button secondary small" href="{% url 'dashboard:container_logs' item.name %}?tail=100">View logs</a></td></tr>{% endfor %}</tbody></table></div>{% elif discovery.available %}<div class="empty-state"><i class="fab fa-docker"></i><strong>No containers found</strong><span>The Docker provider returned an empty inventory.</span></div>{% endif %}</section>
-  <footer class="infra-footnote"><i class="fas fa-lock"></i> This first release is read-only. Start, stop, restart, remove, volume and network operations are not exposed directly from this page.</footer>
+  <header class="infra-heading">
+    <div><div class="eyebrow">DOCKER MANAGER</div><h1>Containers</h1><p>Saved inventory from registered local Docker engines</p></div>
+    <a href="{% url 'dashboard:index' %}" class="infra-button secondary"><i class="fas fa-arrow-left"></i> Dashboard</a>
+  </header>
+
+  {% if discovery.stale %}
+  <div class="provider-notice"><i class="fas fa-clock"></i><div><strong>Docker inventory is stale</strong><span>{{ discovery.reason }}</span></div></div>
+  {% elif not discovery.available %}
+  <div class="provider-notice"><i class="fas fa-circle-info"></i><div><strong>Docker provider unavailable</strong><span>{{ discovery.reason }}</span></div></div>
+  {% endif %}
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Docker engines</h2><p>Only the local Docker socket is supported.</p></div></div>
+    {% if engines %}
+    <form method="get" class="inline-form">
+      <label for="engine-select">Engine</label>
+      <select id="engine-select" name="engine">
+        {% for engine in engines %}<option value="{{ engine.pk }}"{% if selected_engine.pk == engine.pk %} selected{% endif %}>{{ engine.host.name }} · {{ engine.get_status_display }}</option>{% endfor %}
+      </select>
+      <button class="infra-button secondary" type="submit">Select</button>
+    </form>
+    {% endif %}
+    {% if can_register_docker and local_hosts %}
+    <form method="post" class="inline-form">
+      {% csrf_token %}<input type="hidden" name="action" value="register">
+      <label for="server-select">Register local server</label>
+      <select id="server-select" name="server_id" required>
+        {% for host in local_hosts %}<option value="{{ host.pk }}">{{ host.name }}</option>{% endfor %}
+      </select>
+      <button class="infra-button secondary" type="submit">Register engine</button>
+    </form>
+    {% endif %}
+    {% if selected_engine and can_discover_docker %}
+    <form method="post" class="inline-form">
+      {% csrf_token %}<input type="hidden" name="action" value="discover">
+      <input type="hidden" name="engine_id" value="{{ selected_engine.pk }}">
+      <button class="infra-button" type="submit">Queue inventory refresh</button>
+      {% if can_view_tasks %}<a href="{% url 'dashboard:tasks' %}">Task center</a>{% endif %}
+    </form>
+    {% endif %}
+  </section>
+
+  <section class="infra-panel table-panel">
+    <div class="panel-heading">
+      <div>
+        <h2>Container inventory</h2>
+        <p>{{ containers|length }} saved resources{% if selected_engine %} · {{ selected_engine.host.name }}{% endif %}</p>
+        <div class="resource-links">
+          <a href="{% url 'dashboard:docker_resources' 'images' %}?engine={{ selected_engine.pk }}">Images</a>
+          <a href="{% url 'dashboard:docker_resources' 'networks' %}?engine={{ selected_engine.pk }}">Networks</a>
+          <a href="{% url 'dashboard:docker_resources' 'volumes' %}?engine={{ selected_engine.pk }}">Volumes</a>
+          <a href="{% url 'dashboard:docker_resources' 'compose' %}?engine={{ selected_engine.pk }}">Compose</a>
+        </div>
+      </div>
+      <input class="table-filter" id="container-filter" type="search" placeholder="Search containers" aria-label="Search containers">
+    </div>
+    {% if containers %}
+    <div class="table-responsive"><table class="infra-table" id="container-table">
+      <thead><tr><th>Name</th><th>Image</th><th>State</th><th>Health</th><th>Ports</th><th>Logs</th>{% if can_write_docker %}<th>Actions</th>{% endif %}</tr></thead>
+      <tbody>{% for item in containers %}
+      <tr>
+        <td><strong>{{ item.name }}</strong><small>{{ item.id }}</small></td>
+        <td>{{ item.image }}</td>
+        <td><span class="status-chip {{ item.state }}"><i></i>{{ item.state|title }}</span><small>{{ item.status }}</small></td>
+        <td>{{ item.health|title }}</td>
+        <td class="ports-cell">{{ item.ports|default:"—" }}</td>
+        <td><a class="infra-button secondary small" href="{% url 'dashboard:container_logs' item.id %}?engine={{ selected_engine.pk }}&amp;tail=100">View logs</a></td>
+        {% if can_write_docker %}<td><div class="resource-links">
+          {% for action in docker_actions %}
+            {% if action.allowed and item.state in action.states %}
+              <form method="post" class="inline-form" onsubmit="return confirm('Confirm Docker {{ action.name }} for {{ item.name }}?')">
+                {% csrf_token %}<input type="hidden" name="engine_id" value="{{ selected_engine.pk }}">
+                <input type="hidden" name="container_id" value="{{ item.id }}">
+                <input type="hidden" name="container_action" value="{{ action.name }}">
+                <input type="hidden" name="confirmation" value="yes">
+                <button class="infra-button secondary small" type="submit">{{ action.name|title }}</button>
+              </form>
+            {% endif %}
+          {% endfor %}
+        </div></td>{% endif %}
+      </tr>{% endfor %}</tbody>
+    </table></div>
+    {% elif discovery.available %}
+    <div class="empty-state"><i class="fab fa-docker"></i><strong>No containers found</strong><span>The last successful Docker discovery returned an empty inventory.</span></div>
+    {% endif %}
+  </section>
+  <footer class="infra-footnote"><i class="fas fa-lock"></i> Docker actions are submitted to Task Center, require separate permissions and explicit confirmation, and are disabled by default.</footer>
 </main>
 <script src="{% static 'js/dashboard.js' %}"></script>
 {% endblock %}

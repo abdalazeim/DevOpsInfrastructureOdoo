@@ -4,8 +4,9 @@ import json
 from django.contrib.auth import get_user_model
 from django.test import TestCase, override_settings
 from django.urls import reverse
+from django.utils import timezone
 
-from apps.automation.models import ApprovedTaskTemplate, AutomationRun
+from apps.automation.models import ApprovedTaskTemplate, AutomationRun, AutomationSchedule
 from apps.automation.services.semaphore_client import SemaphoreClient, SemaphoreError
 from apps.accounts.models import UserProfile
 from apps.core.models import AuditLog
@@ -70,8 +71,38 @@ class DashboardAccessTests(TestCase):
     @patch("apps.infrastructure.services.discovery.collect_local_snapshot", return_value={
         "source": "local-linux", "status": "partial",
         "data": {
-            "system": {"operating_system": "Linux", "architecture": "x86_64"},
-            "memory": None,
+            "system": {
+                "operating_system": "Linux", "distribution": "Ubuntu",
+                "distribution_version": "24.04", "kernel": "6.8.0",
+                "architecture": "x86_64", "uptime_seconds": 3600,
+                "timezone": "Etc/UTC", "locale": "C.UTF-8",
+            },
+            "cpu": {"model": "Test CPU", "usage_percent": 0.0, "logical_cores": 4,
+                    "frequency_mhz": 2200.0, "load_average": [0.1, 0.2, 0.3]},
+            "memory": {"total_bytes": 1000, "available_bytes": 500,
+                       "used_bytes": 500, "usage_percent": 50.0,
+                       "cached_bytes": None, "buffers_bytes": 0,
+                       "swap_total_bytes": 0, "swap_used_bytes": 0, "swap_percent": 0.0},
+            "storage": {"filesystems": [{
+                "device": "/dev/sda1", "mountpoint": "/", "filesystem": "ext4",
+                "total_bytes": 1000, "used_bytes": 500, "usage_percent": 50.0,
+            }], "devices_supported": False, "devices_reason": "lsblk is not installed"},
+            "disks": [{
+                "device": "/dev/sda1", "mountpoint": "/", "filesystem": "ext4",
+                "total_bytes": 1000, "used_bytes": 500, "usage_percent": 50.0,
+            }],
+            "network_interfaces": {"items": [{
+                "name": "eth0", "is_up": True, "mac_address": "02:00:00:00:00:01",
+                "addresses": ["192.0.2.5"], "bytes_received": 1000, "bytes_sent": 500,
+            }], "truncated": False},
+            "network_routes": {"default_gateway": "192.0.2.1", "items": []},
+            "network_connections": {"listening_ports": [{
+                "type": "tcp", "local_address": {"ip": "0.0.0.0", "port": 22}, "pid": 1,
+            }]},
+            "dns": ["192.0.2.53"],
+            "providers": {"docker": {"installed": False}},
+            "system_security": {"running_as_root": False},
+            "hardware_sensors": {"supported": False, "reason": "No sensors"},
             "services": {"manager": "systemd", "supported": True, "running_count": 1,
                          "items": [{"unit": "ssh.service", "active": "active", "substate": "running", "description": "OpenSSH server"}]},
             "processes": {"items": [{"pid": 10, "name": "gunicorn", "user": "odoo", "status": "running", "memory_percent": 2.5}]},
@@ -83,7 +114,7 @@ class DashboardAccessTests(TestCase):
         host = ManagedHost.objects.create(name="local-live", hostname="localhost", is_local=True,
                                           server_type="local", connection_type="local")
         response = self.client.post(reverse("dashboard:discover_server", args=[host.pk]))
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 206)
         self.assertEqual(response.json()["snapshot_status"], "partial")
         snapshot = InfrastructureSnapshot.objects.get(host=host)
         self.assertEqual(snapshot.data["system"]["operating_system"], "Linux")
@@ -91,9 +122,14 @@ class DashboardAccessTests(TestCase):
         self.assertEqual(snapshot.collection_duration_ms, 12)
         page = self.client.get(reverse("dashboard:inventory"))
         self.assertContains(page, "Latest live snapshot")
+        self.assertContains(page, "Current")
         self.assertContains(page, "Partially collected")
         self.assertContains(page, "ssh.service")
         self.assertContains(page, "gunicorn")
+        self.assertContains(page, "Test CPU")
+        self.assertContains(page, "192.0.2.1")
+        self.assertContains(page, "Listening ports")
+        self.assertContains(page, "System security context")
         collect.assert_called_once_with()
 
     def test_local_discovery_refuses_remote_targets(self):
@@ -128,17 +164,25 @@ class ApprovedAutomationTests(TestCase):
         self.host = ManagedHost.objects.create(name="prod", hostname="prod.example.test", ansible_limit="prod-web")
         self.template = ApprovedTaskTemplate.objects.create(
             name="Check services", project_id=1, template_id=2,
-            category=ApprovedTaskTemplate.Category.DISCOVERY, enabled=True, read_only=True,
+            category=ApprovedTaskTemplate.Category.DISCOVERY, enabled=True, read_only=True, host=self.host,
         )
 
-    @patch("apps.dashboard.views.SemaphoreClient.start_task", return_value={"id": 42})
-    def test_approved_template_starts_as_dry_run(self, start_task):
+    @patch("apps.tasks.services.operation_tasks.queue_infrastructure_operation")
+    def test_approved_template_is_queued_as_dry_run_task(self, queue_operation):
+        queued_task = Task.objects.create(
+            name="Automation run", operation="automation.template.execute", status=Task.Status.QUEUED
+        )
+        queue_operation.return_value = queued_task
         response = self.client.post(reverse("dashboard:run_template", args=[self.template.pk]), {"mode": "dry_run"})
         self.assertEqual(response.status_code, 302)
-        start_task.assert_called_once_with(1, 2, dry_run=True, limit="")
+        queue_operation.assert_called_once()
+        self.assertEqual(queue_operation.call_args.kwargs["operation"], "automation.template.execute")
+        self.assertEqual(queue_operation.call_args.kwargs["target_id"], self.host.pk)
+        self.assertEqual(queue_operation.call_args.kwargs["confirmation"], True)
         run = AutomationRun.objects.get()
         self.assertTrue(run.dry_run)
-        self.assertEqual(run.external_task_id, 42)
+        self.assertEqual(run.task, queued_task)
+        self.assertIsNone(run.external_task_id)
 
     @patch("apps.dashboard.views.SemaphoreClient.start_task")
     def test_read_only_template_cannot_be_launched_live(self, start_task):
@@ -156,6 +200,138 @@ class ApprovedAutomationTests(TestCase):
             response = self.client.post(reverse("dashboard:run_template", args=[self.template.pk]), {"mode": "live"})
         self.assertEqual(response.status_code, 302)
         start_task.assert_not_called()
+
+    def test_schedule_is_created_for_approved_template_and_uses_dry_run(self):
+        response = self.client.post(
+            reverse("dashboard:save_automation_schedule", args=[self.template.pk]),
+            {"interval_minutes": "30", "enabled": "on", "variables_json": "{}"},
+        )
+        self.assertEqual(response.status_code, 302)
+        schedule = AutomationSchedule.objects.get(template=self.template)
+        self.assertTrue(schedule.enabled)
+        self.assertGreater(schedule.next_run_at, timezone.now())
+
+    @override_settings(CREDENTIAL_ENCRYPTION_KEY=TEST_CREDENTIAL_KEY)
+    def test_schedule_variables_are_encrypted_and_not_rendered_as_plaintext(self):
+        self.template.variables_schema = {
+            "release": {"type": "string", "required": True}
+        }
+        self.template.save(update_fields=["variables_schema"])
+        response = self.client.post(
+            reverse("dashboard:save_automation_schedule", args=[self.template.pk]),
+            {
+                "interval_minutes": "30",
+                "enabled": "on",
+                "variables_json": '{"release":"stable"}',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        schedule = AutomationSchedule.objects.get(template=self.template)
+        self.assertNotIn("stable", schedule.encrypted_variables)
+        self.assertEqual(schedule.variable_names, ["release"])
+
+    def test_template_creation_persists_the_validated_variable_schema_disabled(self):
+        response = self.client.post(
+            reverse("dashboard:create_automation_template"),
+            {
+                "name": "Reviewed setup",
+                "description": "Approved only after review.",
+                "project_id": "2",
+                "template_id": "8",
+                "category": "maintenance",
+                "read_only": "on",
+                "requires_confirmation": "on",
+                "host": str(self.host.pk),
+                "service": "",
+                "variables_schema_json": '{"version":{"type":"string","required":true}}',
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        template = ApprovedTaskTemplate.objects.get(name="Reviewed setup")
+        self.assertFalse(template.enabled)
+        self.assertEqual(
+            template.variables_schema,
+            {"version": {"type": "string", "required": True, "choices": []}},
+        )
+
+    def test_unapproved_template_cannot_be_scheduled(self):
+        self.template.enabled = False
+        self.template.save(update_fields=["enabled"])
+        self.client.post(
+            reverse("dashboard:save_automation_schedule", args=[self.template.pk]),
+            {"interval_minutes": "30", "enabled": "on"},
+        )
+        schedule = AutomationSchedule.objects.get(template=self.template)
+        self.assertFalse(schedule.enabled)
+        self.assertIsNone(schedule.next_run_at)
+
+    def test_automation_execution_requires_task_view_permission(self):
+        operator = get_user_model().objects.create_user(
+            "automation-operator", "operator@example.test", "test-password"
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=operator)
+        profile.permissions = ["automation.playbook.execute"]
+        profile.save(update_fields=["permissions"])
+        self.client.force_login(operator)
+        response = self.client.post(
+            reverse("dashboard:run_template", args=[self.template.pk]),
+            {"mode": "dry_run"},
+        )
+        self.assertEqual(response.status_code, 403)
+        self.assertFalse(AutomationRun.objects.exists())
+
+    def test_granular_automation_manager_can_register_disabled_templates(self):
+        manager = get_user_model().objects.create_user(
+            "automation-manager", "manager@example.test", "test-password"
+        )
+        profile, _ = UserProfile.objects.get_or_create(user=manager)
+        profile.permissions = ["server.view", "automation.playbook.create"]
+        profile.save(update_fields=["permissions"])
+        self.client.force_login(manager)
+        page = self.client.get(reverse("dashboard:automation_templates"))
+        self.assertContains(page, "Register template")
+        response = self.client.post(
+            reverse("dashboard:create_automation_template"),
+            {
+                "name": "Scoped template",
+                "description": "",
+                "project_id": "1",
+                "template_id": "3",
+                "category": "maintenance",
+                "variables_schema_json": "{}",
+            },
+        )
+        self.assertEqual(response.status_code, 302)
+        template = ApprovedTaskTemplate.objects.get(name="Scoped template")
+        self.assertFalse(template.enabled)
+
+    @patch("apps.dashboard.views.SemaphoreClient.task_output", return_value={"stdout": "completed"})
+    @patch("apps.dashboard.views.SemaphoreClient.get_task", return_value={"status": "success"})
+    def test_run_detail_refreshes_external_state_and_output(self, get_task, task_output):
+        run = AutomationRun.objects.create(
+            template=self.template, requested_by=self.user, external_task_id=45,
+            status=AutomationRun.Status.QUEUED,
+        )
+        response = self.client.get(reverse("dashboard:run_detail", args=[run.pk]))
+        run.refresh_from_db()
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(run.status, AutomationRun.Status.SUCCESS)
+        self.assertIn("completed", run.output_excerpt)
+        get_task.assert_called_once_with(1, 45)
+        task_output.assert_called_once_with(1, 45)
+
+    @patch(
+        "apps.dashboard.views.SemaphoreClient.get_task",
+        side_effect=SemaphoreError("Could not reach Semaphore."),
+    )
+    def test_run_refresh_reports_external_provider_failure(self, get_task):
+        run = AutomationRun.objects.create(
+            template=self.template, requested_by=self.user, external_task_id=46,
+        )
+        response = self.client.post(reverse("dashboard:refresh_run", args=[run.pk]))
+        self.assertEqual(response.status_code, 503)
+        self.assertIn("Could not reach Semaphore.", response.json()["message"])
+        get_task.assert_called_once_with(1, 46)
 
     def test_main_pages_render_for_infrastructure_operator(self):
         for route in ("dashboard:index", "dashboard:containers", "dashboard:inventory", "dashboard:automation_templates", "dashboard:odoo_services",
@@ -228,6 +404,40 @@ class ApprovedAutomationTests(TestCase):
         self.assertEqual(response.status_code, 302)
         task.refresh_from_db()
         self.assertEqual(task.status, Task.Status.CANCELLED)
+
+    @override_settings(TASK_DISPATCH_ENABLED=True, CELERY_BROKER_URL="redis://localhost/1")
+    @patch("apps.tasks.services.dispatcher.publish_task")
+    @patch("apps.tasks.services.dispatcher.dispatch_status", return_value={"ready": True})
+    @patch("apps.tasks.services.operation_tasks.dispatch_status", return_value={"ready": True})
+    @patch("apps.dashboard.views.dispatch_status", return_value={"ready": True})
+    def test_task_detail_exposes_retry_only_when_authorized_and_dispatchable(
+        self, view_dispatch, operation_dispatch, queue_dispatch, publish
+    ):
+        host = ManagedHost.objects.create(name="retry-host", hostname="retry.example.test")
+        task = create_task(
+            name="Failed probe",
+            operation="server.test_connection",
+            actor=self.user,
+            target_server=host,
+            max_attempts=2,
+            safe_metadata={"operation_request": {
+                "operation": "server.test_connection",
+                "target_id": host.pk,
+                "parameters": {},
+                "confirmation": None,
+            }},
+        )
+        transition_task(task.pk, Task.Status.QUEUED, actor=self.user)
+        transition_task(task.pk, Task.Status.RUNNING, actor=self.user)
+        transition_task(task.pk, Task.Status.FAILED, actor=self.user)
+
+        detail = self.client.get(reverse("dashboard:task_detail", args=[task.pk]))
+        self.assertContains(detail, "Retry task")
+        response = self.client.post(reverse("dashboard:retry_task", args=[task.pk]))
+        self.assertEqual(response.status_code, 302)
+        task.refresh_from_db()
+        self.assertEqual(task.status, Task.Status.QUEUED)
+        publish.assert_called_once_with(task.pk)
 
     def test_task_center_reports_queue_dispatch_as_disabled_by_default(self):
         response = self.client.get(reverse("dashboard:tasks"))

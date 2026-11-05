@@ -70,10 +70,12 @@ class SemaphoreClient:
         response = self._request("ping")
         return str(response).strip().lower() == "pong"
 
-    def start_task(self, project_id, template_id, *, dry_run=True, limit=""):
+    def start_task(self, project_id, template_id, *, dry_run=True, limit="", extra_vars=None):
         payload = {"template_id": int(template_id), "dry_run": bool(dry_run)}
         if limit:
             payload["limit"] = limit
+        if extra_vars:
+            payload["extra_vars"] = extra_vars
         return self._request(f"project/{int(project_id)}/tasks", payload)
 
     def list_projects(self):

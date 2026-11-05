@@ -1,10 +1,19 @@
+import json
+
 from django import forms
+from django.core.exceptions import ValidationError
 from django.db import transaction
 
-from apps.infrastructure.models import ManagedHost, ManagedService
+from apps.infrastructure.models import ManagedHost, ManagedService, ServerGroup, ServerTag
 from apps.monitoring.models import AlertRule
 from apps.backup.models import BackupPolicy
-from apps.automation.models import ApprovedTaskTemplate
+from apps.backup.services.workflows import validate_backup_policy
+from apps.automation.models import ApprovedTaskTemplate, AutomationSchedule
+from apps.automation.services.execution import (
+    AutomationValidationError,
+    validate_variable_values,
+    validate_variables_schema,
+)
 from apps.security.models import Credential
 from apps.core.services.runtime_settings import (
     RUNTIME_SETTING_SCHEMA, environment_override, get_runtime_setting,
@@ -18,7 +27,7 @@ class ManagedHostForm(forms.ModelForm):
         model = ManagedHost
         fields = (
             "name", "hostname", "server_type", "connection_type", "ssh_port",
-            "credential", "groups", "operating_system", "os_version",
+            "credential", "groups", "tags", "operating_system", "os_version",
             "architecture", "environment", "location", "ansible_limit",
             "description", "enabled", "is_local",
         )
@@ -52,6 +61,28 @@ class ManagedHostForm(forms.ModelForm):
             host.save()
             self.save_m2m()
         return host
+
+
+class ServerGroupForm(forms.ModelForm):
+    class Meta:
+        model = ServerGroup
+        fields = ("name", "description")
+
+
+class ServerTagForm(forms.ModelForm):
+    class Meta:
+        model = ServerTag
+        fields = ("name", "color")
+
+    def clean_color(self):
+        color = self.cleaned_data["color"]
+        if color and (
+            len(color) != 7
+            or color[0] != "#"
+            or any(character not in "0123456789abcdefABCDEF" for character in color[1:])
+        ):
+            raise forms.ValidationError("Use a six-digit hexadecimal color.")
+        return color
 
 
 class QuickConnectServerForm(forms.Form):
@@ -228,12 +259,40 @@ class AlertRuleForm(forms.ModelForm):
 
 
 class BackupPolicyForm(forms.ModelForm):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.fields["template"].queryset = ApprovedTaskTemplate.objects.filter(
+            category=ApprovedTaskTemplate.Category.BACKUP
+        ).select_related("host", "service")
+
     class Meta:
         model = BackupPolicy
-        fields = ("name", "service", "retention_count", "schedule", "enabled")
+        fields = (
+            "name", "service", "template", "retention_count",
+            "interval_minutes", "enabled",
+        )
+
+    def clean(self):
+        cleaned = super().clean()
+        for field in ("service", "template", "retention_count", "enabled"):
+            if field in cleaned:
+                setattr(self.instance, field, cleaned[field])
+        try:
+            validate_backup_policy(self.instance)
+        except ValidationError as exc:
+            self.add_error(None, exc)
+        return cleaned
 
 
 class ApprovedTaskTemplateForm(forms.ModelForm):
+    variables_schema_json = forms.CharField(
+        label="Allowed variables (JSON)",
+        required=False,
+        max_length=8192,
+        help_text='Declare non-secret variables, for example {"version":{"type":"string","required":true}}.',
+        widget=forms.Textarea(attrs={"rows": 4, "placeholder": "{}"}),
+    )
+
     class Meta:
         model = ApprovedTaskTemplate
         fields = ("name", "description", "project_id", "template_id", "category", "read_only",
@@ -244,3 +303,65 @@ class ApprovedTaskTemplateForm(forms.ModelForm):
         super().__init__(*args, **kwargs)
         self.fields["host"].queryset = ManagedHost.objects.filter(enabled=True)
         self.fields["service"].queryset = ManagedService.objects.filter(enabled=True).select_related("host")
+        if self.instance and self.instance.pk:
+            self.fields["variables_schema_json"].initial = json.dumps(
+                self.instance.variables_schema, ensure_ascii=True, indent=2
+            )
+
+    def clean_variables_schema_json(self):
+        raw = self.cleaned_data["variables_schema_json"].strip() or "{}"
+        try:
+            schema = json.loads(raw)
+            return validate_variables_schema(schema)
+        except (json.JSONDecodeError, AutomationValidationError) as exc:
+            raise forms.ValidationError(str(exc)) from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        host = cleaned.get("host")
+        service = cleaned.get("service")
+        if host and service and service.host_id != host.pk:
+            self.add_error("service", "The service must belong to the selected managed host.")
+        return cleaned
+
+    def save(self, commit=True):
+        template = super().save(commit=False)
+        template.variables_schema = self.cleaned_data["variables_schema_json"]
+        if commit:
+            template.save()
+            self.save_m2m()
+        return template
+
+
+class AutomationScheduleForm(forms.ModelForm):
+    variables_json = forms.CharField(
+        label="Scheduled variables (JSON)",
+        required=False,
+        max_length=8192,
+        help_text="Values are encrypted at rest. Leave blank to keep existing values.",
+        widget=forms.Textarea(attrs={"rows": 3, "placeholder": "{}"}),
+    )
+
+    class Meta:
+        model = AutomationSchedule
+        fields = ("interval_minutes", "enabled")
+
+    def clean_variables_json(self):
+        raw = self.cleaned_data["variables_json"].strip()
+        if not raw and self.instance.pk and self.instance.encrypted_variables:
+            return None
+        try:
+            variables = json.loads(raw or "{}")
+            return validate_variable_values(self.instance.template, variables)
+        except (json.JSONDecodeError, AutomationValidationError) as exc:
+            raise forms.ValidationError(str(exc)) from exc
+
+    def clean(self):
+        cleaned = super().clean()
+        if cleaned.get("enabled"):
+            template = self.instance.template
+            if not template.enabled:
+                self.add_error("enabled", "Only approved templates can be scheduled.")
+            if template.category == ApprovedTaskTemplate.Category.RESTORE:
+                self.add_error("enabled", "Restore templates cannot be scheduled.")
+        return cleaned

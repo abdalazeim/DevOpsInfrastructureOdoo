@@ -1,10 +1,26 @@
-from django.core.validators import MaxValueValidator, MinValueValidator
+from django.core.validators import MaxValueValidator, MinValueValidator, RegexValidator
 from django.db import models
 
 
 class ServerGroup(models.Model):
     name = models.CharField(max_length=120, unique=True)
     description = models.TextField(blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class ServerTag(models.Model):
+    name = models.CharField(max_length=80, unique=True)
+    color = models.CharField(
+        max_length=7,
+        blank=True,
+        validators=[RegexValidator(r"^#[0-9A-Fa-f]{6}$")],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -49,6 +65,7 @@ class ManagedHost(models.Model):
     architecture = models.CharField(max_length=80, blank=True)
     location = models.CharField(max_length=160, blank=True)
     groups = models.ManyToManyField(ServerGroup, blank=True, related_name="hosts")
+    tags = models.ManyToManyField(ServerTag, blank=True, related_name="hosts")
     credential = models.ForeignKey(
         "security.Credential", null=True, blank=True, on_delete=models.PROTECT,
         related_name="managed_hosts",

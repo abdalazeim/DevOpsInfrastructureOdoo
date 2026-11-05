@@ -1,251 +1,323 @@
-# 🚀 Odoo Multi-Version Deployment - طرق التشغيل (Linux Ubuntu فقط)
+# Operating Methods - Odoo Multi-Version Deployment (Ubuntu Target)
 
-> **النظام المستهدف:** Linux Ubuntu (الإصدارات 20، 22، 24 وما فوق)  
-> **ملاحظة:** هذا النظام مبرمج بالكامل لـ **Linux Ubuntu** ولا يحتوي على أي مكونات خاصة بنظام Windows. المسار أعلاه هو مسار تخزين على قرص Windows لتسهيل التعديل فقط، لكن التنفيذ الفعلي يتم على خادم Linux Ubuntu.  
-> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
-> **التاريخ:** نوفمبر 2026  
-> **الإصدار:** 1.0  
-> **الحالة:** Production Ready
+## 1. Document Overview
 
----
+| Field | Value |
+|---|---|
+| Target platform | Linux Ubuntu Server (20.04 / 22.04 / 24.04 LTS guidance) |
+| Scope | Practical execution methods for bootstrap, install, backup, restore, and health checks |
+| Primary location (deployment variant) | `/opt/Odoo-MultiVersion-Deployment/scripts/` on Ubuntu (paths may differ per installation) |
+| Note | This repository may be edited on Windows; execution is intended on Ubuntu hosts |
 
-## 📋 جدول المحتويات
+## 2. Quick Information Table
 
-1. [موقع المشروع](#-موقع-المشروع)
-2. [متطلبات النظام (Linux Ubuntu)](#-متطلبات-النظام-Linux-Ubuntu)
-3. [الطريقة الأولى: التشغيل السريع (أمر واحد)](#-الطريقة-الألية-التشغيل-السريع-أمر-واحد)
-4. [الطريقة الثانية: التنفيذ خطوة بخطوة](#-الطريقة-الثانية-التنفيذ-خطوة-بخطوة)
-5. [الطريقة الثالثة: التنفيذ اليدوي لكل مكون](#-الطريقة-الثالثة-التنفيذ-اليدوي-لكل-مكون)
-6. [الطريقة الرابعة: عبر Jenkins](#-الطريقة-الرابعة-عبر-Jenkins)
-7. [الطريقة الخامسة: عبر أنsible Playbooks مباشرة](#-الطريقة-الخامسة-عبر-Ansible-Playbooks-مباشرة)
-8. [الروابط النهائية بعد التشغيل الناجح](#-الروابط-النهائية-بعد-التشغيل-الناجح)
-9. [ملاحظة هامة حول الصلاحيات](#-ملاحظة-هامة-حول-الصلاحيات)
-10. [ملفات السكريبت في المجلد](#-ملفات-السكريبت-في-المجلد)
-11. [مسارات النظام بعد التثبيت](#-مسارات-النظام-بعد-التثبيت)
-12. [الدعم](#-الدعم)
+| Method | Use Case | Entry Point |
+|---|---|---|
+| One-command launch | Fast bootstrap + launch | `sudo bash launch-odoo-infra.sh` |
+| Step-by-step | Controlled setup | `bootstrap-odoo-infra.sh` then `launch-odoo-infra.sh` |
+| Per-component scripts | Targeted install/ops | `install-odoo17.sh`, `install-odoo19.sh`, etc. |
+| Jenkins | CI/CD-driven operations | `Jenkins/*.Jenkinsfile` (variant-specific) |
+| Ansible direct | Playbook-driven operations | `ansible-playbook ...` (inventory/vars required) |
 
----
+## 3. Table of Contents
 
-## 1. 📍 موقع المشروع
+1. [Document Overview](#1-document-overview)
+2. [Quick Information Table](#2-quick-information-table)
+3. [Table of Contents](#3-table-of-contents)
+4. [Architecture Diagram](#4-architecture-diagram)
+5. [Prerequisites Table](#5-prerequisites-table)
+6. [Required Ports Table](#6-required-ports-table)
+7. [Installation Workflow](#7-installation-workflow)
+8. [Step-by-Step Installation](#8-step-by-step-installation)
+9. [Configuration Files](#9-configuration-files)
+10. [Directory Structure](#10-directory-structure)
+11. [Service Management Commands](#11-service-management-commands)
+12. [Verification Commands](#12-verification-commands)
+13. [Troubleshooting Table](#13-troubleshooting-table)
+14. [Backup and Restore Commands](#14-backup-and-restore-commands)
+15. [Security Checklist](#15-security-checklist)
+16. [Official References](#16-official-references)
 
+## 4. Architecture Diagram
+
+```mermaid
+flowchart TB
+  subgraph Control["Operator Control Plane"]
+    SH[Shell Scripts]
+    JP[Jenkins Pipelines]
+    AP[Ansible Playbooks]
+  end
+  subgraph Runtime["Ubuntu Host Runtime"]
+    DK[Docker Engine + Compose]
+    TR[Traefik]
+    OD[Odoo Instances]
+    PG[PostgreSQL Containers]
+  end
+  SH --> DK
+  JP --> AP
+  AP --> DK
+  DK --> TR
+  TR --> OD
+  OD --> PG
 ```
-D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\deployment\Odoo-MultiVersion-Deployment\scripts\
+
+## 5. Prerequisites Table
+
+| No. | Component | Minimum | Recommended | Verification |
+|---:|---|---|---|---|
+| 1 | Ubuntu Server | 20.04 LTS | 22.04 / 24.04 LTS | `lsb_release -a` |
+| 2 | CPU | 2 cores | 4+ cores | `nproc` |
+| 3 | RAM | 4 GB | 8+ GB | `free -h` |
+| 4 | Storage | 100 GB | 500+ GB SSD | `df -h` |
+| 5 | Docker Engine | 20.10+ | latest stable | `docker --version` |
+| 6 | Docker Compose | v2 | latest stable | `docker compose version` |
+| 7 | Ansible | core + collections (as needed) | latest stable | `ansible --version` |
+| 8 | Python 3 | 3.8+ | latest stable | `python3 --version` |
+| 9 | Git | 2.x | latest stable | `git --version` |
+
+## 6. Required Ports Table
+
+| Port | Protocol | Purpose | Exposure |
+|---:|---|---|---|
+| 80 | TCP | HTTP entry (Traefik/redirect) | Public as designed |
+| 443 | TCP | HTTPS entry | Public as designed |
+| 8069 | TCP | Odoo HTTP (internal/routed) | Internal/proxy |
+| 8072 | TCP | Odoo longpolling (internal/routed) | Internal/proxy |
+| 5432 | TCP | PostgreSQL | Internal only |
+
+## 7. Installation Workflow
+
+```mermaid
+sequenceDiagram
+  participant Op as Operator
+  participant BS as bootstrap-odoo-infra.sh
+  participant LN as launch-odoo-infra.sh
+  participant DK as Docker/Compose
+  participant AN as Ansible (optional)
+  Op->>BS: sudo bash bootstrap-odoo-infra.sh
+  BS-->>Op: Prerequisites prepared / env hints
+  Op->>LN: sudo bash launch-odoo-infra.sh
+  LN->>DK: Deploy/start components
+  LN->>AN: Run playbooks (if configured)
+  DK-->>Op: Services running / logs
 ```
 
-> **تنبيه هام**: هذا النظام مبرمج بالكامل لـ **Linux Ubuntu** (الإصدارات 20، 22، 24 وما فوق). لا يحتوي على أي مكونات خاصة بنظام Windows. المسار أعلاه هو مسار تخزين على قرص Windows لتسهيل التعديل فقط، لكن التنفيذ الفعلي يتم على خادم Linux Ubuntu.
+## 8. Step-by-Step Installation
 
----
+### 8.1 Navigate to Scripts Directory
 
-## 2. 🔧 متطلبات النظام (Linux Ubuntu)
+**Purpose:** Run deployment scripts from the expected working directory.
 
-| # | المكون | الحد الأدنى | الموصى به |
-|---|---------|-----------|-----------|
-| 1 | نظام التشغيل | Ubuntu Server 20.04 LTS | Ubuntu Server 22.04 / 24.04 LTS |
-| 2 | المعالج | 2 نوى | 4 نوى أو أكثر |
-| 3 | الذاكرة | 4 جيجابايت RAM | 8 جيجابايت RAM أو أكثر |
-| 4 | التخزين | 100 جيجابايت SSD | 500 جيجابايت SSD أو أكثر |
-| 5 | Docker Engine | 20.10+ | أحدث إصدار |
-| 6 | Docker Compose | v2 | أحدث إصدار |
-| 7 | Ansible | Core + collections | أحدث إصدار |
-| 8 | Python3 | 3.8+ | أحدث إصدار |
-| 9 | Git | 2.x | أحدث إصدار |
-
----
-
-## 3. ⚡ الطريقة الأولى: التشغيل السريع (أمر واحد)
-
-افتح المحطة على خادم Linux Ubuntu الخاص بك وشغل الأمر التالي:
+**Commands:**
 
 ```bash
-# الانتقال إلى مجلد السكريبتات
 cd /opt/Odoo-MultiVersion-Deployment/scripts
+```
 
-# تشغيل السكريبت الرئيسي بصلاحيات الجذر (يقوم بتشغيل bootstrap تلقائياً)
+**Verification:**
+
+```bash
+pwd
+ls
+```
+
+**Expected Result:** Script files such as `bootstrap-odoo-infra.sh` and `launch-odoo-infra.sh` are listed.
+
+### 8.2 Run One-Command Launch
+
+**Purpose:** Bootstrap dependencies and launch the deployment flow.
+
+**Commands:**
+
+```bash
 sudo bash launch-odoo-infra.sh
 ```
 
----
+**Verification:**
 
-## 4. 📋 الطريقة الثانية: التنفيذ خطوة بخطوة
+```bash
+docker ps
+```
 
-### الخطوة 1: تثبيت التبعيات وتجهيز البيئة
+**Expected Result:** Required containers/services start according to the selected workflow.
+
+### 8.3 Run Step-by-Step Bootstrap and Launch
+
+**Purpose:** Separate prerequisite installation from deployment.
+
+**Commands:**
 
 ```bash
 sudo bash bootstrap-odoo-infra.sh
-```
-
-### الخطوة 2: تشغيل المشروع وتثبيت Odoo 17 و 19
-
-```bash
 sudo bash launch-odoo-infra.sh
 ```
 
----
+**Verification:**
 
-## 5. 🛠️ الطريقة الثالثة: التنفيذ اليدوي لكل مكون
+```bash
+systemctl is-active docker 2>/dev/null || docker info
+```
 
-### 5.1 تثبيت Odoo 17 فقط (نسختان مستقلتان)
+**Expected Result:** Docker and prerequisites are ready; launch completes or reports actionable errors.
+
+### 8.4 Install Specific Odoo Versions (Script Variant)
+
+**Purpose:** Deploy a targeted Odoo version stack when scripts exist in the variant.
+
+**Commands:**
 
 ```bash
 sudo bash install-odoo17.sh
-```
-
-### 5.2 تثبيت Odoo 19 فقط (نسختان مستقلتان)
-
-```bash
 sudo bash install-odoo19.sh
 ```
 
-### 5.3 فحص صحة الخدمات
+**Verification:**
+
+```bash
+docker ps --format 'table {{.Names}}\t{{.Status}}'
+```
+
+**Expected Result:** Target Odoo/PostgreSQL containers are running.
+
+### 8.5 Run Health Checks
+
+**Purpose:** Validate service responsiveness.
+
+**Commands:**
 
 ```bash
 sudo bash health-check.sh instance1 8069 8072
 sudo bash health-check.sh instance2 8069 8072
 ```
 
-### 5.4 أخذ نسخة احتياطية
+**Verification:**
 
 ```bash
-sudo bash backup.sh instance1 odoo17 /data/backups/odoo17
-sudo bash backup.sh instance2 odoo17 /data/backups/odoo17
-sudo bash backup.sh instance1 odoo19 /data/backups/odoo19
-sudo bash backup.sh instance2 odoo19 /data/backups/odoo19
+echo $?
 ```
 
-### 5.5 استعادة نسخة احتياطية
+**Expected Result:** Health script returns success for healthy instances.
 
-```bash
-sudo bash restore.sh odoo17-instance1-20261104 odoo17 instance1 existing
+### 8.6 Execute Jenkins Pipelines
+
+**Purpose:** Run standardized CI/CD operations.
+
+**Commands:**
+
+```text
+Jenkins UI -> Select pipeline -> Build with parameters (if any)
 ```
 
-### 5.6 التحقق من سلامة النسخة الاحتياطية
+**Verification:**
 
-```bash
-sudo bash verify-backups.sh /data/backups
+```text
+Pipeline stages complete successfully; console log shows no fatal errors.
 ```
 
-### 5.7 عرض جميع النسخ الاحتياطية المتاحة
+**Expected Result:** Install/backup/restore/verify jobs complete as configured.
+
+### 8.7 Execute Ansible Playbooks Directly
+
+**Purpose:** Apply infrastructure changes without Jenkins.
+
+**Commands:**
 
 ```bash
-sudo bash list-backups.sh /data/backups
-```
-
-### 5.8 نسخ إعدادات نظام Ubuntu
-
-```bash
-sudo bash backup-system-config.sh
-```
-
-### 5.9 استعادة إعدادات نظام Ubuntu
-
-```bash
-sudo bash restore-system-config.sh 2026-11-04_020000
-```
-
----
-
-## 6. 🔗 الطريقة الرابعة: عبر Jenkins
-
-افتح لوحة تحكم Jenkins على خادم Linux الخاص بك وشغل خطوط الأنابيب التالية:
-
-| خط الأنابيب | المسار | الغرض |
-|----------|------|---------|
-| تثبيت Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | تثبيت نسختين من Odoo 17 |
-| تثبيت Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | تثبيت نسختين من Odoo 19 |
-| النسخ الاحتياطي | `Jenkins/backup.Jenkinsfile` | أخذ نسخة احتياطية |
-| الاستعادة | `Jenkins/restore.Jenkinsfile` | استعادة نسخة احتياطية (يتطلب تأكيد) |
-| التحقق من النسخ الاحتياطية | `Jenkins/verify-backups.Jenkinsfile` | التحقق من سلامة النسخ الاحتياطية |
-| نسخ إعدادات النظام | `Jenkins/system-config-backup.Jenkinsfile` | نسخ إعدادات نظام Ubuntu |
-
----
-
-## 7. 🔧 الطريقة الخامسة: عبر Ansible Playbooks مباشرة
-
-```bash
-# الانتقال إلى مجلد المشروع
 cd /opt/Odoo-MultiVersion-Deployment
-
-# تثبيت Odoo 17
 ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo17.yml ansible/playbooks/install-odoo17.yml
-
-# تثبيت Odoo 19
 ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo19.yml ansible/playbooks/install-odoo19.yml
-
-# أخذ نسخة احتياطية
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
-
-# التحقق من النسخ الاحتياطية
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/verify.yml
-
-# نسخ إعدادات نظام التكوين
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/system-config-backup.yml
 ```
 
+**Verification:**
+
+```bash
+ansible-playbook --syntax-check -i ansible/inventory/hosts.ini ansible/playbooks/install-odoo17.yml
+```
+
+**Expected Result:** Playbooks run with no failed tasks (syntax check passes before execution).
+
+## 9. Configuration Files
+
+| File / Pattern | Purpose | Notes |
+|---|---|---|
+| `.env` | Secrets and environment variables | Restrict permissions; never commit |
+| `versions/*.yml` | Version/instance parameters (variant-specific) | Validate domains, images, paths |
+| `ansible/inventory/hosts.ini` | Target hosts | Confirm SSH/user/become settings |
+| `ansible/group_vars/*.yml` | Shared variables | Review sensitive values handling |
+| `Jenkins/*.Jenkinsfile` | Pipeline definitions | Match credentials and agent labels |
+
+## 10. Directory Structure
+
+| Path (typical on Ubuntu variant) | Description |
+|---|---|
+| `/opt/Odoo-MultiVersion-Deployment/` | Project/deployment root (variant-specific) |
+| `/opt/odoo17/`, `/opt/odoo18/`, `/opt/odoo19/` | Per-version configuration/runtime dirs (if used) |
+| `/data/odoo*/` | Persistent data/filestore/DB volumes (if used) |
+| `/data/backups/` | Backup artifacts (if used) |
+| `/var/log/odoo-bootstrap.log` | Bootstrap log (if created by scripts) |
+
+> [!NOTE]
+> Actual paths depend on the deployment bundle you execute. Confirm paths in scripts, compose files, and variables before running destructive operations.
+
+## 11. Service Management Commands
+
+| Task | Command | Verification |
+|---|---|---|
+| List containers | `docker ps -a` | Expected containers present |
+| Inspect service logs | `docker logs <name> --tail 200` | Errors/warnings identified |
+| Restart a container | `docker restart <name>` | Container returns to `Up` |
+| Validate compose config | `docker compose -f <file> config` | Rendered config prints without errors |
+
+## 12. Verification Commands
+
+| Check | Command | Expected Result |
+|---|---|---|
+| Docker daemon | `docker info` | Server info returned |
+| Network (proxy) | `docker network ls` | Proxy/external network exists if required |
+| Odoo HTTP probe | `curl -fsS -o /dev/null -w "%{http_code}\n" http://localhost:8069/web/login` | HTTP code returned (e.g., 200/303 depending on state) |
+| PostgreSQL readiness | `docker exec <db> pg_isready -U <user> -d <db>` | `accepting connections` |
+
+## 13. Troubleshooting Table
+
+| No. | Problem | Possible Cause | Solution | Verification |
+|---:|---|---|---|---|
+| 01 | `permission denied` on scripts | Not executable or missing sudo | `chmod +x *.sh` and/or run with `sudo` | Script executes |
+| 02 | Docker daemon unavailable | Service stopped | `sudo systemctl start docker` | `docker info` |
+| 03 | Ansible host unreachable | Inventory/SSH misconfig | Fix `hosts.ini`, keys, user, `become` | `ansible all -m ping -i ...` |
+| 04 | TLS/cert issuance fails | DNS/port 80 challenge blocked | Open ports, verify DNS A/AAAA records | Traefik/ACME logs |
+| 05 | Container restart loop | Bad env/config/image | Inspect logs and env; validate compose | `docker logs <name>` |
+
+## 14. Backup and Restore Commands
+
+| Operation | Command (examples) | Verification |
+|---|---|---|
+| Backup instance (script variant) | `sudo bash backup.sh instance1 /data/backups/odoo17` | Archive created |
+| Restore DB (automation script) | `bash automation/scripts/restore-db.sh <ver> <dump.sql.gz> <db> --force` | DB healthy; app accessible |
+| Restore (deployment variant) | `sudo bash restore.sh <backup_id> <version> <instance> existing` | Services restored; data checks pass |
+| Verify backups | `sudo bash verify-backups.sh /data/backups` | Integrity checks pass |
+
+## 15. Security Checklist
+
+| No. | Control | Verification |
+|---:|---|---|
+| 01 | Run scripts only from trusted sources; review before `sudo` | Code review / checksum policy |
+| 02 | Protect `.env` and credentials | `chmod 600 .env` |
+| 03 | Keep PostgreSQL internal | No public `5432` binding |
+| 04 | Protect Traefik dashboard and admin endpoints | Auth + network controls |
+| 05 | Test restores regularly | Documented restore drills |
+
+## 16. Official References
+
+| Resource | URL |
+|---|---|
+| Ubuntu Server Documentation | https://ubuntu.com/server/docs |
+| Docker | https://docs.docker.com/ |
+| Ansible | https://docs.ansible.com/ |
+| Jenkins | https://www.jenkins.io/doc/ |
+| Traefik | https://doc.traefik.io/traefik/ |
+| PostgreSQL | https://www.postgresql.org/docs/ |
+
 ---
-
-## 8. 🔗 الروابط النهائية بعد التشغيل الناجح
-
-| الخدمة | الرابط |
-|---------|------|
-| Odoo 17 - النسخة 1 | https://${ODOO17_INSTANCE1_DOMAIN} |
-| Odoo 17 - النسخة 2 | https://${ODOO17_INSTANCE2_DOMAIN} |
-| Odoo 19 - النسخة 1 | https://${ODOO19_INSTANCE1_DOMAIN} |
-| Odoo 19 - النسخة 2 | https://${ODOO19_INSTANCE2_DOMAIN} |
-
----
-
-## 9. ⚠️ ملاحظة هامة حول الصلاحيات
-
-يجب تشغيل جميع السكريبتات بصلاحيات **الجذر (sudo/root)** لأنها:
-
-- تثبت حزم النظام (Docker، Ansible، Python3، Git)
-- تنشئ شبكات Docker وصلاحياتها
-- تنشئ مجلدات البيانات (`/data/`) ومجلدات الإعدادات (`/opt/`)
-- تدير حاويات Docker وتشغلها
-
----
-
-## 10. 📁 ملفات السكريبت في المجلد
-
-| الملف | الغرض |
-|------|---------|
-| `bootstrap-odoo-infra.sh` | تثبيت التبعيات وتجهيز البيئة الأساسية (Linux فقط) |
-| `launch-odoo-infra.sh` | تشغيل المشروع completo (يقوم بتشغيل bootstrap تلقائياً) |
-| `install-odoo17.sh` | تثبيت Odoo 17 (نسختان مستقلتان) |
-| `install-odoo19.sh` | تثبيت Odoo 19 (نسختان مستقلتان) |
-| `health-check.sh` | فحص صحة الخدمة والحاوية |
-| `backup.sh` | أخذ نسخة احتياطية من Odoo |
-| `restore.sh` | استعادة نسخة احتياطية من Odoo |
-| `verify-backups.sh` | التحقق من سلامة النسخ الاحتياطية |
-| `list-backups.sh` | عرض جميع النسخ الاحتياطية المتاحة |
-| `backup-system-config.sh` | نسخ إعدادات نظام Ubuntu (شبكة، SSH، Docker، إلخ) |
-| `restore-system-config.sh` | استعادة إعدادات نظام Ubuntu |
-
----
-
-## 11. 📂 مسارات النظام بعد التثبيت
-
-| المكون | المسار |
-|-----------|------|
-| ملفات المشروع | `/opt/Odoo-MultiVersion-Deployment/` |
-| بيانات Odoo 17 | `/data/odoo17/instance1, /data/odoo17/instance2` |
-| بيانات Odoo 19 | `/data/odoo19/instance1, /data/odoo19/instance2` |
-| إعدادات Odoo 17 | `/opt/odoo17/instance1, /opt/odoo17/instance2` |
-| إعدادات Odoo 19 | `/opt/odoo19/instance1, /opt/odoo19/instance2` |
-| النسخ الاحتياطية | `/data/backups/odoo17, /data/backups/odoo19` |
-| سجلات bootstrap | `/var/log/odoo-bootstrap.log` |
-
----
-
-## 12. 📞 الدعم
-
-لأي مشاكل أو استفسارات، يرجى فتح Issue في مستودع المشروع على GitHub.
-
-**الإصدار:** 1.0  
-**آخر تحديث:** 2026-11-04  
-**النظام المستهدف:** Linux Ubuntu 20.04 / 22.04 / 24.04 LTS  
-**الحالة:** Production Ready
-
----
-
-*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*
+*Paths and script names vary by deployment bundle; confirm against the variant you operate.*

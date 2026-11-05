@@ -17,6 +17,17 @@ def run_infrastructure_task(task_id):
 
     task = Task.objects.select_related("requested_by").get(pk=task_id)
     actor = task.requested_by
+    if task.cancel_requested_at:
+        append_task_log(task.pk, content="Cancellation honored before operation execution.")
+        transition_task(
+            task.pk,
+            Task.Status.CANCELLED,
+            actor=actor,
+            result_summary="Cancelled before operation execution.",
+        )
+        task.refresh_from_db()
+        return {"status": task.status, "task_id": str(task.pk)}
+
     operation_request = task.safe_metadata.get("operation_request", {})
     try:
         if not actor or not actor.is_active:

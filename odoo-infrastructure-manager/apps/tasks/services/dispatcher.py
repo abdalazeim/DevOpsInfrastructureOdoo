@@ -1,6 +1,7 @@
 """Optional Redis/Celery publishing for durable infrastructure task records."""
 import importlib.util
 from django.conf import settings
+from django.core.exceptions import ValidationError
 
 from apps.tasks.models import Task
 from apps.tasks.services.task_service import transition_task
@@ -33,10 +34,12 @@ def publish_task(task_id):
     execute_infrastructure_task.apply_async(args=[str(task_id)], task_id=str(task_id))
 
 
-def enqueue_task(task: Task, *, actor):
+def enqueue_task(task: Task, *, actor, allow_retry=False):
     status = dispatch_status()
     if not status["ready"]:
         raise TaskDispatchUnavailable(status["message"])
+    if allow_retry and task.status not in {Task.Status.FAILED, Task.Status.TIMEOUT}:
+        raise ValidationError("Only failed or timed out tasks can be retried.")
     queued = transition_task(task.pk, Task.Status.QUEUED, actor=actor)
     try:
         publish_task(queued.pk)

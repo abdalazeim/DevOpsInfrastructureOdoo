@@ -54,6 +54,25 @@
   </section>
   {% endif %}
 
+  {% if can_manage_infrastructure %}
+  <section class="infra-grid-two inventory-create-grid">
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Server groups</h2><p>Group servers without duplicating inventory records.</p></div></div>
+      <div class="snapshot-availability">{% for group in server_groups %}<span class="status-chip">{{ group.name }}</span>{% empty %}<span>No groups created.</span>{% endfor %}</div>
+      <form method="post" action="{% url 'dashboard:create_server_group' %}" class="infra-form">
+        {% csrf_token %}{{ server_group_form.as_p }}<button class="infra-button secondary" type="submit">Add group</button>
+      </form>
+    </article>
+    <article class="infra-panel">
+      <div class="panel-heading"><div><h2>Server tags</h2><p>Use tags to classify servers across groups.</p></div></div>
+      <div class="snapshot-availability">{% for tag in server_tags %}<span class="status-chip">{{ tag.name }}</span>{% empty %}<span>No tags created.</span>{% endfor %}</div>
+      <form method="post" action="{% url 'dashboard:create_server_tag' %}" class="infra-form">
+        {% csrf_token %}{{ server_tag_form.as_p }}<button class="infra-button secondary" type="submit">Add tag</button>
+      </form>
+    </article>
+  </section>
+  {% endif %}
+
   <section class="infra-panel">
     <div class="panel-heading"><div><h2>Managed servers</h2><p>{{ hosts|length }} server(s). A connection becomes Online only after a verified SSH probe.</p></div></div>
     {% if hosts %}<div class="service-list">
@@ -66,10 +85,12 @@
           <dt>Operating system</dt><dd>{% if host.operating_system %}{{ host.operating_system }} {{ host.os_version }}{% else %}Not discovered{% endif %}</dd>
           <dt>Architecture</dt><dd>{{ host.architecture|default:"Not discovered" }}</dd>
           <dt>Groups</dt><dd>{% for group in host.groups.all %}<span class="status-chip">{{ group.name }}</span> {% empty %}No group assigned{% endfor %}</dd>
+          <dt>Tags</dt><dd>{% for tag in host.tags.all %}<span class="status-chip">{{ tag.name }}</span> {% empty %}No tags assigned{% endfor %}</dd>
           <dt>Location</dt><dd>{{ host.location|default:"Not set" }}</dd>
           <dt>Last check</dt><dd>{{ host.last_checked_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
           <dt>Last successful connection</dt><dd>{{ host.last_connection_at|date:"Y-m-d H:i"|default:"Never" }}</dd>
           <dt>Live system data</dt><dd>{% if host.latest_snapshot %}{{ host.latest_snapshot.get_status_display }} · {{ host.latest_snapshot.captured_at|date:"Y-m-d H:i:s" }}{% if host.latest_snapshot.is_stale %} · Stale (older than 5 minutes){% else %} · Current{% endif %}{% else %}Not collected{% endif %}</dd>
+          <dt>Recent synchronization</dt><dd>{% for record in host.recent_sync_records %}<span class="status-chip {{ record.status }}">{{ record.get_status_display }} · {{ record.completed_at|date:"Y-m-d H:i" }}</span> {% empty %}No synchronization attempts recorded{% endfor %}</dd>
         </dl>
         {% if can_test_server_connection %}<form method="post" action="{% url 'dashboard:test_server_connection' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-plug"></i> Test connection</button></form>{% endif %}
         {% if can_test_server_connection and task_dispatch_enabled and can_view_tasks %}<form method="post" action="{% url 'dashboard:queue_server_connection_test' host.id %}" class="inline-action-form">{% csrf_token %}<button class="infra-button secondary" type="submit"><i class="fas fa-list-check"></i> Queue connection test</button></form>{% endif %}
@@ -83,6 +104,42 @@
             <p>{{ snapshot.get_status_display }} · {{ snapshot.collection_duration_ms }} ms · {{ snapshot.captured_at|timesince }} ago</p>
             <h4>Section availability</h4>
             <div class="snapshot-availability">{% for section, state in snapshot.availability.items %}<span class="status-chip {{ state.status }}">{{ section|capfirst }}: {{ state.status|capfirst }}</span>{% endfor %}</div>
+            {% if snapshot.data.system %}<h4>Operating system</h4>
+              <dl class="infra-details">
+                <dt>Hostname</dt><dd>{{ snapshot.data.system.hostname|default:"Unavailable" }}</dd>
+                <dt>Distribution</dt><dd>{{ snapshot.data.system.distribution|default:"Unavailable" }}{% if snapshot.data.system.distribution_version %} · {{ snapshot.data.system.distribution_version }}{% endif %}</dd>
+                <dt>Kernel / architecture</dt><dd>{{ snapshot.data.system.kernel|default:"Unavailable" }} · {{ snapshot.data.system.architecture|default:"Unavailable" }}</dd>
+                <dt>Uptime</dt><dd>{% if snapshot.data.system.uptime_seconds != None %}{{ snapshot.data.system.uptime_seconds }} seconds{% else %}Unavailable{% endif %}</dd>
+                <dt>Timezone / locale</dt><dd>{{ snapshot.data.system.timezone|default:"Unavailable" }} · {{ snapshot.data.system.locale|default:"Unavailable" }}</dd>
+              </dl>
+            {% endif %}
+            {% if snapshot.data.cpu or snapshot.data.memory %}<h4>CPU and memory</h4>
+              <dl class="infra-details">
+                <dt>CPU</dt><dd>{{ snapshot.data.cpu.model|default:"Unavailable" }} · {% if snapshot.data.cpu.usage_percent != None %}{{ snapshot.data.cpu.usage_percent }}%{% else %}Unavailable{% endif %} · {{ snapshot.data.cpu.logical_cores|default_if_none:"Unavailable" }} logical core(s)</dd>
+                <dt>CPU frequency / load</dt><dd>{{ snapshot.data.cpu.frequency_mhz|default_if_none:"Unavailable" }} MHz · {{ snapshot.data.cpu.load_average|infra_json }}</dd>
+                <dt>Memory</dt><dd>{{ snapshot.data.memory.used_bytes|default_if_none:"Unavailable" }} / {{ snapshot.data.memory.total_bytes|default_if_none:"Unavailable" }} bytes · {% if snapshot.data.memory.usage_percent != None %}{{ snapshot.data.memory.usage_percent }}%{% else %}Unavailable{% endif %}</dd>
+                <dt>Available / cached / buffers</dt><dd>{{ snapshot.data.memory.available_bytes|default_if_none:"Unavailable" }} / {{ snapshot.data.memory.cached_bytes|default_if_none:"Unavailable" }} / {{ snapshot.data.memory.buffers_bytes|default_if_none:"Unavailable" }} bytes</dd>
+                <dt>Swap</dt><dd>{{ snapshot.data.memory.swap_used_bytes|default_if_none:"Unavailable" }} / {{ snapshot.data.memory.swap_total_bytes|default_if_none:"Unavailable" }} bytes · {{ snapshot.data.memory.swap_percent|default_if_none:"Unavailable" }}%</dd>
+              </dl>
+            {% endif %}
+            {% if snapshot.data.storage or snapshot.data.disks %}<h4>Storage and block devices</h4>
+              <div class="table-responsive"><table class="infra-table"><thead><tr><th>Filesystem</th><th>Mount</th><th>Type</th><th>Used / total</th><th>Use</th></tr></thead><tbody>
+                {% if snapshot.data.storage %}{% for disk in snapshot.data.storage.filesystems %}<tr><td>{{ disk.device|default:"—" }}</td><td>{{ disk.mountpoint|default:"—" }}</td><td>{{ disk.filesystem|default:"—" }}</td><td>{{ disk.used_bytes|filesizeformat }} / {{ disk.total_bytes|filesizeformat }}</td><td>{{ disk.usage_percent|default_if_none:"Unavailable" }}%</td></tr>{% empty %}<tr><td colspan="5">No readable filesystem measurements.</td></tr>{% endfor %}
+                {% else %}{% for disk in snapshot.data.disks %}<tr><td>{{ disk.device|default:"—" }}</td><td>{{ disk.mountpoint|default:"—" }}</td><td>{{ disk.filesystem|default:"—" }}</td><td>{{ disk.used_bytes|filesizeformat }} / {{ disk.total_bytes|filesizeformat }}</td><td>{{ disk.usage_percent|default_if_none:"Unavailable" }}%</td></tr>{% empty %}<tr><td colspan="5">No readable filesystem measurements.</td></tr>{% endfor %}{% endif %}
+              </tbody></table></div>
+              {% if snapshot.data.storage %}<p>Block device inventory: {% if snapshot.data.storage.devices_supported %}available{% else %}unavailable — {{ snapshot.data.storage.devices_reason|default:"lsblk is not installed" }}{% endif %}</p>{% endif %}
+            {% endif %}
+            {% if snapshot.data.network_interfaces %}<h4>Network interfaces</h4>
+              <div class="table-responsive"><table class="infra-table"><thead><tr><th>Interface</th><th>State</th><th>MAC</th><th>Addresses</th><th>Traffic</th></tr></thead><tbody>
+                {% for interface in snapshot.data.network_interfaces.items %}<tr><td>{{ interface.name }}</td><td>{% if interface.is_up == None %}Unavailable{% elif interface.is_up %}Up{% else %}Down{% endif %}</td><td>{{ interface.mac_address|default:"—" }}</td><td>{{ interface.addresses|join:", "|default:"—" }}</td><td>RX {{ interface.bytes_received|default_if_none:"Unavailable" }} bytes · TX {{ interface.bytes_sent|default_if_none:"Unavailable" }} bytes</td></tr>{% endfor %}
+              </tbody></table></div>
+              <p>Default gateway: {{ snapshot.data.network_routes.default_gateway|default:"Unavailable" }} · DNS: {{ snapshot.data.dns|join:", "|default:"Unavailable" }}</p>
+            {% endif %}
+            {% if snapshot.data.network_connections %}<h4>Listening ports</h4>
+              <div class="table-responsive"><table class="infra-table"><thead><tr><th>Protocol</th><th>Address</th><th>PID</th></tr></thead><tbody>
+                {% for connection in snapshot.data.network_connections.listening_ports %}<tr><td>{{ connection.type|upper }}</td><td>{{ connection.local_address.ip }}:{{ connection.local_address.port }}</td><td>{{ connection.pid|default:"—" }}</td></tr>{% empty %}<tr><td colspan="3">No visible listening sockets.</td></tr>{% endfor %}
+              </tbody></table></div>
+            {% endif %}
             {% if snapshot.data.services %}<h4>Running system services</h4>
               {% if snapshot.data.services.supported %}
                 <p>{{ snapshot.data.services.running_count }} running unit(s)</p>
@@ -98,9 +155,10 @@
               {% for process in snapshot.data.processes.items %}<tr><td>{{ process.pid }}</td><td>{{ process.name }}</td><td>{{ process.user|default:"—" }}</td><td>{{ process.status }}</td><td>{{ process.memory_percent }}%</td></tr>{% empty %}<tr><td colspan="5">No process information is available.</td></tr>{% endfor %}
               </tbody></table></div>
             {% endif %}
-            <dl class="infra-details">
-              {% for key, value in snapshot.data.items %}{% if key != "services" and key != "processes" %}<dt>{{ key|capfirst }}</dt><dd>{% if value %}{{ value|infra_json }}{% else %}Unavailable{% endif %}</dd>{% endif %}{% endfor %}
-            </dl>
+            {% if snapshot.data.providers %}<h4>Installed infrastructure providers</h4><pre class="infra-details">{{ snapshot.data.providers|infra_json }}</pre>{% endif %}
+            {% if snapshot.data.system_security %}<h4>System security context</h4><pre class="infra-details">{{ snapshot.data.system_security|infra_json }}</pre>{% endif %}
+            {% if snapshot.data.hardware_sensors %}<h4>Hardware sensors</h4><pre class="infra-details">{{ snapshot.data.hardware_sensors|infra_json }}</pre>{% endif %}
+            {% if snapshot.data.network_routes.items %}<h4>Routes</h4><pre class="infra-details">{{ snapshot.data.network_routes|infra_json }}</pre>{% endif %}
             {% endwith %}
           </div>{% endif %}
         {% if can_update_servers %}<form method="post" action="{% url 'dashboard:update_inventory_item' 'host' host.id %}" class="infra-form inventory-edit-form">{% csrf_token %}{{ host.edit_form.as_p }}<button class="infra-button secondary" type="submit">Save server</button></form>{% else %}<p>{{ host.description|default:"No description" }}</p>{% endif %}

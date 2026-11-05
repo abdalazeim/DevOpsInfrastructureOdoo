@@ -1,0 +1,46 @@
+{% extends "layouts/app_layout.html" %}
+{% load static %}
+{% block title %}Notifications · Infrastructure Manager{% endblock %}
+{% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard">
+  <header class="infra-heading">
+    <div><div class="eyebrow">PERSONAL INBOX</div><h1>Notifications</h1><p>{{ unread_count }} unread notification{{ unread_count|pluralize }} for your account.</p></div>
+    {% if unread_count %}<form method="post" action="{% url 'dashboard:notifications_read_all' %}">{% csrf_token %}<button class="infra-button secondary" type="submit">Mark all as read</button></form>{% endif %}
+  </header>
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Inbox</h2><p>Only notifications addressed to your account are shown.</p></div></div>
+    {% if page.object_list %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>Notification</th><th>Category</th><th>Received</th><th>Status</th><th>Email delivery</th><th></th></tr></thead><tbody>
+      {% for notification in page.object_list %}<tr>
+        <td><strong>{{ notification.title }}</strong>{% if notification.message %}<small>{{ notification.message }}</small>{% endif %}</td>
+        <td>{{ notification.get_category_display }}</td>
+        <td>{{ notification.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{% if notification.read_at %}Read{% else %}Unread{% endif %}</td>
+        <td>{% if notification.email_delivery %}{{ notification.email_delivery.get_status_display }}{% else %}Not enabled{% endif %}</td>
+        <td>{% if not notification.read_at %}<form method="post" action="{% url 'dashboard:notification_read' notification.id %}">{% csrf_token %}<button class="infra-button secondary small" type="submit">Mark read</button></form>{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody></table></div>
+    <div class="pagination">{% if page.has_previous %}<a href="?page={{ page.previous_page_number }}">Previous</a>{% endif %}<span>Page {{ page.number }} of {{ page.paginator.num_pages }}</span>{% if page.has_next %}<a href="?page={{ page.next_page_number }}">Next</a>{% endif %}</div>
+    {% else %}<div class="empty-state compact"><strong>Your inbox is clear</strong><span>Relevant operational events will appear here based on your permissions and preferences.</span></div>{% endif %}
+  </section>
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Delivery preferences</h2><p>Email messages are queued for background delivery. Your account {% if email_address_configured %}has{% else %}does not have{% endif %} an email address configured.</p></div></div>
+    <form method="post" action="{% url 'dashboard:notification_preferences' %}">{% csrf_token %}
+      <div class="table-responsive"><table class="infra-table"><thead><tr><th>Category</th><th>Channels</th></tr></thead><tbody>
+        {% for preference in preference_rows %}<tr><td>{{ preference.label }}</td><td><label>Delivery
+          <select name="channel_{{ preference.category }}">
+            <option value="both" {% if preference.channel == "both" %}selected{% endif %}>In-app and email</option>
+            <option value="in_app" {% if preference.channel == "in_app" %}selected{% endif %}>In-app only</option>
+            <option value="email" {% if preference.channel == "email" %}selected{% endif %}>Email only</option>
+            <option value="off" {% if preference.channel == "off" %}selected{% endif %}>Off</option>
+          </select>
+        </label></td></tr>{% endfor %}
+      </tbody></table></div>
+      <button class="infra-button" type="submit">Save preferences</button>
+    </form>
+  </section>
+</main>
+{% endblock %}

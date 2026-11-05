@@ -1,206 +1,65 @@
-# Odoo Multi-Version Deployment - جميع طرق التشغيل (لينكس أوبونت فقط)
+Odoo Infrastructure Manager - System Startup Guide
+==================================================
 
-## موقع المشروع
-`D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\deployment\Odoo-MultiVersion-Deployment\scripts\`
+Document Type: Practical quick reference
+Target OS: Ubuntu Server (execution target)
 
-> **ملاحظة هامة**: هذا النظام مبرمج بالكامل لنظام **لينكس أوبونت** (الإصدارات 20, 22, 24 وما فوق). لا يحتوي على أي مكونات خاصة بنظام ويندوز. المسار أعلاه هو مسار تخزين الملفات على قرص ويندوز فقط لتسهيل التعديل، ولكن التشغيل الفعلي يتم على خادم لينكس أوبونت.
+1. Prerequisites
+----------------
+- Docker Engine and Docker Compose v2 installed and running.
+- Project files available on the Ubuntu host (recommended: /opt/odoo-infra or your chosen path).
+- .env file prepared from templates/env.template with permissions 600.
 
----
+Verification commands:
+  docker --version
+  docker compose version
+  test -f .env && stat -c "%a %n" .env
 
-## متطلبات النظام (لينكس أوبونت)
+2. Start the Stack (Compose-based deployments)
+----------------------------------------------
+Purpose: Start containers defined by the selected docker-compose file.
 
-| المكون | الحد الأدنى | الموصى به |
-|-------|-----------|---------|
-| نظام التشغيل | Ubuntu Server 20.04 LTS | Ubuntu Server 22.04 / 24.04 LTS |
-| المعالج | 2 نوى | 4 نوى فأكثر |
-| الذاكرة العشوائية | 4 جيجابايت | 8 جيجابايت فأكثر |
-| التخزين | 100 جيجابايت SSD | 500 جيجابايت SSD فأكثر |
-| Docker Engine | 20.10+ | آخر إصدار |
-| Docker Compose | v2 | آخر إصدار |
-| Ansible | Core + collections | آخر إصدار |
-| Python3 | 3.8+ | آخر إصدار |
-| Git | 2.x | آخر إصدار |
+Commands (adjust paths and file names to your deployment variant):
+  cd <project_or_deployment_directory>
+  docker compose up -d
 
----
+Verification:
+  docker compose ps
+  docker ps
 
-## الطريقة 1: التشغيل السريع (أمر واحد)
+Expected result: Required containers are in the "Up" state.
 
-افتحTerminal على خادم لينكس أوبونت ونفذ:
+3. Start via Project CLI (if using this repository's manager)
+-------------------------------------------------------------
+Purpose: Use the Python manager workflows.
 
-```bash
-# الانتقال إلى مجلد السكربتات
-cd /opt/Odoo-MultiVersion-Deployment/scripts
+Commands:
+  cd <Infrastructure-manage-T_directory>
+  python3 -m venv venv
+  source venv/bin/activate
+  pip install -e .
+  python3 app/main.py --action preflight
+  python3 app/main.py --action health
 
-# تشغيل السكربت الرئيسي بصلاحيات الجذر (يقوم بتشغيل bootstrap تلقائياً)
-sudo bash launch-odoo-infra.sh
-```
+Expected result: Preflight/health actions report status or actionable issues.
 
----
+4. Stop the Stack
+-----------------
+Commands:
+  docker compose down
 
-## الطريقة 2: التشغيل بالتدرج (خطوة بخطوة)
+Verification:
+  docker compose ps
 
-### الخطوة الأولى: تثبيت الملاحقات وإعداد البيئة
-```bash
-sudo bash bootstrap-odoo-infra.sh
-```
+Caution: Do not use "docker compose down -v" unless you intend to remove volumes and have verified backups.
 
-### الخطوة الثانية: تشغيل المشروع وتثبيت Odoo 17 و 19
-```bash
-sudo bash launch-odoo-infra.sh
-```
+5. Common Checks
+----------------
+- Traefik/proxy network exists (if required): docker network ls
+- Odoo HTTP probe (example): curl -I http://localhost:8069/web/login
+- PostgreSQL readiness (inside DB container): docker exec <db_container> pg_isready -U <user> -d <db>
 
----
-
-## الطريقة 3: التشغيل اليدوي لكل مكون
-
-### تثبيت Odoo 17 فقط (نسختان)
-```bash
-sudo bash install-odoo17.sh
-```
-
-### تثبيت Odoo 19 فقط (نسختان)
-```bash
-sudo bash install-odoo19.sh
-```
-
-### فحص صحة الخدمات
-```bash
-sudo bash health-check.sh instance1 8069 8072
-sudo bash health-check.sh instance2 8069 8072
-```
-
-### أخذ نسخة احتياطية
-```bash
-sudo bash backup.sh instance1 odoo17 /data/backups/odoo17
-sudo bash backup.sh instance2 odoo17 /data/backups/odoo17
-sudo bash backup.sh instance1 odoo19 /data/backups/odoo19
-sudo bash backup.sh instance2 odoo19 /data/backups/odoo19
-```
-
-### استعادة نسخة احتياطية
-```bash
-sudo bash restore.sh odoo17-instance1-20261104 odoo17 instance1 existing
-```
-
-### التحقق من سلامة النسخ الاحتياطية
-```bash
-sudo bash verify-backups.sh /data/backups
-```
-
-### عرض جميع النسخ الاحتياطية المتوفرة
-```bash
-sudo bash list-backups.sh /data/backups
-```
-
-### نسخ إعدادات نظام أوبونت
-```bash
-sudo bash backup-system-config.sh
-```
-
-### استعادة إعدادات نظام أوبونت
-```bash
-sudo bash restore-system-config.sh 2026-11-04_020000
-```
-
----
-
-## الطريقة 4: عبر Jenkins
-
-افتح لوحة تحكم Jenkins على خادم اللينكس وشغل Lines الأنابيب التالية:
-
-| Line الأنابيب | المسار | الغرض |
-|--------------|--------|-------|
-| Install Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | تثبيت نسختي Odoo 17 |
-| Install Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | تثبيت نسختي Odoo 19 |
-| Backup | `Jenkins/backup.Jenkinsfile` | أخذ نسخة احتياطية |
-| Restore | `Jenkins/restore.Jenkinsfile` | استعادة نسخة احتياطية (يتطلب تأكيد) |
-| Verify Backups | `Jenkins/verify-backups.Jenkinsfile` | التحقق من سلامة النسخ |
-| System Config Backup | `Jenkins/system-config-backup.Jenkinsfile` | نسخ إعدادات نظام أوبونت |
-
----
-
-## الطريقة 5: عبر Ansible Playbooks مباشرة
-
-```bash
-# الانتقال إلى مجلد المشروع
-cd /opt/Odoo-MultiVersion-Deployment
-
-# تثبيت Odoo 17
-ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo17.yml ansible/playbooks/install-odoo17.yml
-
-# تثبيت Odoo 19
-ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo19.yml ansible/playbooks/install-odoo19.yml
-
-# أخذ نسخة احتياطية
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
-
-# التحقق من النسخ الاحتياطية
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/verify.yml
-
-# نسخ إعدادات النظام
-ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/system-config-backup.yml
-```
-
----
-
-## الروابط النهائية بعد التشغيل الناجح
-
-| الخدمة | الرابط |
-|-------|--------|
-| Odoo 17 - Instance 1 | https://${ODOO17_INSTANCE1_DOMAIN} |
-| Odoo 17 - Instance 2 | https://${ODOO17_INSTANCE2_DOMAIN} |
-| Odoo 19 - Instance 1 | https://${ODOO19_INSTANCE1_DOMAIN} |
-| Odoo 19 - Instance 2 | https://${ODOO19_INSTANCE2_DOMAIN} |
-
----
-
-## ملاحظة هامة حول الصلاحيات
-
-يجب تشغيل جميع السكربتات بصلاحيات **الجذر (sudo/root)** لأنها تقوم بـ:
-- تثبيت حزم النظام (Docker, Ansible, Python3, Git)
-- إنشاء دوائر Docker وصلاحيات الشبكة
-- إعداد مجلدات البيانات (`/data/`) والإعدادات (`/opt/`)
-- تشغيل وإدارة حاويات Docker
-
----
-
-## ملفات السكربتات في المجلد
-
-| الملف | الغرض |
-|-------|-------|
-| `bootstrap-odoo-infra.sh` | تثبيت الملاحقات وإعداد البيئة الأساسية (لينكس فقط) |
-| `launch-odoo-infra.sh` | تشغيل المشروع بالكامل (يشغل bootstrap تلقائياً) |
-| `install-odoo17.sh` | تثبيت Odoo 17 (نسختان مستقلتان) |
-| `install-odoo19.sh` | تثبيت Odoo 19 (نسختان مستقلتان) |
-| `health-check.sh` | فحص صحة الخدمات والحاويات |
-| `backup.sh` | أخذ نسخة احتياطية لـ Odoo |
-| `restore.sh` | استعادة نسخة احتياطية لـ Odoo |
-| `verify-backups.sh` | التحقق من سلامة النسخ الاحتياطية |
-| `list-backups.sh` | عرض جميع النسخ الاحتياطية المتوفرة |
-| `backup-system-config.sh` | نسخ إعدادات نظام أوبونت (شبكة, SSH, Docker, إلخ) |
-| `restore-system-config.sh` | استعادة إعدادات نظام أوبونت |
-
----
-
-## مسارات النظام بعد التثبيت
-
-| المكون | المسار |
-|-------|--------|
-| ملفات المشروع | `/opt/Odoo-MultiVersion-Deployment/` |
-| بيانات Odoo 17 | `/data/odoo17/instance1, /data/odoo17/instance2` |
-| بيانات Odoo 19 | `/data/odoo19/instance1, /data/odoo19/instance2` |
-| إعدادات Odoo 17 | `/opt/odoo17/instance1, /opt/odoo17/instance2` |
-| إعدادات Odoo 19 | `/opt/odoo19/instance1, /opt/odoo19/instance2` |
-| النسخ الاحتياطية | `/data/backups/odoo17, /data/backups/odoo19` |
-| سجلات bootstrap | `/var/log/odoo-bootstrap.log` |
-
----
-
-## الدعم
-
-لأي مشاكل أو استفسارات، يرجى فتح Issue في مستودع GitHub الخاص بالمشروع.
-
-**الإصدار:** 1.0  
-**تاريخ التحديث:** 2026-11-04  
-**النظام المستهدف:** لينكس أوبونت 20.04 / 22.04 / 24.04 LTS  
-**الحالة:** جاهز للإنتاج (Production Ready)
+6. Notes
+--------
+- Exact container names, ports, domains, and paths depend on the deployment variant under deployment/ and your .env/profile settings.
+- Review scripts and compose files before running in production. Keep secrets out of Git.

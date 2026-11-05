@@ -9,7 +9,4 @@ class InfrastructureConfig(AppConfig):
     def ready(self):
         from apps.accounts.permissions.catalog import register_permissions
         from .permissions import PERMISSIONS, GROUPS
-        try:
-            register_permissions(PERMISSIONS, GROUPS)
-        except Exception:
-            pass
+        register_permissions(PERMISSIONS, GROUPS)

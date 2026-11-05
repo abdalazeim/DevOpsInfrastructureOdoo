@@ -4,6 +4,7 @@ PERMISSIONS = [
     {"code": "infrastructure_manage", "label": "إدارة البنية التحتية", "group": "infrastructure"},
     {"code": "infrastructure_deploy", "label": "نشر الخدمات", "group": "infrastructure"},
     {"code": "infrastructure_backup", "label": "النسخ الاحتياطي", "group": "infrastructure"},
+    {"code": "server.discover", "label": "اكتشاف الخوادم", "group": "infrastructure"},
 ]
 
 GROUPS = [

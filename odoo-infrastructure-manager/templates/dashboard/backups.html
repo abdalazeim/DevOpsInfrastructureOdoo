@@ -2,10 +2,67 @@
 {% load static %}
 {% block title %}Backups · Infrastructure Manager{% endblock %}
 {% block extra_css %}<link rel="stylesheet" href="{% static 'css/dashboard.css' %}">{% endblock %}
-{% block app_content %}<main class="infra-dashboard"><header class="infra-heading"><div><div class="eyebrow">BACKUP MANAGER</div><h1>Backups</h1><p>Backup runs are submitted only through enabled Semaphore templates.</p></div><a class="infra-button secondary" href="{% url 'dashboard:index' %}"><i class="fas fa-arrow-left"></i> Dashboard</a></header>
-{% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
-<section class="infra-panel"><div class="panel-heading"><div><h2>Policies</h2><p>Schedules are informational until a worker is configured.</p></div></div>{% if can_manage_infrastructure %}<form class="infra-form" method="post" action="{% url 'dashboard:save_backup_policy' %}">{% csrf_token %}{{ policy_form.as_p }}<button class="infra-button" type="submit">Save policy</button></form>{% endif %}{% if policies %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>Policy</th><th>Service</th><th>Retention</th><th>Schedule</th><th>Enabled</th></tr></thead><tbody>{% for policy in policies %}<tr><td>{{ policy.name }}</td><td>{{ policy.service|default:"Not linked" }}</td><td>{{ policy.retention_count }}</td><td>{{ policy.schedule|default:"Not scheduled" }}</td><td>{{ policy.enabled|yesno:"Yes,No" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><strong>No backup policies</strong><span>Create a policy and link it to an approved backup template.</span></div>{% endif %}</section>
-<section class="infra-panel"><div class="panel-heading"><div><h2>Backup artifacts</h2><p>Only known metadata is shown. Restore is available only through separately approved workflows.</p></div></div>{% if artifacts %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>File</th><th>Service</th><th>Status</th><th>Size</th><th>Created</th></tr></thead><tbody>{% for artifact in artifacts %}<tr><td>{{ artifact.file_name|default:"—" }}</td><td>{{ artifact.service|default:artifact.host|default:"—" }}</td><td>{{ artifact.get_status_display }}</td><td>{{ artifact.size_bytes|filesizeformat|default:"—" }}</td><td>{{ artifact.created_at|date:"Y-m-d H:i" }}</td></tr>{% endfor %}</tbody></table></div>{% else %}<div class="empty-state compact"><strong>No backup artifacts recorded</strong><span>Artifacts appear after a trusted workflow records and verifies them.</span></div>{% endif %}</section>
-{% if can_manage_infrastructure and templates %}<section class="infra-panel"><div class="panel-heading"><div><h2>Approved backup actions</h2><p>Dry-run first; live operations still require confirmation.</p></div></div>{% for template in templates %}<div class="automation-row"><div><strong>{{ template.name }}</strong><small>Semaphore Project {{ template.project_id }} / Template {{ template.template_id }}</small></div><div class="automation-actions"><form method="post" action="{% url 'dashboard:run_template' template.id %}">{% csrf_token %}<input type="hidden" name="mode" value="dry_run"><button class="infra-button secondary" type="submit">Dry run</button></form>{% if not template.read_only %}<form method="post" action="{% url 'dashboard:run_template' template.id %}" onsubmit="return confirm('This will start a live backup task in Semaphore. Continue?')">{% csrf_token %}<input type="hidden" name="mode" value="live"><label class="confirm-live"><input type="checkbox" name="confirm" value="yes" required> Confirm live run</label><button class="infra-button danger" type="submit">Run live</button></form>{% endif %}</div></div>{% endfor %}</section>{% endif %}
-{% if can_manage_infrastructure and restore_templates %}<section class="infra-panel restore-panel"><div class="panel-heading"><div><h2>Restore workflows</h2><p>Requires Backup Restore permission, a dry-run review, and typed confirmation before a live restore.</p></div></div>{% for template in restore_templates %}<div class="automation-row"><div><strong>{{ template.name }}</strong><small>{{ template.description|default:"Review source, target, and impact in the approved Semaphore template." }} · Project {{ template.project_id }} / Template {{ template.template_id }}</small></div><div class="automation-actions"><form method="post" action="{% url 'dashboard:run_template' template.id %}">{% csrf_token %}<input type="hidden" name="mode" value="dry_run"><button class="infra-button secondary" type="submit">Dry run</button></form>{% if not template.read_only %}<form method="post" action="{% url 'dashboard:run_template' template.id %}" onsubmit="return confirm('This may replace live data. Confirm the approved restore target before continuing.')">{% csrf_token %}<input type="hidden" name="mode" value="live"><label class="confirm-live"><input type="checkbox" name="confirm" value="yes" required> I reviewed the restore target</label><label class="confirm-live">Type RESTORE <input type="text" name="confirm_restore" pattern="RESTORE" required></label><button class="infra-button danger" type="submit">Run restore</button></form>{% endif %}</div></div>{% endfor %}</section>{% endif %}
-<footer class="infra-footnote"><i class="fas fa-shield-halved"></i> Restore and deletion require separate approved workflows, elevated permissions, and explicit confirmation.</footer></main>{% endblock %}
+{% block app_content %}
+<main class="infra-dashboard">
+  <header class="infra-heading">
+    <div><div class="eyebrow">BACKUP MANAGER</div><h1>Backups</h1><p>Backup and restore workflows run only through approved Semaphore templates and Task Manager.</p></div>
+    <a class="infra-button secondary" href="{% url 'dashboard:index' %}"><i class="fas fa-arrow-left"></i> Dashboard</a>
+  </header>
+  {% if messages %}<div class="infra-messages">{% for message in messages %}<div class="infra-message {{ message.tags }}">{{ message }}</div>{% endfor %}</div>{% endif %}
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Backup policies</h2><p>Enabling a policy explicitly authorizes scheduled live backups. New policies are disabled by default; remote retention is enforced by the approved template.</p></div></div>
+    {% if can_manage_backups %}<form class="infra-form" method="post" action="{% url 'dashboard:save_backup_policy' %}">{% csrf_token %}{{ policy_form.as_p }}<button class="infra-button" type="submit">Save policy</button></form>{% endif %}
+    {% if policies %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>Policy</th><th>Service</th><th>Approved template</th><th>Retention</th><th>Interval</th><th>Next run</th><th>State</th><th></th></tr></thead><tbody>
+      {% for policy in policies %}<tr>
+        <td><strong>{{ policy.name }}</strong>{% if policy.last_error %}<small>{{ policy.last_error }}</small>{% endif %}</td>
+        <td>{{ policy.service|default:"Not configured" }}</td><td>{{ policy.template|default:"Not configured" }}</td>
+        <td>{{ policy.retention_count }} copies</td><td>{{ policy.interval_minutes }} min</td>
+        <td>{{ policy.next_run_at|date:"Y-m-d H:i"|default:"—" }}</td><td>{{ policy.enabled|yesno:"Enabled,Disabled" }}</td>
+        <td>{% if can_manage_backups and policy.template and policy.service %}
+          <form method="post" action="{% url 'dashboard:run_backup_policy' policy.id %}">{% csrf_token %}<button class="infra-button secondary small" type="submit" name="mode" value="dry_run">Dry run</button></form>
+          {% if policy.enabled %}<form method="post" action="{% url 'dashboard:run_backup_policy' policy.id %}">{% csrf_token %}<label class="confirm-live"><input type="checkbox" name="confirm" value="yes" required> Confirm live backup</label><button class="infra-button danger small" type="submit" name="mode" value="live">Run live</button></form>{% endif %}
+        {% endif %}</td>
+      </tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty-state compact"><strong>No backup policies</strong><span>Link an approved Backup template and service to configure an explicit policy.</span></div>{% endif %}
+  </section>
+
+  <section class="infra-panel">
+    <div class="panel-heading"><div><h2>Backup artifacts</h2><p>Success means the external task completed and returned a valid metadata receipt; the application does not read or verify remote file contents.</p></div></div>
+    {% if artifacts %}<div class="table-responsive"><table class="infra-table"><thead><tr><th>File / service</th><th>Status</th><th>Size</th><th>SHA-256</th><th>Created</th><th>Details</th></tr></thead><tbody>
+      {% for artifact in artifacts %}<tr>
+        <td><strong>{{ artifact.file_name|default:"Awaiting receipt" }}</strong><small>{{ artifact.service|default:artifact.host|default:"—" }}</small></td>
+        <td>{{ artifact.get_status_display }}{% if artifact.receipt_error %}<small>{{ artifact.receipt_error }}</small>{% endif %}</td>
+        <td>{% if artifact.size_bytes != None %}{{ artifact.size_bytes|filesizeformat }}{% else %}—{% endif %}</td>
+        <td>{{ artifact.checksum|default:"—" }}</td>
+        <td>{{ artifact.created_at|date:"Y-m-d H:i" }}</td>
+        <td>{% if artifact.automation_run_id %}<a href="{% url 'dashboard:run_detail' artifact.automation_run_id %}">Automation run</a>{% endif %}{% if can_view_backups %}{% if artifact.status == "pending" or artifact.status == "unknown" %}<form method="post" action="{% url 'dashboard:refresh_backup_artifact' artifact.id %}">{% csrf_token %}<button class="infra-button secondary small" type="submit">Refresh</button></form>{% endif %}{% endif %}</td>
+      </tr>{% endfor %}
+    </tbody></table></div>{% else %}<div class="empty-state compact"><strong>No backup artifacts</strong><span>Dry-runs do not create artifacts. A live backup appears as pending until its Semaphore output is refreshed and validated.</span></div>{% endif %}
+  </section>
+
+  {% if can_restore_backups %}
+  <section class="infra-panel restore-panel">
+    <div class="panel-heading"><div><h2>Restore workflows</h2><p>Only successful artifacts and approved templates for the same service are available. Dry-run first; live restore requires a separate checkbox and typing RESTORE.</p></div></div>
+    {% if restore_actions %}{% for action in restore_actions %}<div class="automation-row">
+      <div><strong>{{ action.artifact.file_name }}</strong><small>{{ action.artifact.service }} · {{ action.artifact.created_at|date:"Y-m-d H:i" }}</small></div>
+      <div class="automation-actions">
+        <form class="infra-form" method="post" action="{% url 'dashboard:restore_backup_artifact' action.artifact.id %}">{% csrf_token %}
+          <label>Approved restore template<select name="template_id" required>{% for template in action.templates %}<option value="{{ template.id }}">{{ template.name }}</option>{% endfor %}</select></label>
+          <label>Additional declared variables (JSON)<textarea name="variables_json" rows="2">{}</textarea></label>
+          <button class="infra-button secondary" type="submit" name="mode" value="dry_run">Restore dry-run</button>
+        </form>
+        <form class="infra-form" method="post" action="{% url 'dashboard:restore_backup_artifact' action.artifact.id %}" onsubmit="return confirm('This may replace live data. Confirm the selected host and service before continuing.')">{% csrf_token %}
+          <label>Approved restore template<select name="template_id" required>{% for template in action.templates %}<option value="{{ template.id }}">{{ template.name }}</option>{% endfor %}</select></label>
+          <label>Additional declared variables (JSON)<textarea name="variables_json" rows="2">{}</textarea></label>
+          <label class="confirm-live"><input type="checkbox" name="confirm" value="yes" required> I reviewed the target</label>
+          <label class="confirm-live">Type RESTORE <input type="text" name="confirm_restore" pattern="RESTORE" required></label>
+          <button class="infra-button danger" type="submit" name="mode" value="live">Run restore</button>
+        </form>
+      </div>
+    </div>{% endfor %}{% else %}<div class="empty-state compact"><strong>No eligible restore workflows</strong><span>Artifacts need a valid receipt and an enabled restore template scoped to the same host and service.</span></div>{% endif %}
+  </section>
+  {% endif %}
+  <footer class="infra-footnote"><i class="fas fa-shield-halved"></i> Backup files remain in external storage. The dashboard records validated receipts and never executes file operations.</footer>
+</main>
+{% endblock %}
