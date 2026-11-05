@@ -1717,3 +1717,101 @@ Status: Operational & Compliant
         from app.ui.installation_pipeline_ui import InstallationPipelineUI
         pipeline_ui = InstallationPipelineUI(self)
         pipeline_ui.run()
+
+    def handle_full_cleanup(self):
+        """Full System Cleanup & Deep Uninstall (menu category 12)."""
+        from app.services.uninstall_service import (
+            run_full_cleanup, verify_cleanup, CleanupReport,
+        )
+
+        print(f"\n{BOLD}{CYAN}{'=' * 70}{RESET}")
+        print(f"{BOLD}{CYAN}  FULL SYSTEM CLEANUP & DEEP UNINSTALL{RESET}")
+        print(f"{BOLD}{CYAN}{'=' * 70}{RESET}")
+        print(f"\n{YELLOW}⚠  DESTRUCTIVE OPERATION - READ CAREFULLY  ⚠{RESET}")
+        print(f"\nThis tool removes ALL components installed by the Odoo Infrastructure Manager:")
+        print(f"  • Docker Engine, Compose, containers, images, networks")
+        print(f"  • Odoo 17/18/19 instances and PostgreSQL databases")
+        print(f"  • Traefik reverse proxy, Ansible, Jenkins, Portainer")
+        print(f"  • Project configuration directories and APT sources")
+        print(f"\n{GREEN}✓ BACKUPS ARE ALWAYS PRESERVED{RESET}")
+        print(f"  All backup files (*.sql, *.tar, *.zip, *backup*, *snapshot*,")
+        print(f"  *filestore*) and directories are protected from deletion.")
+        print(f"\n{DIM}Dry-run mode previews what would be deleted without executing.{RESET}")
+        print(f"{BOLD}{CYAN}{'=' * 70}{RESET}\n")
+
+        dry_run = input("Run in dry-run mode (preview only)? [Y/n]: ").strip().lower() != "n"
+
+        use_sudo = False
+        if hasattr(os, "geteuid") and os.geteuid() != 0:
+            print(f"\n{YELLOW}Not running as root. Sudo privileges are required for cleanup.{RESET}")
+            try:
+                subprocess.run(["sudo", "-v"], check=True, capture_output=True)
+                use_sudo = True
+                print(f"{GREEN}✓ Sudo privileges obtained.{RESET}")
+            except (OSError, subprocess.CalledProcessError, KeyboardInterrupt):
+                print(f"{RED}✗ Unable to obtain sudo privileges. Cleanup will be limited.{RESET}")
+
+        def on_output(msg: str) -> None:
+            print(msg, end="")
+
+        try:
+            report = run_full_cleanup(
+                use_sudo=use_sudo,
+                dry_run=dry_run,
+                confirm=not dry_run,
+                on_output=on_output,
+            )
+        except KeyboardInterrupt:
+            print(f"\n{RED}Cleanup cancelled by user.{RESET}")
+            input(f"\n{DIM}Press Enter to return...{RESET}")
+            return
+
+        # Print summary
+        print(f"\n{BOLD}{CYAN}{'=' * 70}{RESET}")
+        print(f"{BOLD}{CYAN}  CLEANUP SUMMARY{RESET}")
+        print(f"{BOLD}{CYAN}{'=' * 70}{RESET}")
+        print(f"  Mode:           {'DRY-RUN (preview only)' if report.dry_run else 'EXECUTED'}")
+        print(f"  Total items:    {report.total_items}")
+        print(f"  Completed:      {GREEN}{report.completed_count}{RESET}")
+        print(f"  Failed:         {RED}{report.failed_count}{RESET}" if report.failed_count else f"  Failed:         {report.failed_count}")
+        print(f"  Protected:      {report.protected_count}")
+        print(f"  Bytes freed:    {report.total_bytes_freed / (1024*1024):.2f} MB")
+        print(f"{BOLD}{CYAN}{'=' * 70}{RESET}\n")
+
+        if report.errors:
+            print(f"{RED}Errors encountered:{RESET}")
+            for err in report.errors[:10]:
+                print(f"  • {err}")
+            if len(report.errors) > 10:
+                print(f"  ... and {len(report.errors) - 10} more")
+            print()
+
+        # Offer verification if not dry-run
+        if not dry_run:
+            verify = input("Run post-cleanup verification to check for remaining components? [y/N]: ").strip().lower()
+            if verify == "y":
+                result = verify_cleanup(use_sudo=use_sudo)
+                print(f"\n{BOLD}Verification Result:{RESET}")
+                if result["all_clear"]:
+                    print(f"{GREEN}✓ No project components remain on the system.{RESET}")
+                else:
+                    print(f"{YELLOW}! Some components remain:{RESET}")
+                    for cat, items in result["remaining"].items():
+                        if items:
+                            print(f"  {cat}: {', '.join(items)}")
+
+        # Offer to save report
+        report_path = None
+        try:
+            from app.services.uninstall_service import UNINSTALL_LOG, LOG_DIR
+            import glob
+            reports = sorted(glob.glob(os.path.join(LOG_DIR, "uninstall_report_*.json")),
+                             key=os.path.getmtime, reverse=True)
+            if reports:
+                report_path = reports[0]
+        except Exception:
+            pass
+        if report_path:
+            print(f"\n{DIM}Detailed report saved to: {report_path}{RESET}")
+
+        input(f"\n{DIM}Press Enter to return to menu...{RESET}")

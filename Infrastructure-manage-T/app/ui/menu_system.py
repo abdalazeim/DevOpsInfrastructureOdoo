@@ -13,6 +13,7 @@ Organizes all functionality into 11 professional categories:
 9. Reports - Infrastructure Report, Installation Report, Service Health Report, Backup & Recovery Report, Audit History
 10. Command Notebook - Browse, edit, save, search, and copy commands (read-only, never executes)
 11. Installation Pipeline - Dependency-aware sequential installation with verification
+12. System Cleanup & Uninstall - Full system cleanup and deep uninstall of all project components
 """
 from __future__ import annotations
 
@@ -239,6 +240,16 @@ class MenuSystem:
                 items=[
                     MenuItem("1", "Run Installation Pipeline", self.tui.handle_installation_pipeline,
                              "Run the full sequential installation pipeline with Odoo version selection"),
+                ],
+            ),
+            MenuCategory(
+                key="12",
+                label="System Cleanup & Uninstall",
+                icon="",
+                description="Full system cleanup and deep uninstall of all project components (backups preserved)",
+                items=[
+                    MenuItem("1", "Full Cleanup & Deep Uninstall", self.tui.handle_full_cleanup,
+                             "Remove all project-installed components. Backups are always preserved."),
                 ],
             ),
         ]
