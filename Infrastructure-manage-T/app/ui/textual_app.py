@@ -126,13 +126,14 @@ class OdooTextualApp(App if TEXTUAL_AVAILABLE else object):
     server_hostname = reactive("devops-odoo")
     active_profile = reactive("devops-odoo-prod")
 
-    def __init__(self, profile: Optional[InfrastructureProfile] = None):
+    def __init__(self, profile: Optional[InfrastructureProfile] = None, dry_run: bool = False):
         if not TEXTUAL_AVAILABLE:
             raise RuntimeError("Textual library is not installed in the current environment.")
         super().__init__()
         self.profile = profile or InfrastructureProfile(profile_name="devops-odoo-prod")
         self.server_hostname = self.profile.server.hostname
         self.active_profile = self.profile.profile_name
+        self.dry_run = dry_run
 
     def compose(self) -> ComposeResult:
         yield Header(show_clock=True)
@@ -265,10 +266,10 @@ class OdooTextualApp(App if TEXTUAL_AVAILABLE else object):
         snap = SystemBackupService.create_full_snapshot()
         log.write_line(f"[OK] Full Snapshot generated: {snap['archive_file']}")
 
-def run_textual_app(profile: Optional[InfrastructureProfile] = None):
+def run_textual_app(profile: Optional[InfrastructureProfile] = None, dry_run: bool = False):
     if not TEXTUAL_AVAILABLE:
         print("[WARN] Textual is not installed. Use 'pip install textual' or run TerminalUI.")
         return False
-    app = OdooTextualApp(profile=profile)
+    app = OdooTextualApp(profile=profile, dry_run=dry_run)
     app.run()
     return True
