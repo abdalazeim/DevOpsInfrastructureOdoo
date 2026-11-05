@@ -256,6 +256,22 @@ def should_protect(path: str) -> Tuple[bool, str]:
     if not is_project_path(path):
         return True, "Not a project-owned path; skipping for safety"
 
+    # A recursive delete of an ancestor also deletes protected descendants.
+    # Fail closed on unreadable trees and links; discovery is not a deletion permit.
+    if os.path.islink(path):
+        return True, "Symbolic link; refuse recursive cleanup"
+    if os.path.isdir(path):
+        try:
+            def unreadable(error):
+                raise error
+            for root, dirs, files in os.walk(path, followlinks=False, onerror=unreadable):
+                for name in dirs + files:
+                    child = os.path.join(root, name)
+                    protected, reason = is_backup_path(child)
+                    if protected or os.path.islink(child):
+                        return True, f"Contains protected descendant: {child} ({reason})"
+        except OSError as exc:
+            return True, f"Cannot verify entire directory: {exc}"
     return False, ""
 
 
@@ -732,9 +748,19 @@ class UninstallExecutor:
     def save_report(self, path: Optional[str] = None) -> str:
         """Save the report to a JSON file."""
         target = path or os.path.join(LOG_DIR, f"uninstall_report_{_dt.datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-        os.makedirs(os.path.dirname(target), exist_ok=True)
-        with open(target, "w", encoding="utf-8") as f:
-            json.dump(self.report.to_dict(), f, indent=2)
+        try:
+            os.makedirs(os.path.dirname(target), exist_ok=True)
+            with open(target, "w", encoding="utf-8") as f:
+                json.dump(self.report.to_dict(), f, indent=2)
+        except OSError:
+            if path:
+                raise
+            import tempfile
+            folder = os.path.join(tempfile.gettempdir(), 'odoo-installer-reports')
+            os.makedirs(folder, mode=0o700, exist_ok=True)
+            target = os.path.join(folder, os.path.basename(target))
+            with open(target, "w", encoding="utf-8") as f:
+                json.dump(self.report.to_dict(), f, indent=2)
         return target
 
 

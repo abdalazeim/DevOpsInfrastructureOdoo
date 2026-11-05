@@ -56,11 +56,11 @@ class TerminalUI:
 
     def _initialize_hostname_config(self) -> None:
         """Detect and configure the centralized hostname/domain at startup."""
-        try:
-            self.hostname_config = detect_and_configure(interactive=False)
-        except (ValueError, RuntimeError):
-            # Config not yet initialized; will be prompted on first use
-            self.hostname_config = None
+        # Discovery must never silently substitute the workstation name for production DNS.
+        dashboard = self.profile.traefik.dashboard_domain
+        domain = dashboard.removeprefix('traefik.') if self.profile.deployment_mode == 'domain' else 'localhost'
+        self.hostname_config = HostnameConfig(self.profile.server.hostname, domain, self.profile.server.ip_or_host)
+        set_config(self.hostname_config)
 
     def ensure_hostname_config(self) -> HostnameConfig:
         """Ensure hostname config is initialized, prompting user if needed."""
@@ -161,6 +161,8 @@ class TerminalUI:
                     break
 
         elapsed = time.time() - start_ts
+        if any(step.status == OperationStatus.FAILED for step in op.steps):
+            op.status = OperationStatus.FAILED
         if op.status != OperationStatus.FAILED:
             op.status = OperationStatus.SUCCESS
             print(f"\n{GREEN}{BOLD}✔ Operation completed successfully in {elapsed:.2f}s!{RESET}\n")
@@ -1083,123 +1085,28 @@ class TerminalUI:
             with_traefik = bool(self.profile.traefik.enabled and self.profile.security.enforce_https)
             install_odoo(self.profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
 
+    def handle_final_workflow(self):
+        from copy import deepcopy
+        from app.core.final_workflow import FinalWorkflow
+        version = input('Odoo version [17/18/19]: ').strip()
+        if version not in ('17', '18', '19'):
+            print('Invalid version; no action performed')
+            return
+        profile = deepcopy(self.profile)
+        for value in ('17', '18', '19'):
+            getattr(profile, 'odoo' + value).enabled = value == version
+        mode = input('Mode [local/domain] (local): ').strip() or 'local'
+        if mode not in ('local', 'domain'):
+            return
+        profile.deployment_mode = mode
+        dry_run = input('Plan only (no changes)? [Y/n]: ').strip().lower() != 'n'
+        apply = False if dry_run else input('Install missing components? [y/N]: ').strip().lower() == 'y'
+        result = FinalWorkflow(profile, 'reports/final-workflow', dry_run=dry_run, apply=apply).run()
+        print(result['status'])
+
     def handle_sequential_installation(self):
-        """Run the sequential multi-component installation workflow with full error tracking."""
-        print(f"\n{BOLD}{CYAN}=== 21. SEQUENTIAL COMPONENT INSTALLATION & REPORT ==={RESET}")
-        print("This will install system components sequentially, continuing on failure.")
-        print("A comprehensive report will be generated at the end.\n")
-
-        dry_run = input("Run in dry-run mode (preview only)? [y/N]: ").strip().lower() == "y"
-        use_sudo = input("Use sudo for commands? [Y/n]: ").strip().lower() != "n"
-
-        installer = SequentialInstaller(
-            log_dir="/var/log/odoo-installer",
-            dry_run=dry_run,
-            use_sudo=use_sudo,
-            on_output=lambda msg: print(msg, end=""),
-        )
-
-        # Define components in order with their installation commands
-        # Each command is a list of arguments (no shell=True, safe from injection)
-
-        # 1. Basic system packages
-        installer.add_component(
-            name="Basic System Packages",
-            commands=[
-                ["apt-get", "update"],
-                ["apt-get", "install", "-y", "curl", "wget", "gnupg", "software-properties-common",
-                 "apt-transport-https", "ca-certificates", "python3", "python3-pip",
-                 "python3-venv", "git", "vim", "sudo", "ufw", "jq", "tar", "gzip", "zstd"],
-            ],
-            check_installed=lambda: (
-                (True, "apt packages")
-                if all(
-                    subprocess.run(["which", c], capture_output=True).returncode == 0
-                    for c in ["curl", "wget", "git", "jq", "tar", "gzip"]
-                )
-                else (False, None)
-            ),
-        )
-
-        # 2. Docker Engine
-        installer.add_component(
-            name="Docker Engine",
-            commands=[
-                ["install", "-m", "0755", "-d", "/etc/apt/keyrings"],
-                ["bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg"],
-                ["chmod", "a+r", "/etc/apt/keyrings/docker.gpg"],
-                ["bash", "-c", 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null'],
-                ["apt-get", "update"],
-                ["apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"],
-                ["systemctl", "enable", "docker"],
-                ["systemctl", "start", "docker"],
-            ],
-            check_installed=lambda: (
-                (True, subprocess.run(["docker", "--version"], capture_output=True, text=True).stdout.strip())
-                if subprocess.run(["which", "docker"], capture_output=True).returncode == 0
-                else (False, None)
-            ),
-        )
-
-        # 3. Ansible
-        installer.add_component(
-            name="Ansible",
-            commands=[
-                ["python3", "-m", "pip", "install", "--upgrade", "pip"],
-                ["python3", "-m", "pip", "install", "ansible"],
-            ],
-            check_installed=lambda: (
-                (True, subprocess.run(["ansible-playbook", "--version"], capture_output=True, text=True).stdout.splitlines()[0])
-                if subprocess.run(["which", "ansible-playbook"], capture_output=True).returncode == 0
-                else (False, None)
-            ),
-        )
-
-        # 4. Traefik (Docker-based)
-        installer.add_component(
-            name="Traefik v3.7",
-            commands=[
-                ["docker", "network", "create", "--driver", "bridge", "--subnet", "172.28.0.0/16", "proxy"],
-                ["bash", "-c", "mkdir -p /opt/traefik/{config,letsencrypt,logs} /data/traefik/logs"],
-                ["bash", "-c", "touch /opt/traefik/letsencrypt/acme.json && chmod 600 /opt/traefik/letsencrypt/acme.json"],
-                ["bash", "-c", "cat > /opt/traefik/config/traefik.yml <<'EOF'\napi:\n  dashboard: true\n  insecure: false\nentryPoints:\n  web:\n    address: :80\n    http:\n      redirections:\n        entryPoint:\n          to: websecure\n          scheme: https\n  websecure:\n    address: :443\ncertificatesResolvers:\n  le:\n    acme:\n      email: admin@localhost\n      storage: /letsencrypt/acme.json\n      httpChallenge:\n        entryPoint: web\nproviders:\n  docker:\n    endpoint: unix:///var/run/docker.sock\n    exposedByDefault: false\n    network: proxy\nEOF"],
-                ["bash", "-c", "cat > /opt/traefik/docker-compose.yml <<'EOF'\nservices:\n  traefik:\n    image: traefik:v3.7\n    container_name: traefik\n    restart: unless-stopped\n    security_opt:\n      - no-new-privileges:true\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    networks:\n      - proxy\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro\n      - ./letsencrypt/acme.json:/letsencrypt/acme.json\n      - ./logs:/var/log/traefik\n    environment:\n      - ACME_EMAIL=admin@localhost\nnetworks:\n  proxy:\n    external: true\n    name: proxy\nEOF"],
-                ["bash", "-c", "cd /opt/traefik && docker compose up -d"],
-            ],
-            check_installed=lambda: (
-                (True, "traefik:v3.7")
-                if subprocess.run(["docker", "ps", "-a", "--filter", "name=traefik", "--format", "{{.Names}}"], capture_output=True, text=True).stdout.strip() == "traefik"
-                else (False, None)
-            ),
-        )
-
-        # 5. Portainer
-        installer.add_component(
-            name="Portainer CE",
-            commands=[
-                ["bash", "-c", "mkdir -p /srv/portainer"],
-                ["docker", "run", "-d", "-p", "9000:9000", "-p", "8000:8000",
-                 "--name", "portainer", "--restart=always",
-                 "-v", "/var/run/docker.sock:/var/run/docker.sock",
-                 "-v", "/srv/portainer:/data",
-                 "portainer/portainer-ce"],
-            ],
-            check_installed=lambda: (
-                (True, "portainer/portainer-ce")
-                if subprocess.run(["docker", "ps", "-a", "--filter", "name=portainer", "--format", "{{.Names}}"], capture_output=True, text=True).stdout.strip() == "portainer"
-                else (False, None)
-            ),
-        )
-
-        # Run all components sequentially
-        report = installer.run_all()
-
-        # Print final summary
-        print(f"\n{BOLD}{CYAN}Installation complete. Report saved to: {report.report_file}{RESET}")
-        print(f"Overall status: {report.overall_status.value}")
-        print(f"  SUCCESS: {report.success_count} | FAILED: {report.failure_count} | SKIPPED: {report.skip_count}")
-
-    # === New menu handlers for reorganized menu system ===
+        from app.ui.installation_pipeline_ui import InstallationPipelineUI
+        InstallationPipelineUI(self).run()
 
     def handle_infrastructure_health(self):
         """Run comprehensive infrastructure health check."""
@@ -1269,18 +1176,7 @@ class TerminalUI:
         subprocess.run(["bash", "-c", "whoami && id && groups"], check=False)
 
     def handle_install_missing_components(self):
-        """Install components that are missing or not ready."""
-        print(f"\n{BOLD}{CYAN}=== Install Missing Components ==={RESET}")
-        inspector = SmartInspectorService().run_full_inspection()
-        missing = inspector.get_missing_components()
-        if not missing:
-            print(f"{GREEN}✓ All components are already installed.{RESET}")
-            return
-        for mc in missing:
-            print(f"  • {mc.name}: {mc.recommended_action}")
-        if input("\nInstall all missing components? [y/N]: ").strip().lower() == "y":
-            setup = ServerSetupWorkflow(self.profile, dry_run=False, use_sudo=True)
-            setup.run_ordered_installation()
+        self.handle_sequential_installation()
 
     def handle_installation_history(self):
         """View history of past installations and reports."""
@@ -1298,22 +1194,20 @@ class TerminalUI:
             print(f"  {os.path.basename(rp)}")
 
     def handle_failed_installations(self):
-        """View and retry failed component installations."""
-        print(f"\n{BOLD}{CYAN}=== Failed Installations ==={RESET}")
-        setup = ServerSetupWorkflow(self.profile, dry_run=False, use_sudo=True)
-        setup.inspect_all()
-        failed = [(n, r) for n, r in setup.components.items() if r.status == InstallationStatus.FAILED]
-        if not failed:
-            print(f"{GREEN}✓ No failed installations found.{RESET}")
+        from pathlib import Path
+        path = Path('reports/installation/latest-installation.json')
+        if not path.exists():
+            print('No installation execution report exists; status is NOT VERIFIED.')
             return
-        for name, record in failed:
-            print(f"  • {name}: {record.error or 'Unknown error'}")
-        if input("\nRetry failed installations? [y/N]: ").strip().lower() == "y":
-            for name, _ in failed:
-                setup.components[name].status = InstallationStatus.READY_TO_INSTALL
-                setup.components[name].error = None
-            setup._failed_components.clear()
-            setup.run_ordered_installation()
+        data = json.loads(path.read_text(encoding='utf-8'))
+        failed = data.get('failed', []) + data.get('skipped', [])
+        for name in failed:
+            record = data['components'][name]
+            print(f"{name}: {record.get('error') or record.get('skip_reason')}")
+        if not failed:
+            print('The recorded installation has no failed or blocked components.')
+        elif input('Open verified installer to retry missing components? [y/N]: ').lower() == 'y':
+            self.handle_sequential_installation()
 
     def handle_odoo17_management(self):
         """Deploy and manage Odoo 17 instances."""

@@ -1,134 +1,113 @@
-# Odoo Multi-Version Deployment
+# 🚀 نشر Odoo متعدد الإصدارات — Odoo Multi-Version Deployment
 
-[![Odoo 17](https://img.shields.io/badge/Odoo-17-blue?logo=odoo)](https://www.odoo.com/)
-[![Odoo 19](https://img.shields.io/badge/Odoo-19-blue?logo=odoo)](https://www.odoo.com/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
-[![PostgreSQL 18](https://img.shields.io/badge/PostgreSQL-18-blue?logo=postgresql)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-Compose-blue?logo=docker)](https://www.docker.com/)
-[![Ansible](https://img.shields.io/badge/Ansible-Automation-green?logo=ansible)](https://www.ansible.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-CI/CD-orange?logo=jenkins)](https://www.jenkins.io/)
-[![Traefik](https://img.shields.io/badge/Traefik-Proxy-green?logo=traefik)](https://traefik.io/)
-[![Ubuntu](https://img.shields.io/badge/Ubuntu-Server-orange?logo=ubuntu)](https://ubuntu.com/server/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Status: Production Ready](https://img.shields.io/badge/Status-Production%20Ready-brightgreen)](https://github.com/)
-
-> **Unified deployment system for multi-version Odoo environments** using Docker, Ansible, Traefik, and Jenkins. Supports Odoo 17 and Odoo 19 with two independent instances per version, isolated PostgreSQL databases, shared Traefik reverse proxy with HTTPS, and a comprehensive backup & disaster recovery system.
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS  
+> **المكونات:** Odoo 17، Odoo 19، PostgreSQL 16، PostgreSQL 18، Docker، Docker Compose، Ansible، Jenkins، Traefik  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية / مهندس DevOps  
+> **التاريخ:** نوفمبر 2026  
+> **الإصدار:** 1.0  
+> **الحالة:** Production Ready
 
 ---
 
-## Table of Contents
+## 📋 جدول المحتويات
 
-- [Overview](#overview)
-- [Key Features](#key-features)
-- [Architecture](#architecture)
-- [Technology Stack](#technology-stack)
-- [Directory Structure](#directory-structure)
-- [Odoo Instances & Configuration](#odoo-instances--configuration)
-- [Service Ports & Domains](#service-ports--domains)
-- [System Requirements](#system-requirements)
-- [Installation](#installation)
-  - [Via Terminal](#via-terminal)
-  - [Via Jenkins](#via-jenkins)
-- [Jenkins + Ansible Automation](#jenkins--ansible-automation)
-- [Docker Services & Networking](#docker-services--networking)
-- [Backup & Disaster Recovery](#backup--disaster-recovery)
-  - [Backup Workflow](#backup-workflow)
-  - [Restore Workflow](#restore-workflow)
-  - [Verify Backups](#verify-backups)
-  - [Ubuntu System Configuration Backup](#ubuntu-system-configuration-backup)
-- [Security & Permissions](#security--permissions)
-- [Traefik & HTTPS](#traefik--https)
-- [Troubleshooting](#troubleshooting)
-- [Adding Future Versions](#adding-future-versions)
-- [Contributing](#contributing)
-- [License](#license)
-
----
-
-## Overview
-
-The **Odoo Multi-Version Deployment** project provides a production-ready, unified infrastructure for deploying and managing multiple Odoo versions on a single server. Each version (Odoo 17 and Odoo 19) runs two independent instances with isolated PostgreSQL databases, separate data directories, and dedicated Docker containers, all fronted by a shared Traefik reverse proxy for HTTPS access.
-
-### Project Goals
-
-- **Multi-version support**: Deploy Odoo 17 (PostgreSQL 16) and Odoo 19 (PostgreSQL 18) side-by-side
-- **Instance isolation**: Each instance runs in its own Docker network with separate database and filestore
-- **Zero external dependencies**: No reliance on third-party Docker images or external Compose templates
-- **Idempotent deployment**: All Ansible playbooks and scripts are safe to re-run without data loss
-- **Comprehensive backup & restore**: Full disaster recovery with SHA256 integrity verification
-- **Least privilege security**: All containers run as non-root user (UID 999)
+1. [نظرة عامة](#-نظرة-عامة)
+2. [أهداف المشروع](#-أهداف-المشروع)
+3. [المميزات الرئيسية](#-المميزات-الرئيسية)
+4. [الهندسة المعمارية](#-الهندسة-المعمارية)
+5. [سير عمل النشر](#-سير-عمل-النشر)
+6. [Jenkins + أتمتة Ansible](#-Jenkins--أتمتة-Ansible)
+7. [الخدمات والشبكات في Docker](#-الخدمات-والشبكات-في-Docker)
+8. [مكدس التقنية](#-مكدس-التقنية)
+9. [هيكل الدليل](#-هيكل-الدليل)
+10. [نسخ Odoo والتكوين](#-نسخ-Odoo-والتكوين)
+11. [منافذ الخدمات والنطاقات](#-منافذ-الخدمات-والنطاقات)
+12. [متطلبات النظام](#-متطلبات-النظام)
+13. [قائمة التحقق قبل التثبيت](#-قائمة-التحقق-قبل-التثبيت)
+14. [التثبيت](#-التثبيت)
+15. [Jenkins + أتمتة Ansible (تفصيلي)](#-Jenkins-+-أتمتة-Ansible-تفصيلي)
+16. [النسخ الاحتياطي والاستعادة من الكوارث](#-النسخ-الاحتياطي والاستعادة-من-الكوارث)
+17. [النسخ الاحتياطي لإعدادات نظام Ubuntu](#-النسخ-الاحتياطي-لإعدادات-نظام-Ubuntu)
+18. [الأمان والصلاحيات](#-الأمان-والصلاحيات)
+19. [Traefik وHTTPS](#-Traefik-وHTTPS)
+20. [استكشاف الأخطاء وإصلاحها](#-استكشاف-الأخطاء-وإصلاحها)
+21. [إضافة إصدارات مستقبلية](#-إضافة-إصدارات-مستقبلية)
+22. [المساهمة](#-المساهمة)
+23. [الترخيص](#-الترخيص)
+24. [الدعم](#-الدعم)
 
 ---
 
-## Key Features
+## 1. 📖 نظرة عامة
 
-| Feature | Description |
-|---------|-------------|
-| 🐳 **Docker Containerization** | Odoo and PostgreSQL run in isolated containers per instance |
-| 🔄 **Multi-Version Support** | Odoo 17 + PostgreSQL 16 and Odoo 19 + PostgreSQL 18 |
-| 📦 **Two Instances per Version** | Independent Odoo 17 instance1/2 and Odoo 19 instance1/2 |
-| 🔀 **Traefik Reverse Proxy** | Shared proxy with HTTPS, automatic SSL via Let's Encrypt |
-| 🤖 **Ansible Automation** | Idempotent playbooks for deployment, backup, restore, verify |
-| 🔧 **Jenkins CI/CD** | Pipeline-based deployment and backup orchestration |
-| 💾 **Backup & Disaster Recovery** | Full backup, restore, verify, and retention policies |
-| 🖥️ **Ubuntu System Backup** | Independent backup of server configuration (SSH, Netplan, Docker, etc.) |
-| 🔐 **Least Privilege Security** | All containers run as UID 999; secrets via Ansible Vault |
-| 📋 **Manifest & Checksums** | Every backup includes manifest.json and SHA256 checksums |
+يوفر مشروع **Odoo Multi-Version Deployment** بنية تحتية موحدة وجاهزة للإنتاج لنشر وإدارة إصدارات متعددة من Odoo على خادم واحد. يشغل كل إصدار (Odoo 17 وOdoo 19) نسختين مستقلتين مع قواعد بيانات PostgreML معزولة، ومجلدات بيانات منفصلة، وحاويات Docker مخصصة، كلها أمامها بروكسي عكسي مشترك Traefik للوصول عبر HTTPS.
+
+### أهداف المشروع
+
+- **دعم إصدارات متعددة**: نشر Odoo 17 (PostgreSQL 16) وOdoo 19 (PostgreSQL 18) جنبًا إلى جنب
+- **عزل النسخ**: تعمل كل نسخة في شبكتها الداخلية الخاصة مع قاعدة بيانات وملحقات منفصلة
+- **عدم اعتماد على تبعيات خارجية**: عدم الاعتماد على صور Docker من جهات خارجية أو قوالب Compose خارجية
+- **نشر متجانس (Idempotent)**: جميع Playbooks وسكريبتات أنsible آمنة لإعادة التشغيل دون فقدان البيانات
+- **نسخ احتياطي واستعادة شامل**: استعادة كاملة من الكوارث مع التحقق من السلامة عبر SHA256
+- **أقل امتياز أمني**: تعمل جميع الحاويات كمستخدم غير جذر (UID 999)
 
 ---
 
-## Architecture
+## 2. 🌟 المميزات الرئيسية
 
-### System Architecture
+| # | الميزة | الوصف |
+|---|---------|----------|
+| 1 | 🐳 **تغليف الحاويات عبر Docker** | يعمل Odoo وPostgreSQL في حاويات معزولة لكل نسخة |
+| 2 | 🔄 **دعم إصدارات متعددة** | Odoo 17 + PostgreSQL 16 وOdoo 19 + PostgreSQL 18 |
+| 3 | 📦 **نسختان لكل إصدار** | نسخ مستقلة من Odoo 17 instance1/2 وOdoo 19 instance1/2 |
+| 4 | 🔀 **بروكسي عكسي Traefik** | بروكسي مشترك مع HTTPS، شهادات SSL تلقائية عبر Let's Encrypt |
+| 5 | 🤖 **أتمتة Ansible** | Playbooks متجانسة للنشر، النسخ الاحتياطي، الاستعادة، التحقق |
+| 6 | 🔧 **تكامل Jenkins CI/CD** | خط أنابيب مبني علىPipeline للنشر والتنظيم الاحتياطي |
+| 7 | 💾 **نسخ احتياطي واستعادة من الكوارث** | نسخ احتياطي كامل، استعادة، تحقق، وسياسات الاحتفاظ |
+| 8 | 🖥️ **نسخ احتياطي لنظام Ubuntu** | نسخ مستقل لإعدادات الخادم (SSH، Netplan، Docker، إلخ) |
+| 9 | 🔐 **أمان بأقل امتياز** | تعمل جميع الحاويات كـ UID 999؛ الأسرار عبر Ansible Vault |
+| 10 | 📋 **Manifest وChecksums** | تتضمن كل نسخة احتياطية manifest.json ومجموعات تحقق SHA256 |
 
-```mermaid
-graph TB
-    subgraph Internet["Internet / WAN"]
-        User[Users / Browsers]
-    end
+---
 
-    subgraph Traefik["Traefik Reverse Proxy (Shared)"]
-        TLS[HTTPS / SSL Termination]
-        Router[HTTP Routers]
-        Cert[Let's Encrypt Certificates]
-    end
+## 3. 🏗 الهندسة المعمارية
 
-    subgraph Odoo17_Net["Odoo 17 Internal Network (odoo17_internal)"]
-        O17I1[odoo17-instance1<br/>Odoo 17 + PostgreSQL 16]
-        O17I2[odoo17-instance2<br/>Odoo 17 + PostgreSQL 16]
-    end
+### البنية المعمارية للنظام
 
-    subgraph Odoo19_Net["Odoo 19 Internal Network (odoo19_internal)"]
-        O19I1[odoo19-instance1<br/>Odoo 19 + PostgreSQL 18]
-        O19I2[odoo19-instance2<br/>Odoo 19 + PostgreSQL 18]
-    end
-
-    subgraph Storage["Persistent Storage"]
-        D17[/data/odoo17/instance1/postgresql]
-        D17b[/data/odoo17/instance2/postgresql]
-        D19[/data/odoo19/instance1/postgresql]
-        D19b[/data/odoo19/instance2/postgresql]
-        B[/data/backups/]
-    end
-
-    User -->|HTTPS| Traefik
-    Traefik -->|Route| O17I1
-    Traefik -->|Route| O17I2
-    Traefik -->|Route| O19I1
-    Traefik -->|Route| O19I2
-
-    O17I1 -->|Data| D17
-    O17I2 -->|Data| D17b
-    O19I1 -->|Data| D19
-    O19I2 -->|Data| D19b
-
-    O17I1 -.->|Backup| B
-    O17I2 -.->|Backup| B
-    O19I1 -.->|Backup| B
-    O19I2 -.->|Backup| B
+```
+Internet / WAN
+     │
+     ▼
+Users / Browsers
+     │
+     │ HTTPS
+     ▼
+Traefik Reverse Proxy (Shared)
+├── HTTPS / SSL Termination
+├── HTTP Routers
+└── Let's Encrypt Certificates
+     │ Route
+     ├─→ Odoo 17 Internal Network (odoo17_internal)
+     │    ├── odoo17-instance1 (Odoo 17 + PostgreSQL 16)
+     │    └── odoo17-instance2 (Odoo 17 + PostgreSQL 16)
+     │ Route
+     ├─→ Odoo 19 Internal Network (odoo19_internal)
+     │    ├── odoo19-instance1 (Odoo 19 + PostgreSQL 18)
+     │    └── odoo19-instance2 (Odoo 19 + PostgreSQL 18)
+     │ Route
+     └─→ pgAdmin 4
+     │ Data
+     ├─→ /data/odoo17/instance1/postgresql
+     ├─→ /data/odoo17/instance2/postgresql
+     ├─→ /data/odoo19/instance1/postgresql
+     ├─→ /data/odoo19/instance2/postgresql
+     └─→ /data/backups/
+     │ Backup
+     ├─→ odoo17 backups
+     ├─→ odoo19 backups
 ```
 
-### Deployment Workflow
+### سير عمل النشر
 
 ```mermaid
 flowchart TD
@@ -145,13 +124,9 @@ flowchart TD
     TraefikRole --> Health[Health Checks<br/>Container status & HTTP response]
     Health --> Report[Deployment Report<br/>Show container status & URLs]
     Report --> End([End])
-
-    style Start fill:#f9f,stroke:#333
-    style End fill:#9f9,stroke:#333
-    style Health fill:#ffd700,stroke:#333
 ```
 
-### Jenkins + Ansible Automation
+### Jenkins + أتمتة Ansible
 
 ```mermaid
 sequenceDiagram
@@ -173,7 +148,7 @@ sequenceDiagram
     Jen->>Dev: Deployment report & URLs
 ```
 
-### Docker Services & Networking
+### الخدمات والشبكات في Docker
 
 ```mermaid
 graph LR
@@ -208,7 +183,7 @@ graph LR
     O19I2_DB -->|5432| O19I2
 ```
 
-### Backup & Restore Workflow
+### سير عمل النسخ الاحتياطي والاستعادة
 
 ```mermaid
 flowchart TD
@@ -243,330 +218,289 @@ flowchart TD
 
 ---
 
-## Technology Stack
+## 4. 🛠 مكدس التقنية
 
-| Component | Technology | Version | Purpose |
+| المكون | التقنية | الإصدار | الغرض |
 |-----------|------------|---------|---------|
-| Operating System | Ubuntu Server | 22.04+ | Host OS |
-| Container Engine | Docker | 20.10+ | Container runtime |
-| Container Orchestration | Docker Compose | v2 | Multi-container deployment |
-| Configuration Management | Ansible | Core + collections | Infrastructure as Code |
-| CI/CD | Jenkins | LTS | Pipeline automation |
-| Reverse Proxy | Traefik | v2+ | HTTPS, SSL termination, routing |
-| Application | Odoo | 17 & 19 | ERP application |
-| Database | PostgreSQL | 16 & 18 | Application database |
-| Backup Compression | zstd | Latest | High-compression archives |
-| Integrity | SHA256 | — | Backup verification |
-| Secrets | Ansible Vault | — | Encrypted credentials |
-| Version Control | Git | — | Source code management |
+| نظام التشغيل | Ubuntu Server | 22.04+ | نظام تشغيل المضيف |
+| محرك الحاويات | Docker | 20.10+ | وقت تشغيل الحاويات |
+| تنسيق الحاويات | Docker Compose | v2 | نشر حاويات متعددة |
+| إدارة التكوين | Ansible | Core + collections | بنية تحتية ككود |
+| التكامل/nشر المستمر | Jenkins | LTS | أتمتة خطوط الأنابيب |
+| البروكسي العكسي | Traefik | v2+ | HTTPS، إنهاء SSL، التوجيه |
+| التطبيق | Odoo | 17 و 19 | تطبيق تخطيط موارد المؤسسات |
+| قاعدة البيانات | PostgreSQL | 16 و 18 | قاعدة بيانات التطبيق |
+| ضغط النسخ الاحتياطي | zstd | أحدث | أرشيفات مضغوطة بكفاءة عالية |
+| السلامة | SHA256 | — | التحقق من النسخ الاحتياطي |
+| الأسرار | Ansible Vault | — | بيانات اعتماد مشفرة |
+| إدارة الإصدارات | Git | — | إدارة كود المصدر |
 
 ---
 
-## Directory Structure
+## 5. 📁 هيكل الدليل
 
-```
+```text
 Odoo-MultiVersion-Deployment/
-├── Jenkinsfile                              # Unified Jenkins pipeline (Odoo 17 & 19)
-├── README.md                                # Project documentation
-├── requirements.yml                         # Ansible collections requirements
-├── .gitignore                               # Git ignore rules
+├── Jenkinsfile                              # خط أنابيب Jenkins موحد (Odoo 17 و 19)
+├── README.md                                # توثيق المشروع
+├── requirements.yml                         # متطلبات مجموعات Ansible
+├── .gitignore                               # قواعد تجاهل Git
 │
-├── Jenkins/                                 # Jenkins pipeline definitions
-│   ├── install-odoo17.Jenkinsfile           # Odoo 17 deployment pipeline
-│   ├── install-odoo19.Jenkinsfile           # Odoo 19 deployment pipeline
-│   ├── backup.Jenkinsfile                   # Backup pipeline
-│   ├── restore.Jenkinsfile                  # Restore pipeline (confirmation required)
-│   ├── verify-backups.Jenkinsfile           # Backup verification pipeline
-│   └── system-config-backup.Jenkinsfile     # Ubuntu system config backup pipeline
+├── Jenkins/                                 # تعريفات خطوط أنابيب Jenkins
+│   ├── install-odoo17.Jenkinsfile           # خط أنابيب نشر Odoo 17
+│   ├── install-odoo19.Jenkinsfile           # خط أنابيب نشر Odoo 19
+│   ├── backup.Jenkinsfile                   # خط أنابيب النسخ الاحتياطي
+│   ├── restore.Jenkinsfile                  # خط أنابيب الاستعادة (يتطلب تأكيد)
+│   ├── verify-backups.Jenkinsfile           # خط أنابيب التحقق من النسخ الاحتياطية
+│   └── system-config-backup.Jenkinsfile     # خط أنابيب نسخ إعدادات نظام Ubuntu
 │
-├── scripts/                                 # Terminal automation scripts
-│   ├── install-odoo17.sh                    # Odoo 17 installation script
-│   ├── install-odoo19.sh                    # Odoo 19 installation script
-│   ├── health-check.sh                      # Service health check script
-│   ├── backup.sh                            # Odoo backup script
-│   ├── restore.sh                           # Odoo restore script
-│   ├── verify-backups.sh                    # Backup integrity verification
-│   ├── list-backups.sh                      # List available backups
-│   ├── backup-system-config.sh              # Ubuntu system configuration backup
-│   └── restore-system-config.sh             # Ubuntu system configuration restore
+├── scripts/                                 # سكريبتات أتمتة Terminal
+│   ├── install-odoo17.sh                    # سكريبت تثبيت Odoo 17
+│   ├── install-odoo19.sh                    # سكريبت تثبيت Odoo 19
+│   ├── health-check.sh                      # سكريبت فحص صحة الخدمات
+│   ├── backup.sh                            # سكريبت نسخ احتياطي لـ Odoo
+│   ├── restore.sh                           # سكريبت استعادة Odoo
+│   ├── verify-backups.sh                    # التحقق من سلامة النسخ الاحتياطية
+│   ├── list-backups.sh                      # عرض النسخ الاحتياطية المتاحة
+│   ├── backup-system-config.sh              # نسخ إعدادات نظام Ubuntu
+│   └── restore-system-config.sh             # استعادة إعدادات نظام Ubuntu
 │
-├── ansible/                                 # Ansible automation
+├── ansible/                                 # أتمتة Ansible
 │   ├── inventory/
-│   │   └── hosts.ini                        # Target host inventory
+│   │   └── hosts.ini                        # مخزون المضيفين المستهدف
 │   ├── group_vars/
-│   │   └── all.yml                          # Shared Ansible variables
+│   │   └── all.yml                          # متغيرات Ansible مشتركة
 │   ├── playbooks/
-│   │   ├── install-odoo17.yml               # Odoo 17 installation playbook
-│   │   ├── install-odoo19.yml               # Odoo 19 installation playbook
-│   │   ├── backup.yml                       # Backup playbook
-│   │   ├── restore.yml                      # Restore playbook
-│   │   ├── verify.yml                       # Backup verification playbook
-│   │   └── system-config-backup.yml         # Ubuntu system backup playbook
+│   │   ├── install-odoo17.yml               # Playbook تثبيت Odoo 17
+│   │   ├── install-odoo19.yml               # Playbook تثبيت Odoo 19
+│   │   ├── backup.yml                       # Playbook النسخ الاحتياطي
+│   │   ├── restore.yml                      # Playbook الاستعادة
+│   │   ├── verify.yml                       # Playbook التحقق من النسخ الاحتياطية
+│   │   └── system-config-backup.yml         # Playbook نسخ إعدادات نظام Ubuntu
 │   ├── roles/
-│   │   ├── system/                          # Directory & network setup
-│   │   ├── permissions/                     # Least-privilege file permissions
-│   │   ├── docker/                          # Docker Compose deployment
-│   │   ├── postgresql/                      # PostgreSQL users & databases
-│   │   ├── odoo/                            # Odoo configuration & validation
-│   │   ├── traefik/                         # Traefik connectivity verification
-│   │   ├── backup/                          # Odoo backup tasks
-│   │   ├── restore/                         # Odoo restore tasks
-│   │   ├── verify/                          # Backup verification tasks
-│   │   └── system-config-backup/            # Ubuntu system backup tasks
+│   │   ├── system/                          # إعداد المجلدات والشبكة
+│   │   ├── permissions/                     # صلاحيات أقل امتياز للملفات
+│   │   ├── docker/                          # نشر Docker Compose
+│   │   ├── postgresql/                      # مستخدمين وقواعد بيانات PostgreSQL
+│   │   ├── odoo/                            # تكوين وتحقق Odoo
+│   │   ├── traefik/                         # التحقق من اتصال Traefik
+│   │   ├── backup/                          # مهام نسخ احتياطي لـ Odoo
+│   │   ├── restore/                         # مهام استعادة Odoo
+│   │   ├── verify/                          # مهام التحقق من النسخ الاحتياطية
+│   │   └── system-config-backup/            # مهام نسخ إعدادات نظام Ubuntu
 │   └── templates/
 │       └── odoo/
-│           └── odoo.conf.j2                 # Odoo configuration template
+│           └── odoo.conf.j2                 # قالب تكوين Odoo
 │
-├── versions/                                # Version-specific variables
-│   ├── odoo17.yml                           # Odoo 17 instance definitions
-│   └── odoo19.yml                           # Odoo 19 instance definitions
+├── versions/                                # متغيرات خاصة بالإصدار
+│   ├── odoo17.yml                           # تعريفات نسخ Odoo 17
+│   └── odoo19.yml                           # تعريفات نسخ Odoo 19
 │
-├── docker/                                  # Docker Compose templates
-│   ├── odoo17-compose.yml.j2                # Odoo 17 Compose template (Jinja2)
-│   └── odoo19-compose.yml.j2                # Odoo 19 Compose template (Jinja2)
+├── docker/                                  # قوالب Docker Compose
+│   ├── odoo17-compose.yml.j2                # قالب Compose لـ Odoo 17 (Jinja2)
+│   └── odoo19-compose.yml.j2                # قالب Compose لـ Odoo 19 (Jinja2)
 │
-└── backup/                                  # Backup policies & schemas
-    ├── backup-policy.yml                    # Backup policy definition
-    ├── retention.yml                        # Backup retention policy
-    └── manifest-schema.json                 # Backup manifest JSON schema
+└── backup/                                  # سياسات ومخططات النسخ الاحتياطي
+    ├── backup-policy.yml                    # تعريف سياسة النسخ الاحتياطي
+    ├── retention.yml                        # سياسة الاحتفاظ بالنسخ الاحتياطية
+    └── manifest-schema.json                 # مخطط JSON لبيانات النسخة الاحتياطية
 ```
 
 ---
 
-## Odoo Instances & Configuration
+## 6. 🔧 نسخ Odoo والتكوين
 
-The project deploys **two independent instances per Odoo version**, each with its own PostgreSQL database, data directory, and Docker containers.
+ينشر المشروع **نسختين مستقلتين لكل إصدار من Odoo**، لكل نسخة قاعدة بيانات خاصة بها، ومجلد بيانات، وحاويات Docker خاصة.
 
-### Odoo 17 Configuration
+### تكوين Odoo 17
 
-| Instance | Domain | Container (Odoo) | Container (DB) | Database | DB User | Data Path | Config Path | PostgreSQL |
+| Instance | النطاق | الحاوية (Odoo) | الحاوية (قاعدة البيانات) | قاعدة البيانات | مستخدم قاعدة البيانات | مسار البيانات | مسار التكوين | PostgreSQL |
 |----------|--------|------------------|----------------|----------|---------|-----------|-------------|------------|
-| Instance 1 | `${ODOO17_INSTANCE1_DOMAIN}` | `odoo17-instance1` | `odoo17-instance1-db` | `odoo17_db1` | `odoo17_instance1` | `/data/odoo17/instance1` | `/opt/odoo17/instance1` | PostgreSQL 16 |
-| Instance 2 | `${ODOO17_INSTANCE2_DOMAIN}` | `odoo17-instance2` | `odoo17-instance2-db` | `odoo17_db2` | `odoo17_instance2` | `/data/odoo17/instance2` | `/opt/odoo17/instance2` | PostgreSQL 16 |
+| النسخة 1 | `${ODOO17_INSTANCE1_DOMAIN}` | `odoo17-instance1` | `odoo17-instance1-db` | `odoo17_db1` | `odoo17_instance1` | `/data/odoo17/instance1` | `/opt/odoo17/instance1` | PostgreSQL 16 |
+| النسخة 2 | `${ODOO17_INSTANCE2_DOMAIN}` | `odoo17-instance2` | `odoo17-instance2-db` | `odoo17_db2` | `odoo17_instance2` | `/data/odoo17/instance2` | `/opt/odoo17/instance2` | PostgreSQL 16 |
 
-### Odoo 19 Configuration
+### تكوين Odoo 19
 
-| Instance | Domain | Container (Odoo) | Container (DB) | Database | DB User | Data Path | Config Path | PostgreSQL |
+| Instance | النطاق | الحاوية (Odoo) | الحاوية (قاعدة البيانات) | قاعدة البيانات | مستخدم قاعدة البيانات | مسار البيانات | مسار التكوين | PostgreSQL |
 |----------|--------|------------------|----------------|----------|---------|-----------|-------------|------------|
-| Instance 1 | `${ODOO19_INSTANCE1_DOMAIN}` | `odoo19-instance1` | `odoo19-instance1-db` | `odoo19_db1` | `odoo19_instance1` | `/data/odoo19/instance1` | `/opt/odoo19/instance1` | PostgreSQL 18 |
-| Instance 2 | `${ODOO19_INSTANCE2_DOMAIN}` | `odoo19-instance2` | `odoo19-instance2-db` | `odoo19_db2` | `odoo19_instance2` | `/data/odoo19/instance2` | `/opt/odoo19/instance2` | PostgreSQL 18 |
+| النسخة 1 | `${ODOO19_INSTANCE1_DOMAIN}` | `odoo19-instance1` | `odoo19-instance1-db` | `odoo19_db1` | `odoo19_instance1` | `/data/odoo19/instance1` | `/opt/odoo19/instance1` | PostgreSQL 18 |
+| النسخة 2 | `${ODOO19_INSTANCE2_DOMAIN}` | `odoo19-instance2` | `odoo19-instance2-db` | `odoo19_db2` | `odoo19_instance2` | `/data/odoo19/instance2` | `/opt/odoo19/instance2` | PostgreSQL 18 |
 
-### Shared Settings
+### الإعدادات المشتركة
 
-| Setting | Odoo 17 | Odoo 19 |
+| الإعداد | Odoo 17 | Odoo 19 |
 |---------|---------|---------|
-| Docker Image | `odoo:17` | `odoo:19` |
-| PostgreSQL Image | `postgres:16` | `postgres:18` |
-| PGDATA Path | `/var/lib/postgresql/data` | `/var/lib/postgresql/18/docker` |
-| Odoo HTTP Port | 8069 | 8069 |
-| Live Chat Port | 8072 | 8072 |
-| Container User | `999:999` | `999:999` |
-| Traefik EntryPoint | `websecure` | `websecure` |
-| Certificate Resolver | `letsencrypt` | `letsencrypt` |
+| صورة Docker | `odoo:17` | `odoo:19` |
+| صورة PostgreSQL | `postgres:16` | `postgres:18` |
+| مسار PGDATA | `/var/lib/postgresql/data` | `/var/lib/postgresql/18/docker` |
+| منفذ HTTP لـ Odoo | 8069 | 8069 |
+| منفذ الدردشة الحية | 8072 | 8072 |
+| مستخدم الحاوية | `999:999` | `999:999` |
+| نقطة دخول Traefik | `websecure` | `websecure` |
+| resolvers الشهادات | `letsencrypt` | `letsencrypt` |
 
 ---
 
-## Service Ports & Domains
+## 7. 🔌 منافذ الخدمات والنطاقات
 
-| Service | Instance | Port | Protocol | Domain |
+| الخدمة | النسخة | المنفذ | البروتوكول | النطاق |
 |---------|----------|------|----------|--------|
-| Traefik Dashboard | Shared | 8080 | HTTP | — |
-| Odoo HTTP | odoo17-instance1 | 8069 | HTTPS via Traefik | `${ODOO17_INSTANCE1_DOMAIN}` |
-| Odoo HTTP | odoo17-instance2 | 8069 | HTTPS via Traefik | `${ODOO17_INSTANCE2_DOMAIN}` |
-| Odoo HTTP | odoo19-instance1 | 8069 | HTTPS via Traefik | `${ODOO19_INSTANCE1_DOMAIN}` |
-| Odoo HTTP | odoo19-instance2 | 8069 | HTTPS via Traefik | `${ODOO19_INSTANCE2_DOMAIN}` |
-| Live Chat | All instances | 8072 | HTTPS via Traefik | Same as Odoo domain |
-| PostgreSQL | All instances | 5432 | Internal (Docker network) | Not exposed externally |
+| لوحة تحكم Traefik | مشتركة | 8080 | HTTP | — |
+| HTTP Odoo | odoo17-instance1 | 8069 | HTTPS عبر Traefik | `${ODOO17_INSTANCE1_DOMAIN}` |
+| HTTP Odoo | odoo17-instance2 | 8069 | HTTPS عبر Traefik | `${ODOO17_INSTANCE2_DOMAIN}` |
+| HTTP Odoo | odoo19-instance1 | 8069 | HTTPS عبر Traefik | `${ODOO19_INSTANCE1_DOMAIN}` |
+| HTTP Odoo | odoo19-instance2 | 8069 | HTTPS عبر Traefik | `${ODOO19_INSTANCE2_DOMAIN}` |
+| الدردشة الحية | جميع النسخ | 8072 | HTTPS عبر Traefik | نفس نطاق Odoo |
+| PostgreSQL | جميع النسخ | 5432 | داخلي (شبكة Docker) | غير مكشوف خارجياً |
 
 ---
 
-## System Requirements
+## 8. 💻 متطلبات النظام
 
-### Minimum Server Requirements
+### متطلبات الخادم الدنيا
 
-| Resource | Minimum | Recommended |
+| المورد | الحد الأدنى | الموصى به |
 |----------|---------|-------------|
-| CPU | 2 cores | 4+ cores |
-| RAM | 4 GB | 8+ GB |
-| Storage | 100 GB SSD | 500+ GB SSD |
-| OS | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS |
+| المعالج | 2 نوى | 4 نوى أو أكثر |
+| الذاكرة | 4 جيجابايت | 8+ جيجابايت |
+| التخزين | 100 جيجابايت SSD | 500+ جيجابايت SSD |
+| نظام التشغيل | Ubuntu Server 22.04 LTS | Ubuntu Server 24.04 LTS |
 
-### Required Software
+### البرامج المطلوبة
 
-| Software | Version | Installation Method |
+| البرنامج | الإصدار | طريقة التثبيت |
 |----------|---------|---------------------|
-| Docker Engine | 20.10+ | apt / official Docker repo |
-| Docker Compose | v2 | Docker plugin |
+| Docker Engine | 20.10+ | apt / مستودع Docker الرسمي |
+| Docker Compose | v2 | ملحق Docker |
 | Ansible | Core + community collections | pip / apt |
 | Python3 | 3.8+ | apt |
 | Git | 2.x | apt |
-| Traefik | v2+ | Separately deployed (external network) |
+| Traefik | v2+ | منشور بشكل منفصل (شبكة خارجية) |
 
-### Pre-Installation Checklist
+### قائمة التحقق قبل التثبيت
 
-- [ ] Ubuntu Server installed and updated
-- [ ] Docker and Docker Compose installed
-- [ ] Ansible installed with `community.docker` collection
-- [ ] `proxy` Docker network created (shared with Traefik)
-- [ ] DNS records pointing to server IP for all domains
-- [ ] Traefik running with Let's Encrypt certificate resolver configured
-- [ ] Jenkins credentials configured (GitHub, Ansible Vault, Odoo passwords)
+- [ ] نظام Ubuntu Server مثبت ومحدّث
+- [ ] Docker وDocker Compose مثبتان
+- [ ] أنsible مثبت مع `community.docker` collection
+- [ ] شبكة Docker `proxy` منشأة (مشتركة مع Traefik)
+- [ ] سجلات DNS تشير إلى عنوان IP الخادم لجميع النطاقات
+- [ ] Traefik يعمل مع resolvers شهادات Let's Encrypt مconfigured
+- [ ] بيانات اعتماد Jenkins مconfigured (GitHub، Ansible Vault، كلمات مرور Odoo)
 
 ---
 
-## Installation
+## 9. 🚀 التثبيت
 
-### Via Terminal
+### عبر Terminal
 
-#### Odoo 17 Installation
+#### تثبيت Odoo 17
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment
 sudo ./scripts/install-odoo17.sh
 ```
 
-#### Odoo 19 Installation
+#### تثبيت Odoo 19
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment
 sudo ./scripts/install-odoo19.sh
 ```
 
-#### Health Check
+#### فحص الصحة
 
 ```bash
-# Check specific instance
+# فحص نسخة معينة
 sudo ./scripts/health-check.sh instance1 8069 8072
 
-# Check all instances (Odoo 17)
+# فحص جميع النسخ (Odoo 17)
 sudo ./scripts/health-check.sh odoo17-instance1 8069 8072
 sudo ./scripts/health-check.sh odoo17-instance2 8069 8072
 
-# Check all instances (Odoo 19)
+# فحص جميع النسخ (Odoo 19)
 sudo ./scripts/health-check.sh odoo19-instance1 8069 8072
 sudo ./scripts/health-check.sh odoo19-instance2 8069 8072
 ```
 
-### Via Jenkins
+### عبر Jenkins
 
-Access your Jenkins server and run the following pipelines:
+افتح خادم Jenkins الخاص بك وشغل خطوط الأنابيب التالية:
 
-| Pipeline | Jenkinsfile | Purpose |
+| خط الأنابيب | ملف Jenkinsfile | الغرض |
 |----------|-------------|---------|
-| Install Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | Deploy two Odoo 17 instances |
-| Install Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | Deploy two Odoo 19 instances |
-| Backup | `Jenkins/backup.Jenkinsfile` | Backup selected or all instances |
-| Restore | `Jenkins/restore.Jenkinsfile` | Restore backup (confirmation required) |
-| Verify Backups | `Jenkins/verify-backups.Jenkinsfile` | Verify backup integrity |
-| System Config Backup | `Jenkins/system-config-backup.Jenkinsfile` | Backup Ubuntu server configuration |
+| تثبيت Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | نشر نسختين من Odoo 17 |
+| تثبيت Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | نشر نسختين من Odoo 19 |
+| النسخ الاحتياطي | `Jenkins/backup.Jenkinsfile` | نسخ احتياطي لنسخ مختارة أو كلها |
+| الاستعادة | `Jenkins/restore.Jenkinsfile` | استعادة نسخة احتياطية (يتطلب تأكيد) |
+| التحقق من النسخ الاحتياطية | `Jenkins/verify-backups.Jenkinsfile` | التحقق من سلامة النسخ الاحتياطية |
+| نسخ إعدادات النظام | `Jenkins/system-config-backup.Jenkinsfile` | نسخ إعدادات خادم Ubuntu |
 
-#### Jenkins Build Parameters
+#### معلمات بناء Jenkins
 
-| Parameter | Type | Default | Description |
+| المعلمة | النوع | الافتراضي | الوصف |
 |-----------|------|---------|-------------|
-| `ODOO_VERSION` | Choice | `odoo17` | Odoo version to deploy |
-| `ODOO_ADMIN_PASSWORD` | String | — | Odoo admin password |
-| `POSTGRES_PASSWORD` | String | — | PostgreSQL password |
-| `CONFIRM_RESTORE` | Boolean | `false` | Confirm restore operation |
-| `RESTORE_TYPE` | Choice | `existing` | Restore type: existing / new-instance |
-| `BACKUP_ID` | String | — | Backup identifier to restore |
-| `NEW_INSTANCE_NAME` | String | — | New instance name (for new-instance restore) |
-| `ODOO_VERSION` (backup) | Choice | `all` | odoo17, odoo18, odoo19, or all |
-| `INSTANCE` (backup) | Choice | `all` | instance1, instance2, or all |
-| `BACKUP_TYPE` | Choice | `full` | Type of backup to perform |
-| `VERIFY_TYPE` | Choice | `checksums` | Verification type |
+| `ODOO_VERSION` | Choice | `odoo17` | إصدار Odoo للنشر |
+| `ODOO_ADMIN_PASSWORD` | String | — | كلمة مرور مشرف Odoo |
+| `POSTGRES_PASSWORD` | String | — | كلمة مرور PostgreSQL |
+| `CONFIRM_RESTORE` | Boolean | `false` | تأكيد عملية الاستعادة |
+| `RESTORE_TYPE` | Choice | `existing` | نوع الاستعادة: existing / new-instance |
+| `BACKUP_ID` | String | — | معرف النسخة الاحتياطية للاستعادة |
+| `NEW_INSTANCE_NAME` | String | — | اسم النسخة الجديدة (لاستعادة new-instance) |
+| `ODOO_VERSION` (backup) | Choice | `all` | odoo17, odoo18, odoo19، أو all |
+| `INSTANCE` (backup) | Choice | `all` | instance1, instance2، أو all |
+| `BACKUP_TYPE` | Choice | `full` | نوع النسخة الاحتياطية للتنفيذ |
+| `VERIFY_TYPE` | Choice | `checksums` | نوع التحقق |
 
 ---
 
-## Jenkins + Ansible Automation
+## 10. 🔄 Jenkins + أتمتة Ansible (تفصيلي)
 
-The deployment follows an **Ansible-first approach**: Jenkins triggers Ansible playbooks, ensuring identical results whether deployed via Jenkins Pipeline or Terminal scripts.
+يتبع النشر **نهجًا מבוסס Ansible**: يقوم Jenkins بتشغيل Playbooks أنsible، مما يضمن نتائج متطابقة سواء نُشر عبر خط أنابيب Jenkins أو عبر سكريبتات Terminal.
 
-### Execution Flow
+### تدفق التنفيذ
 
-1. **Checkout**: Jenkins clones the repository from GitHub
-2. **Validation**: Docker, Compose, disk space, and memory are checked
-3. **Ansible Collections**: Required collections (`community.docker`, `community.general`, `ansible.posix`) are installed
-4. **Secrets**: Odoo admin and PostgreSQL passwords are injected via Jenkins Credentials and encrypted with Ansible Vault
-5. **Deployment**: Ansible playbook runs roles in order: `system` → `permissions` → `docker` → `postgresql` → `odoo` → `traefik`
-6. **Health Checks**: Container status and HTTP endpoints are verified
-7. **Report**: Deployment summary with container status and access URLs
+1. **Checkout**: يقوم Jenkins باستنساخ المستودع من GitHub
+2. **Validation**: التحقق من Docker، Compose، مساحة القرص، والذاكرة
+3. **مجموعات أنsible**: تثبيت المجموعات المطلوبة (`community.docker`، `community.general`، `ansible.posix`)
+4. **الأسرار**: إدخال كلمات مرور مشرف Odoo وPostgreSQL عبر بيانات اعتماد Jenkins وتشفيرها بـ Ansible Vault
+5. **النشر**: تشغيل Playbook أنsible بالأدوار بالترتيب: `system` → `permissions` → `docker` → `postgresql` → `odoo` → `traefik`
+6. **فحوصات الصحة**: التحقق من حالة الحاويات والنقاط النهائية لـ HTTP
+7. **التقرير**: تقرير ملخص النشر مع حالة الحاويات وعناوين URL للوصول
 
-### Idempotency
+### التجانس (Idempotency)
 
-All Ansible playbooks and scripts are **idempotent** — safe to re-run without duplicating resources or damaging existing data.
-
----
-
-## Docker Services & Networking
-
-### Network Architecture
-
-Three isolated Docker bridge networks are used:
-
-| Network | Driver | Subnet | Purpose |
-|---------|--------|--------|---------|
-| `proxy` | bridge | `172.28.0.0/16` | Shared Traefik network (external) |
-| `odoo17_internal` | bridge | — | Odoo 17 instances isolation |
-| `odoo19_internal` | bridge | — | Odoo 19 instances isolation |
-
-### Container Configuration
-
-| Property | Value |
-|----------|-------|
-| Odoo Container User | `999:999` (non-root) |
-| PostgreSQL Container User | `999:999` (non-root) |
-| Restart Policy | `always` |
-| Odoo Config | `/etc/odoo/odoo.conf` (mounted) |
-| Addons Path | `/mnt/extra-addons` (mounted) |
-| PostgreSQL Data | Volume-mapped to host |
-| Health Check | `pg_isready` + HTTP endpoint |
-
-### Traefik Labels
-
-Each Odoo container is labeled for automatic Traefik routing:
-
-```yaml
-traefik.enable=true
-traefik.docker.network=proxy
-traefik.http.routers.{container_name}.rule=Host(`{domain}`)
-traefik.http.routers.{container_name}.entrypoints=websecure
-traefik.http.routers.{container_name}.tls=true
-traefik.http.routers.{container_name}.tls.certresolver=letsencrypt
-```
-
-WebSocket routing is configured separately with priority 100 for `/websocket` paths.
+جميع Playbooks أنsible وسكريبتات Terminal **متجانسة** — آمنة لإعادة التشغيل دون تكرار الموارد أو الإضرار بالبيانات الموجودة.
 
 ---
 
-## Backup & Disaster Recovery
+## 11. 💾 النسخ الاحتياطي والاستعادة من الكوارث
 
-### Backup Policy
+### سياسة النسخ الاحتياطي
 
-| Backup Type | Schedule | Retention |
+| نوع النسخة الاحتياطية | الجدول الزمني | فترة الاحتفاظ |
 |-------------|----------|-----------|
-| Daily Full | 02:00 daily | 7 days |
-| Weekly Full | 02:00 Sunday | 4 weeks |
-| Monthly Full | 02:00 1st of month | 3 months |
-| Yearly Full | 02:00 1st of January | 1 year |
+| نسخة كاملة يومية | 02:00 يوميًا | 7 أيام |
+| نسخة كاملة أسبوعية | 02:00 الأحد | 4 أسابيع |
+| نسخة كاملة شهرية | 02:00 أول يوم في الشهر | 3 أشهر |
+| نسخة كاملة سنوية | 02:00 أول يوم في يناير | سنة واحدة |
 
-### Components Backed Up
+### المكونات التي يتم نسخها احتياطيًا
 
-| Component | Tool | Compression | Encrypted |
+| المكون | الأداة | الضغط | مشفر |
 |-----------|------|-------------|-----------|
-| PostgreSQL Database | `pg_dump` | — | No |
-| Filestore (attachments) | `tar` + `zstd` | zstd | No |
-| Custom Addons | `tar` + `zstd` | zstd | No |
-| Odoo Configuration | `tar` + `zstd` | zstd | No |
-| Environment / Secrets | Ansible Vault | — | Yes |
-| Traefik Config | `tar` + `gpg` | gpg | Yes |
-| Docker Compose Files | Git | — | No |
-| Ansible Playbooks | Git | — | No |
-| Jenkins Config | Jenkins Backup Plugin | — | No |
+| قاعدة بيانات PostgreSQL | `pg_dump` | — | لا |
+| المرفق (filestore) | `tar` + `zstd` | zstd | لا |
+| الإضافات المخصصة | `tar` + `zstd` | zstd | لا |
+| تكوين Odoo | `tar` + `zstd` | zstd | لا |
+| البيئة / الأسرار | Ansible Vault | — | نعم |
+| تكوين Traefik | `tar` + `gpg` | gpg | نعم |
+| ملفات Docker Compose | Git | — | لا |
+| Playbooks أنsible | Git | — | لا |
+| تكوين Jenkins | Jenkins Backup Plugin | — | لا |
 
-### Backup Directory Structure
+### هيكل مجلدات النسخ الاحتياطية
 
-```
+```text
 /data/backups/
 ├── odoo17/
 │   ├── instance1/
@@ -579,7 +513,7 @@ WebSocket routing is configured separately with priority 100 for `/websocket` pa
 │   │       └── checksums.sha256
 │   │
 │   └── instance2/
-│
+
 ├── odoo19/
 │   ├── instance1/
 │   │   └── 2026-11-04_020000/
@@ -591,13 +525,13 @@ WebSocket routing is configured separately with priority 100 for `/websocket` pa
 │   │       └── checksums.sha256
 │   │
 │   └── instance2/
-│
+
 ├── infrastructure/
 ├── jenkins/
 └── reports/
 ```
 
-### Backup Workflow
+### سير عمل النسخ الاحتياطي
 
 ```mermaid
 flowchart TD
@@ -617,52 +551,52 @@ flowchart TD
     Rescue --> Start
 ```
 
-### Backup via Terminal
+### النسخ الاحتياطي عبر Terminal
 
 ```bash
-# Backup specific instance (version auto-detected from containers)
+# نسخ احتياطي لنسخة معينة (يتم اكتشاف الإصدار تلقائيًا من الحاويات)
 sudo ./scripts/backup.sh instance1 /data/backups
 
-# Backup with explicit version
+# نسخ احتياطي مع إصدار صريح
 sudo ./scripts/backup.sh instance1 odoo17 /data/backups/odoo17
 sudo ./scripts/backup.sh instance2 odoo17 /data/backups/odoo17
 sudo ./scripts/backup.sh instance1 odoo19 /data/backups/odoo19
 sudo ./scripts/backup.sh instance2 odoo19 /data/backups/odoo19
 ```
 
-### Restore via Terminal
+### الاستعادة عبر Terminal
 
 ```bash
-# Restore to existing instance (safety backup taken automatically)
+# استعادة إلى نسخة موجودة (يُؤخذ نسخة أمان تلقائيًا)
 sudo ./scripts/restore.sh odoo17-instance1-20261104 odoo17 instance1 existing
 
-# Restore as new instance
+# استعادة كنسخة جديدة
 sudo ./scripts/restore.sh odoo17-instance1-20261104 odoo17 instance1 new-instance odoo17-instance3
 ```
 
-### Verify Backups via Terminal
+### التحقق من النسخ الاحتياطية عبر Terminal
 
 ```bash
-# Verify all backups
+# التحقق من جميع النسخ الاحتياطية
 sudo ./scripts/verify-backups.sh /data/backups
 
-# Verify specific version
+# التحقق من إصدار معين
 sudo ./scripts/verify-backups.sh /data/backups odoo17
 ```
 
-### List Available Backups
+### عرض النسخ الاحتياطية المتاحة
 
 ```bash
-# List all backups
+# عرض جميع النسخ الاحتياطية
 sudo ./scripts/list-backups.sh /data/backups
 
-# List specific version
+# عرض إصدار معين
 sudo ./scripts/list-backups.sh /data/backups odoo19
 ```
 
-### Manifest File (manifest.json)
+### ملف manifest.json (manifest.json)
 
-Every backup includes a manifest with the following schema:
+تحتوي كل نسخة احتياطية على manifest بالمخطط التالي:
 
 ```json
 {
@@ -682,173 +616,179 @@ Every backup includes a manifest with the following schema:
 }
 ```
 
-### Ubuntu System Configuration Backup
+---
 
-Independent backup of Ubuntu server configuration (separate from Odoo data):
+## 12. 🖥️ النسخ الاحتياطي لإعدادات نظام Ubuntu
 
-**What's backed up:**
+نسخ احتياطي مستقل لإعدادات خادم Ubuntu (منفصل عن بيانات Odoo):
 
-| Component | Path |
+**ما يتم نسخه احتياطيًا:**
+
+| المكون | المسار |
 |-----------|------|
-| Network Configuration | `/etc/netplan` |
-| SSH Configuration | `/etc/ssh` |
-| Docker Daemon | `/etc/docker` |
-| Partition Table | `/etc/fstab` |
-| Hostname | `/etc/hostname` |
-| Hosts File | `/etc/hosts` |
-| System Packages | `/etc/apt` |
-| Systemd Services | `/etc/systemd/system` |
-| Cron Jobs | `/etc/cron.d` |
-| Firewall | `/etc/ufw` |
-| Projects | `/opt` |
-| System Info | `system-info/` (hostnamectl, lsblk, findmnt, df, ip, docker) |
+| تكوين الشبكة | `/etc/netplan` |
+| تكوين SSH | `/etc/ssh` |
+| برنامج Docker | `/etc/docker` |
+| جدول التقسيم | `/etc/fstab` |
+| اسم المضيف | `/etc/hostname` |
+| ملف المضيفين | `/etc/hosts` |
+| حزم النظام | `/etc/apt` |
+| خدمات systemd | `/etc/systemd/system` |
+| مهام cron | `/etc/cron.d` |
+| جدار الحماية | `/etc/ufw` |
+| المشاريع | `/opt` |
+| معلومات النظام | `system-info/` (hostnamectl, lsblk, findmnt, df, ip, docker) |
 
-**Commands:**
+**الأوامر:**
 
 ```bash
-# Create system configuration backup
+# إنشاء نسخ احتياطي لإعدادات النظام
 sudo ./scripts/backup-system-config.sh
 
-# With encryption
+# مع التشفير
 export ENCRYPT=true
 export ENCRYPT_PASSWORD="your-secure-password"
 sudo ./scripts/backup-system-config.sh
 
-# Restore system configuration (staged - confirmation per stage)
+# استعادة إعدادات النظام (مرحلية - تأكيد لكل مرحلة)
 sudo ./scripts/restore-system-config.sh 2026-11-04_020000
 ```
 
-> ⚠️ **Security Warning**: Netplan, SSH, and fstab settings may differ after OS reinstallation. Review each setting before restoring to avoid losing server access.
+> ⚠️ **تحذير أمني**: قد تختلف إعدادات Netplan وSSH وfstab بعد إعادة تثبيت نظام التشغيل. راجع كل إعداد قبل الاستعادة لتجنب فقدان الوصول إلى الخادم.
 
 ---
 
-## Security & Permissions
+## 13. 🔐 الأمان والصلاحيات
 
-### Least Privilege Model
+### نموذج أقل امتياز
 
-All components follow the principle of least privilege:
+تتبع جميع المكونات مبدأ أقل امتياز:
 
-| Component | User/Group | Permissions | Description |
+| المكون | المستخدم/المجموعة | الصلاحيات | الوصف |
 |-----------|-----------|-------------|-------------|
-| Odoo Container | `999:999` | Non-root | Runs as unprivileged user |
-| PostgreSQL Container | `999:999` | Non-root | Runs as unprivileged user |
-| PostgreSQL Data Directory | `999:999` | `0700` | Owner-only access |
-| Odoo Config File | `999:999` | `0640` | Owner read/write, group read |
-| Odoo Config Directory | `999:999` | `0750` | Owner + group access |
-| Addons Directory | `999:999` | `0755` | Standard access |
-| Docker Socket | `root:docker` | `0660` | Docker group access |
-| Backup Directories | `root:root` | `0750` | Owner + group access |
+| حاوية Odoo | `999:999` | غير جذر | تعمل كمستخدم غير ذي امتياز |
+| حاوية PostgreSQL | `999:999` | غير جذر | تعمل كمستخدم غير ذي امتياز |
+| دليل بيانات PostgreSQL | `999:999` | `0700` | وصول للمالك فقط |
+| ملف تكوين Odoo | `999:999` | `0640` | قراءة/كتابة للمالك، قراءة للمجموعة |
+| دليل تكوين Odoo | `999:999` | `0750` | وصول للمالك + المجموعة |
+| دليل الإضافات | `999:999` | `0755` | وصول قياسي |
+| مأخذ Docker | `root:docker` | `0660` | وصول لمجموعة Docker |
+| أدلة النسخ الاحتياطي | `root:root` | `0750` | وصول للمالك + المجموعة |
 
-### System User
+### مستخدم النظام
 
-A system user `odoo` is created and added to the `docker` group for container management without root privileges.
+يتم إنشاء مستخدم نظام `odoo` وإضافته إلى مجموعة `docker` لإدارة الحاويات دون صلاحيات الجذر.
 
-### Secrets Management
+### إدارة الأسرار
 
-| Secret | Storage Method | Jenkins Credential ID |
+| السر | طريقة التخزين | معرف بيانات اعتماد Jenkins |
 |--------|---------------|----------------------|
-| Odoo Admin Password | Ansible Vault | `odoo17-admin-password` / `odoo19-admin-password` |
-| PostgreSQL Password | Ansible Vault | `odoo17-postgres-password` / `odoo19-postgres-password` |
-| Ansible Vault Password | Jenkins Credentials | `ansible-vault-password` |
-| GitHub Access | Jenkins Credentials | `github-credentials` |
+| كلمة مرور مشرف Odoo | Ansible Vault | `odoo17-admin-password` / `odoo19-admin-password` |
+| كلمة مرور PostgreSQL | Ansible Vault | `odoo17-postgres-password` / `odoo19-postgres-password` |
+| كلمة مرور Ansible Vault | بيانات اعتماد Jenkins | `ansible-vault-password` |
+| الوصول إلى GitHub | بيانات اعتماد Jenkins | `github-credentials` |
 
-> ⚠️ **Production Warning**: Default passwords (`odoo17`, `odoo19`) are for testing only. Replace them with secure passwords via Jenkins Credentials or Ansible Vault before production deployment.
+> ⚠️ **تحذير إنتاج**: كلمات المرور الافتراضية (`odoo17`، `odoo19`) للاختبار فقط. استبدلها بكلمات مرور آمنة عبر بيانات اعتماد Jenkins أو Ansible Vault قبل النشر في بيئة إنتاج.
 
 ---
 
-## Traefik & HTTPS
+## 14. 🌐 Traefik وHTTPS
 
-### Configuration
+### التكوين
 
-| Setting | Value |
+| الإعداد | القيمة |
 |---------|-------|
-| Entry Point | `websecure` |
-| Certificate Resolver | `letsencrypt` |
-| TLS | Enabled |
-| External Network | `proxy` |
+| نقطة الدخول | `websecure` |
+| resolvers الشهادات | `letsencrypt` |
+| TLS | مفعلة |
+| الشبكة الخارجية | `proxy` |
 
-### Domains
+### النطاقات
 
-| Instance | URL |
+| النسخة | الرابط |
 |----------|-----|
-| Odoo 17 Instance 1 | `https://${ODOO17_INSTANCE1_DOMAIN}` |
-| Odoo 17 Instance 2 | `https://${ODOO17_INSTANCE2_DOMAIN}` |
-| Odoo 19 Instance 1 | `https://${ODOO19_INSTANCE1_DOMAIN}` |
-| Odoo 19 Instance 2 | `https://${ODOO19_INSTANCE2_DOMAIN}` |
+| Odoo 17 - النسخة 1 | `https://${ODOO17_INSTANCE1_DOMAIN}` |
+| Odoo 17 - النسخة 2 | `https://${ODOO17_INSTANCE2_DOMAIN}` |
+| Odoo 19 - النسخة 1 | `https://${ODOO19_INSTANCE1_DOMAIN}` |
+| Odoo 19 - النسخة 2 | `https://${ODOO19_INSTANCE2_DOMAIN}` |
 
-### WebSocket Support
+### دعم WebSocket
 
-Each instance has a dedicated WebSocket router with priority 100 for `/websocket` paths, ensuring Live Chat functionality works correctly over HTTPS.
+لكل نسخة موجه WebSocket مخصص ذات أولوية 100 لمسارات `/websocket`، مما يضمن عمل ميزة الدردشة الحية بشكل صحيح عبر HTTPS.
 
 ---
 
-## Troubleshooting
+## 15. 🐛 استكشاف الأخطاء وإصلاحها
 
-| Issue | Possible Cause | Solution |
+| المشكلة | السبب المحتمل | الحل |
 |-------|---------------|----------|
-| Container fails to start | Port already in use | Check `docker ps` and stop conflicting containers |
-| PostgreSQL not ready | Container still initializing | Wait and retry `pg_isready` |
-| Odoo HTTP not responding | Wrong config or port | Check `odoo.conf` and container logs |
-| Traefik routing fails | `proxy` network missing | Create network: `docker network create --driver bridge --subnet 172.28.0.0/16 proxy` |
-| Backup SHA256 mismatch | Corrupted backup files | Delete and recreate backup; check disk space |
-| Restore fails | Missing manifest.json | Verify backup directory structure |
-| Permission denied on data dir | Wrong ownership | Run permissions role: `ansible-playbook install-odooXX.yml` |
-| Docker socket access denied | User not in docker group | Add user: `sudo usermod -aG docker $USER` |
-| Ansible Vault decryption fails | Wrong vault password | Verify `ansible-vault-password` credential |
-| Health check HTTP fails | Odoo still starting | Wait 60-120 seconds and retry |
+| الحاوية تفشل في التشغيل | المنفذ مستخدم بالفعل | تحقق من `docker ps` وأوقف الحاويات المتعارضة |
+| PostgreSQL غير جاهز | الحاوية لا تزال في فترة التهيئة | انتظر وأعد محاولة `pg_isready` |
+| استجابة HTTP لـ Odoo غير صحيحة | تكوين أو منفذ خاطئ | تحقق من `odoo.conf` وسجلات الحاوية |
+| فشل توجيه Traefik | شبكة `proxy` مفقودة | أنشئ الشبكة: `docker network create --driver bridge --subnet 172.28.0.0/16 proxy` |
+| عدم تطابق checksum في النسخة الاحتياطية | ملفات نسخة احتياطية تالفة | احذف وأنشئ نسخة احتياطية جديدة؛ تحقق من مساحة القرص |
+| فشل الاستعادة | ملف manifest.json مفقود | تحقق من بنية دليل النسخة الاحتياطية |
+| رفض إذن في دليل البيانات | ملكية خاطئة | شغّل دور الصلاحيات: `ansible-playbook install-odooXX.yml` |
+| رفض إذن للوصول إلى مأخذ Docker | المستخدم ليس في مجموعة Docker | أضف المستخدم: `sudo usermod -aG docker $USER` |
+| فشل فك تشفير Ansible Vault | كلمة مرور Vault خاطئة | تحقق من `ansible-vault-password` |
+| فشل فحص صحة HTTP | Odoo لا يزال يعمل | انتظر 60-120 ثانية وأعد المحاولة |
 
-### View Container Logs
+### عرض سجلات الحاويات
 
 ```bash
-# Odoo container logs
+# سجلات حاوية Odoo
 docker logs -f odoo17-instance1
 docker logs -f odoo19-instance1
 
-# PostgreSQL container logs
+# سجلات حاوية PostgreSQL
 docker logs -f odoo17-instance1-db
 docker logs -f odoo19-instance1-db
 
-# Check container status
+# تحقق من حالة الحاوية
 docker ps --filter "name=odoo17" --format "table {{.Names}}\t{{.Status}}"
 docker ps --filter "name=odoo19" --format "table {{.Names}}\t{{.Status}}"
 ```
 
 ---
 
-## Adding Future Versions
+## 16. ➕ إضافة إصدارات مستقبلية
 
-To add a new Odoo version (e.g., Odoo 18 or 20):
+لإضافة إصدار جديد من Odoo (على سبيل المثال، Odoo 18 أو 20):
 
-1. Create `versions/odooXX.yml` with instance definitions
-2. Create `docker/odooXX-compose.yml.j2` Compose template
-3. Create `scripts/install-odooXX.sh` installation script
-4. Create `ansible/playbooks/install-odooXX.yml` playbook
-5. Add pipeline option in `Jenkinsfile` if needed
+1. أنشئ `versions/odooXX.yml` مع تعريفات النسخ
+2. أنشئ `docker/odooXX-compose.yml.j2` قالب Compose
+3. أنشئ `scripts/install-odooXX.sh` سكريبت تثبيت
+4. أنشئ `ansible/playbooks/install-odooXX.yml` Playbook
+5. أضف خيار خط أنابيب في `Jenkinsfile` إذا لزم الأمر
 
-No need to rebuild the system from scratch — shared roles are reused.
-
----
-
-## Contributing
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/improvement`)
-3. Commit your changes (`git commit -m 'Add improvement'`)
-4. Push to the branch (`git push origin feature/improvement`)
-5. Open a Pull Request
+لا حاجة لإعادة بناء النظام من الصفر — تتم إعادة استخدام الأدوار المشتركة.
 
 ---
 
-## License
+## 17. 🤝 المساهمة
 
-This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.
+1. Fork المستودع
+2. أنشئ فرعًا جديدًا للميزة (`git checkout -b feature/improvement`)
+3. التزم بالتغييرات (`git commit -m 'Add improvement'`)
+4. Push إلى الفرع (`git push origin feature/improvement`)
+5. افتح طلب سحب (Pull Request)
 
 ---
 
-## Support
+## 18. 📄 الترخيص
 
-For issues, feature requests, or questions, please open an issue on GitHub.
+مرخص بموجب رخصة **MIT**. راجع ملف [LICENSE](LICENSE) للتفاصيل.
 
-**Documentation Version**: 1.0  
-**Last Updated**: 2026-11-04  
-**Project Status**: Production Ready
+---
+
+## 19. 📞 الدعم
+
+لأي مشاكل أو طلبات ميزات أو أسئلة، يرجى فتح Issue على GitHub.
+
+**إصدار التوثيق:** 1.0  
+**آخر تحديث:** 2026-11-04  
+**حالة المشروع:** Production Ready
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

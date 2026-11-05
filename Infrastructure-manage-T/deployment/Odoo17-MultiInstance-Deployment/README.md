@@ -1,23 +1,36 @@
-# Odoo 17 Multi-Instance Deployment - Unified System
+# 🏗 نشر موحد لـ Odoo 17 مع نسختين — Odoo 17 Multi-Instance Deployment - Unified System
 
-> نظام نشر موحد لـ **نسختين من Odoo 17** مع **PostgreSQL 16 مستقل لكل نسخة** عبر Docker Compose وAnsible وJenkins، مع دعم ترافيك كبروكسي عكسي مع HTTPS.
-
-<div align="center">
-
-[![Odoo 17](https://img.shields.io/badge/Odoo-17-blue?logo=odoo)](https://www.odoo.com/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
-[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-v3.8-blue?logo=docker)](https://docs.docker.com/compose/)
-[![Ansible](https://img.shields.io/badge/Ansible-Unified-green?logo=ansible)](https://www.ansible.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-Pipeline-blue?logo=jenkins)](https://www.jenkins.io/)
-[![Traefik](https://img.shields.io/badge/Traefik-HTTPS-green?logo=traefik)](https://traefik.io/)
-
-**اللغة:** 🇸🇦 العربية • 🇬🇧 English
-
-</div>
+> **النظام المدعوم:** Ubuntu Server 22.04+  
+> **المكونات:** Odoo 17، PostgreSQL 16، Docker Compose v3.8، Ansible، Jenkins، Traefik  
+> **اللغة:** 🇸🇦 العربية • 🇬🇧 English  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026  
+> **الإصدار:** 1.0.0
 
 ---
 
-## 📋 نظرة عامة | Overview
+## 📋 جدول المحتويات
+
+1. [نظرة عامة | Overview](#-نظرة-عامة-overview)
+2. [طريقتا التشغيل | Two Execution Methods](#-طريقتا-التشغيل-Two-Execution-Methods)
+3. [الهندسة المعمارية | Architektur](#-الهندسة-المعمارية-Architektur)
+4. [هيكل الملفات | File Structure](#-هيكل-الملفات-File-Structure)
+5. [تكوين النسختين | Instance Configuration](#-تكوين-النسختين-Instance-Configuration)
+6. [متغيرات النسخ | Instance Variables](#-متغيرات-النسخ-Instance-Variables)
+7. [ضوابط الأمان | Security Constraints](#-ضوابط-الأمان-Security-Constraints)
+8. [تنظيم الملفات على الخادم | Server Organization](#-تنظيم-الملفات-على-الخادم-Server-Organization)
+9. [تركيب وتشغيل | Installation & Usage](#-تركيب-وتشغيل-Installation-Usage)
+10. [فحص الصحة | Health Check](#-فحص-الصحة-Health-Check)
+11. [النسخ الاحتياطي | Backup](#-النسخ-الاحتياطي-Backup)
+12. [كلمات مرور المشرف الافتراضية (قبل الإنتاج)](#-كلمات-مرور-المشرف-الافتراضية-قبل-الإنتاج)
+13. [النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)](#-النسخ-الاحتياطي والاستعاشة-من-الكوارث-Backup-Disaster-Recovery)
+14. [طريقة الاستعادة (Restore)](#-طريقة-الاستعادة-Restore)
+15. [تشغيل النسخ الاحتياطي من Jenkins وTerminal](#-تشغيل-النسخ-الاحتياطي-من-Jenkins-وTerminal)
+16. [المراجع | References](#-المراجع-References)
+
+---
+
+## 1. 📖 نظرة عامة | Overview
 
 هذا النظام يوفر **طريقتين مستقلتين للتشغيل** لنشر نسختين من Odoo 17، مع استخدام **نفس ملفات التثبيت والإعدادات** في الحالتين، مما يضمن نتائج متطابقة بين Jenkins وTerminal.
 
@@ -25,7 +38,7 @@ This system provides **two independent execution methods** for deploying two Odo
 
 ---
 
-## 🚀 طريقتا التشغيل | Two Execution Methods
+## 2. ⚡ طريقتا التشغيل | Two Execution Methods
 
 | الطريقة | الأمر / الزر | الملف المستخدم |
 |--------|-------------|---------------|
@@ -69,7 +82,7 @@ sudo ./scripts/install-odoo17.sh
 
 ---
 
-## 🏗 Architektur | Architecture
+## 3. 🏗 الهندسة المعمارية | Architektur
 
 ```text
 GitHub (المستودع الخاص)
@@ -95,7 +108,7 @@ Odoo 17 Instance 2 ←→ PostgreSQL 16 (مستقل)
 
 ---
 
-## 📁 هيكل الملفات | File Structure
+## 4. 📁 هيكل الملفات | File Structure
 
 ```text
 Odoo17-MultiInstance-Deployment/
@@ -135,7 +148,7 @@ Odoo17-MultiInstance-Deployment/
 
 ---
 
-## 🌐 تكوين النسختين | Instance Configuration
+## 5. 🌐 تكوين النسختين | Instance Configuration
 
 | العنصر | النسخة الأولى (Instance 1) | النسخة الثانية (Instance 2) |
 |--------|---------------------------|---------------------------|
@@ -155,7 +168,7 @@ Odoo17-MultiInstance-Deployment/
 
 ---
 
-## ⚙️ متغيرات النسخ | Instance Variables
+## 6. ⚙️ متغيرات النسخ | Instance Variables
 
 ```yaml
 # instances/odoo17.yml
@@ -195,25 +208,25 @@ odoo_instances:
 
 ---
 
-## 🔒 ضوابط الأمان | Security Constraints
+## 7. 🔒 ضوابط الأمان | Security Constraints
 
-| الضابط | التفاصيل |
-|--------|---------|
-| كلمات مرور مستقلة | كل نسخة لها PostgreSQL وكلمة مرور responsaveل مستقلة |
-| keine كلمات مرور افتراضية | لا تُستخدم كلمات المرور من المستودع الأصلي |
-| keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |
-| proxy_mode | مفعل في Odoo خلف ترافيك |
-| WebSocket | توجيه `/websocket` إلى منفذ 8072 الداخلي |
-| عدم كشف المنافذ | PostgreSQL وOdoo غير منشورتين مباشرة للإنترنت |
-| الحفاظ على البيانات | `docker compose down` لا يُحذف مجلدات البيانات |
-| النسخ الاحتياطي قبل التحديث | تنفيذ نسخة احتياطية قبل أي تغيير |
-| حماية الأسرار | استخدام Ansible Vault أو Jenkins Credentials |
-| فشل واحد يتوقف الكل | إذا فشل اختبار نسخة واحدة، يتوقف النشر ولا يُعلن النجاح |
-| نفس playbook للطريقتين | Jenkins و Terminal يستخدمان نفس ansible/playbooks/install.yml |
+| # | الضابط | التفاصيل |
+|---|---------|----------|
+| 1 | كلمات مرور مستقلة | كل نسخة لها PostgreSQL وكلمة مرور responsaveل مستقلة |
+| 2 | keine كلمات مرور افتراضية | لا تُستخدم كلمات المرور من المستودع الأصلي |
+| 3 | keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |
+| 4 | proxy_mode | مفعل في Odoo خلف ترافيك |
+| 5 | WebSocket | توجيه `/websocket` إلى منفذ 8072 الداخلي |
+| 6 | عدم كشف المنافذ | PostgreSQL وOdoo غير منشورتين مباشرة للإنترنت |
+| 7 | الحفاظ على البيانات | `docker compose down` لا يُحذف مجلدات البيانات |
+| 8 | النسخ الاحتياطي قبل التحديث | تنفيذ نسخة احتياطية قبل أي تغيير |
+| 9 | حماية الأسرار | استخدام Ansible Vault أو Jenkins Credentials |
+| 10 | فشل واحد يتوقف الكل | إذا فشل اختبار نسخة واحدة، يتوقف النشر ولا يُعلن النجاح |
+| 11 | نفس playbook للطريقتين | Jenkins و Terminal يستخدمان نفس ansible/playbooks/install.yml |
 
 ---
 
-## 📦 تنظيم الملفات على الخادم | Server Organization
+## 8. 📦 تنظيم الملفات على الخادم | Server Organization
 
 ```text
 /opt/
@@ -248,9 +261,9 @@ odoo_instances:
 
 ---
 
-## 🛠 تركيب وتشغيل | Installation & Usage
+## 9. 🛠 تركيب وتشغيل | Installation & Usage
 
-### المتطلبات الأساسية
+### 9.1 المتطلبات الأساسية
 
 | المتطلب | الإصدار |
 |---------|---------|
@@ -260,14 +273,14 @@ odoo_instances:
 | Jenkins | LTS |
 | Ubuntu Server | 22.04+ |
 
-### التشغيل عبر Terminal
+### 9.2 التشغيل عبر Terminal
 
 ```bash
 cd /opt/Odoo17-MultiInstance-Deployment
 sudo ./scripts/install-odoo17.sh
 ```
 
-### التشغيل عبر Jenkins
+### 9.3 التشغيل عبر Jenkins
 
 1. إنشاء Pipeline جديد في Jenkins باسم `Install-Odoo17-Two-Instances`
 2. تحديد ملف `Jenkinsfile` من المستودع
@@ -275,7 +288,7 @@ sudo ./scripts/install-odoo17.sh
 
 ---
 
-## 🔍 فحص الصحة | Health Check
+## 10. 🔍 فحص الصحة | Health Check
 
 ```bash
 # فحص النسخة الأولى
@@ -287,7 +300,7 @@ sudo ./scripts/install-odoo17.sh
 
 ---
 
-## 💾 النسخ الاحتياطي | Backup
+## 11. 💾 النسخ الاحتياطي | Backup
 
 ```bash
 # نسخ احتياطي للنسخة الأولى
@@ -299,7 +312,7 @@ sudo ./scripts/install-odoo17.sh
 
 ---
 
-## 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
+## 12. 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
 
 | الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
 |---------|---------------------|---------------------|----------------|
@@ -307,17 +320,19 @@ sudo ./scripts/install-odoo17.sh
 
 > ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins Credentials أو ملف `.env` أو Ansible Vault.
 
-## 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+---
 
-### نظرة عامة
+## 13. 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+
+### 13.1 نظرة عامة
 
 يدعم النظام نسخًا احتياطية شاملة لكل مكون من مكونات النشر، مع نظام مدير النسخ الاحتياطي المركزي (Backup & Recovery Manager) يدعم أربع عمليات رئيسية: **Backup، Restore، Verify، Schedule**.
 
-### ما الذي نحفظه لكل نسخة Odoo
+### 13.2 ما الذي نحفظه لكل نسخة Odoo
 
 | العنصر | ما الذي نحفظه | الأداة المستخدمة |
 |--------|--------------|----------------|
-| **PostgreSQL** | قواعد البيانات والمستخدمون والصلاحيات | `pg_dump` / `backup-db.sh` |
+| **PostgreSQL** | قواعد البيانات والمستخدمون والصلplies | `pg_dump` / `backup-db.sh` |
 | **Filestore** | المرفقات والصور والملفات المرفوعة | `tar.zst` / `backup.sh` |
 | **Custom Addons** | الإضافات والتعديلات البرمجية المخصصة | Git / `tar.zst` |
 | **Odoo Configuration** | ملفات `odoo.conf` وإعدادات الحاوية | `cp` / Ansible |
@@ -328,7 +343,7 @@ sudo ./scripts/install-odoo17.sh
 | **Jenkins** | إعدادات خطوط الأنابيب والملفات المهمة | Jenkins Backup Plugin |
 | **Git** | رقم Commit والإصدار المستخدم في النشر | Git (tag / commit hash) |
 
-### أنواع النسخ الاحتياطي المدعومة
+### 13.3 أنواع النسخ الاحتياطي المدعومة
 
 | النوع | الوظيفة |
 |-------|----------|
@@ -339,12 +354,12 @@ sudo ./scripts/install-odoo17.sh
 | **Complete Infrastructure Backup** | نسخ جميع نسخ Odoo وملفات البنية التحتية |
 | **Pre-Update Backup** | نسخ تلقائي قبل تحديث Odoo أو الإضافات |
 
-### خيارا الاستخدام اليومي
+### 13.4 خيارا الاستخدام اليومي
 
 - **Backup All**: نسخ شامل لكل نسخ Odoo 17 و19.
 - **Backup Selected**: اختيار نسخة معينة (مثل Odoo 17 Instance 1).
 
-### عملية النسخ الصحيحة (ضمان التوافق بين قاعدة البيانات وFilestore)
+### 13.5 عملية النسخ الصحيحة (ضمان التوافق بين قاعدة البيانات وFilestore)
 
 لمنع فقدان المرفقات أو عدم التوافق بين قاعدة البيانات وFilestore، تتبع العملية الخطوات التالية:
 
@@ -362,9 +377,9 @@ sudo ./scripts/install-odoo17.sh
 
 > ⚠️ **مهم**: لا يكفي نسخ قاعدة PostgreSQL وحدها؛ فقد تفقد المرفقات الموجودة في Filestore حتى لو استعدت قاعدة البيانات بنجاح. يجب الحفاظ على التوافق بين قاعدة البيانات وFilestore.
 
-### تنظيم مجلدات النسخ الاحتياطية
+### 13.6 تنظيم مجلدات النسخ الاحتياطية
 
-```
+```text
 /data/backups/
 ├── odoo17/
 │   ├── instance1/
@@ -377,26 +392,26 @@ sudo ./scripts/install-odoo17.sh
 │   │       └── checksums.sha256
 │   │
 │   └── instance2/
-│
+
 ├── odoo18/
 │   ├── instance1/
 │   └── instance2/
-│
+
 ├── odoo19/
 │   ├── instance1/
 │   └── instance2/
-│
+
 ├── infrastructure/
 │   ├── ansible/
 │   ├── traefik/
 │   └── docker/
-│
+
 ├── jenkins/
-│
+
 └── reports/
 ```
 
-### ملف معلومات النسخة الاحتياطية (Manifest)
+### 13.7 ملف معلومات النسخة الاحتياطية (Manifest)
 
 ```json
 {
@@ -416,7 +431,7 @@ sudo ./scripts/install-odoo17.sh
 }
 ```
 
-### أخذ نسخة احتياطية
+### 13.8 أخذ نسخة احتياطية
 
 ```bash
 # نسخ احتياطي للنسخة الأولى (Odoo 17)
@@ -429,7 +444,7 @@ sudo ./scripts/install-odoo17.sh
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 ```
 
-### استعادة قاعدة بيانات (مع تدابير الأمان)
+### 13.9 استعادة قاعدة بيانات (مع تدابير الأمان)
 
 ```bash
 bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_prod --force
@@ -437,23 +452,25 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 
 > ⚠️ **أمان الاستعادة**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في مجلد `safety_pre_restore` قبل الكتابة فوق أي قاعدة بيانات قائمة، ويتطلب تأكيداً كتابياً صريحاً (`RESTORE-SNAPSHOT-<ID>`).
 
-## 🔄 طريقة الاستعادة (Restore)
+---
+
+## 14. 🔄 طريقة الاستعادة (Restore)
 
 الاستعادة أهم من عملية النسخ نفسها. يجب ألا يكون زر الاستعادة مجرد فك ضغط للملفات.
 
-### أنواع الاستعادة المدعومة
+### 14.1 أنواع الاستعادة المدعومة
 
 | النوع | الوصف | الاستخدام |
 |-------|-------|-----------|
 | **Restore to Existing Instance** | استعادة النسخة فوق نسخة موجودة بعد أخذ احتياط إضافي منها | الاستعادة العادية للإصدار الحالي |
 | **Restore as New Instance** | إنشاء نسخة جديدة مستقلة للاختبار دون التأثير على النسخة الأصلية | الاختبار والتطوير |
 
-### خطوات الاستعادة التلقائية
+### 14.2 خطوات الاستعادة التلقائية
 
 عند اختيار نسخة احتياطية، ينفذ النظام الخطوات التالية:
 
-| الخطوة | الإجراء | التفاصيل |
-|-------|---------|----------|
+| # | الخطوة | الإجراء | التفاصيل |
+|---|-------|---------|----------|
 | 1 | فحص سلامة الملفات | التحقق من SHA256 و checksums لجميع ملفات النسخة |
 | 2 | التحقق من الإصدارات | التأكد من توافق إصدار Odoo و PostgreSQL مع النسخة الاحتياطية |
 | 3 | التحقق من المساحة | التأكد من وجود مساحة تخزين كافية للاستعادة |
@@ -462,18 +479,18 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 | 6 | استعادة PostgreSQL | إنشاء قاعدة البيانات واستعادة البيانات من `pg_dump` |
 | 7 | استعادة Filestore | استعادة المرفقات والصور في مسارها الصحيح |
 | 8 | استعادة Custom Addons | استعادة الإضافات والتعديلات البرمجية المتوافقة |
-| 9 | ضبط الصلاحيات | تعيين صلاحيات الملفات والمجلدات correctamente |
+| 9 | ضبط الصلاحيات | تعيين صلاحيات الملفات والمجلدات بشكل صحيح |
 | 10 | تشغيل Odoo | إعادة تشغيل الحاوية وتأكيد عملها |
 | 11 | اختبارات التحقق | اختبار قاعدة البيانات والمرفقات والوصول عبر المتصفح |
 | 12 | تقرير الاستعادة | تسجيل تقرير كامل بعملية الاستعادة ونتيجتها |
 
-### ضمانات الاستعادة
+### 14.3 ضمانات الاستعادة
 
 > ✅ **لا تحذف قاعدة البيانات الحالية أو تستبدل ملفاتها قبل التحقق من النسخة الاحتياطية الجديدة.**
 > ✅ **إذا فشلت الاستعادة، يتم العودة تلقائياً إلى الحالة السابقة.**
 > ✅ **عملية الإيقاف والإعادة محمية بـ `try/finally` لضمان عدم بقاء الخدمة متوقفة.**
 
-### أوامر الاستعادة
+### 14.4 أوامر الاستعادة
 
 ```bash
 # استعادة إلى نسخة موجودة
@@ -485,9 +502,9 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 
 ---
 
-## 🔧 تشغيل النسخ الاحتياطي من Jenkins وTerminal
+## 15. 🔧 تشغيل النسخ الاحتياطي من Jenkins وTerminal
 
-### خطوط أنابيب Jenkins للنسخ الاحتياطي والاستعادة
+### 15.1 خطوط أنابيب Jenkins للنسخ الاحتياطي والاستعادة
 
 يوفر النظام ثلاثة خطوط أنابيب (Pipelines) مستقلة في Jenkins:
 
@@ -538,7 +555,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 // 4. تقرير التحقق النهائي
 ```
 
-### التشغيل عبر Terminal
+### 15.2 التشغيل عبر Terminal
 
 ```bash
 # نسخ احتياطي
@@ -554,7 +571,7 @@ bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
 
 ---
 
-## 📚 المراجع | References
+## 16. 📚 المراجع | References
 
 - [Odoo 17 Documentation](https://www.odoo.com/documentation/17.0/)
 - [PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)
@@ -565,12 +582,12 @@ bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
 
 ---
 
-<div align="center">
-
 **تم التطوير بواسطة:** نظام مدير البنية التحتية (Infrastructure Manager)
 
 **الإصدار:** 1.0.0 • **آخر تحديث:** نوفمبر 2026
 
 **الطريقتان تستخدمان نفس Ansible Playbook لضمان نتائج متطابقة**
 
-</div>
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

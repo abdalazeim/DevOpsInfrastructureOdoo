@@ -1,2 +1,23 @@
-This folder is intentionally left blank.
-Place your custom Odoo addons here.
+# 📁 مجلد الإضافات المخصصة لـ Odoo 17 — Custom Odoo Addons Folder
+
+> **الغرض:** وضع الإضافات المخصصة لـ Odoo هنا  
+> **المستوى:** مطور Odoo / مسؤول نظام  
+> **التاريخ:** نوفمبر 2026
+
+---
+
+## 📋 جدول المحتويات
+
+1. [تعليمات الاستخدام](#-تعليمات-الاستخدام)
+
+---
+
+## 1. 📝 تعليمات الاستخدام
+
+هذا المجلد مقصود تركه فارغاً. ضع الإضافات المخصصة لـ Odoo هنا.
+
+This folder is intentionally left blank. Place your custom Odoo addons here.
+
+---
+
+*تم إعداد هذا الملف كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

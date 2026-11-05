@@ -1,32 +1,52 @@
-# Disaster Recovery & Backup Runbook
+# 💾 دليل النسخ الاحتياطي والاستعادة من الكوارث — Disaster Recovery & Backup Runbook
 
-## 1. Backup Strategy
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS / 24.04 LTS  
+> **المكونات:** Odoo 17/18/19، PostgreSQL 16/17/18، Docker، Ansible  
+> **المستوى:** مسؤول نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026
 
-The backup subsystem combines:
-- **Logical Database Dumps**: `pg_dump -U odoo -d <db> --clean --if-exists | gzip > dump_<db>_<timestamp>.sql.gz`
-- **Filestore Snapshots**: Archived via `tar -czf filestore_<db>_<timestamp>.tar.gz`
-- **Integrity Checksums**: Automated SHA256 hashing recorded in JSON metadata.
-- **Retention Lifecycle**: Automatically purges backups older than the configured threshold (default: 7 revisions).
+---
 
-## 2. Interactive Restore Protocol
+## 📋 جدول المحتويات
 
-1. **Pre-flight Integrity Check**:
-   - Validates that the backup archive is non-empty and readable.
-2. **Automated Safety Backup**:
-   - Before executing a destructive restore on an existing database, the manager creates an immediate snapshot:
-     `/opt/odoo-infrastructure/backups/safety_pre_restore/safety_<db>_<timestamp>.sql.gz`
-3. **Connection Termination**:
-   - Drops active queries/sessions from `pg_stat_activity` to prevent lock contention.
-4. **Data Injection**:
-   - Database is dropped and recreated with clean UTF-8 encoding.
-   - Streamed via `gunzip` into `psql`.
-   - Companion filestore is extracted into `/var/lib/odoo/filestore/<db>`.
-5. **Post-Restore Verification**:
-   - Query count on `information_schema.tables`.
+1. [استراتيجية النسخ الاحتياطي](#-استراتيجية-النسخ-الاحتياطي)
+2. [بروتوكول الاستعادة التفاعلي](#-بروتوكول-الاستعادة-التفاعلي)
+3. [قائمة اختبار الاستعادة من الكوارث](#-قائمة-اختبار-الاستعادة-من-الكوارث)
 
-## 3. Disaster Recovery Testing Checklist
+---
 
-- [ ] Execute `backup-db.sh 17 odoo17_prod`
-- [ ] Inspect SHA256 checksum in metadata
-- [ ] Test restore onto a staging database name: `restore-db.sh 17 <path> odoo17_stage_test --force`
-- [ ] Verify HTTP login on staging database
+## 1. 🗄️ استراتيجية النسخ الاحتياطي
+
+يعتمد نظام النسخ الاحتياطي على مزيج مما يلي:
+
+| # | العنصر | التفاصيل |
+|---|---------|----------|
+| 1 | **نسخ قاعدة البيانات المنطقية** | `pg_dump -U odoo -d <db> --clean --if-exists \| gzip > dump_<db>_<timestamp>.sql.gz` |
+| 2 | **لقطات المرفق (Filestore)** | أرشفة عبر `tar -czf filestore_<db>_<timestamp>.tar.gz` |
+| 3 | **مجموعات التحقق من السلامة** | تجزئة SHA256 تلقائية مسجلة في بيانات وصفية JSON |
+| 4 | **دورة الاحتفاظ** | purge تلقائي للنسخ الأقدم من الحد المحدد (الافتراضي: 7 مراجعات) |
+
+---
+
+## 2. 🔄 بروتوكول الاستعادة التفاعلي
+
+| # | الخطوة | التفاصيل |
+|---|---------|----------|
+| 1 | **فحص السلامة المسبق** | التحقق من أن档案 النسخ الاحتياطي غير فارغ وقابل للقراءة. |
+| 2 | **نسخة أمان تلقائية** | قبل تنفيذ استعادة تدميرية على قاعدة بيانات موجودة، ينشئ المدير لقطة أمان فورية: `/opt/odoo-infrastructure/backups/safety_pre_restore/safety_<db>_<timestamp>.sql.gz` |
+| 3 | **إنهاء الاتصال** | إسقاط الاستعلامات الجلسات النشطة من `pg_stat_activity` لمنع احتجاز القفل. |
+| 4 | **حقن البيانات** | يتم إسقاط قاعدة البيانات وإعادة إنشائها بترميز UTF-8 نظيف. يتم البث عبر `gunzip` إلى `psql`. يتم استخراج المرفق المصاحب إلى `/var/lib/odoo/filestore/<db>`. |
+| 5 | **التحقق بعد الاستعادة** | استعلام عدد الجداول على `information_schema.tables`. |
+
+---
+
+## 3. 📋 قائمة اختبار الاستعادة من الكوارث
+
+- [ ] تنفيذ `backup-db.sh 17 odoo17_prod`
+- [ ] فحص مجموع التحقق (SHA256) في البيانات الوصفية
+- [ ] اختبار الاستعادة على قاعدة بيانات تجريبية: `restore-db.sh 17 <path> odoo17_stage_test --force`
+- [ ] التحقق من تسجيل الدخول عبر HTTP على قاعدة البيانات التجريبية
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

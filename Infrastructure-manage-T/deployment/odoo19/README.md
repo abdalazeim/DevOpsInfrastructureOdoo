@@ -1,93 +1,127 @@
-# Installing Odoo 19.0 with one command (Supports multiple Odoo instances on one server).
+# 🐋 تثبيت Odoo 19 بأمر واحد (يدعم نسخ متعددة من Odoo على خادم واحد) — Installing Odoo 19.0
 
-## Quick Installation
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS / 24.04 LTS  
+> **الأداة:** Odoo 19 + PostgreSQL 18  
+> **حالات الاستخدام:** نشر نسخ متعددة من Odoo 19 على خادم واحد عبر Traefik HTTPS  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026
 
-Install [docker](https://docs.docker.com/get-docker/) and [docker-compose](https://docs.docker.com/compose/install/) yourself, then run the following to set up first Odoo instance:
+---
+
+## 📋 جدول المحتويات
+
+1. [التثبيت السريع](#-التثبيت-السريع)
+2. [الاستخدام](#-الاستخدام)
+3. [الإضافات المخصصة](#-الإضافات-المخصصة-Custom-addons)
+4. [تكوين Odoo والسجل](#-تكوين-Odoo-والسجل)
+5. [كلمات مرور المشرف الافتراضية (قبل الإنتاج)](#-كلمات-مرور-المشرف-الافتراضية-قبل-الإنتاج)
+6. [النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)](#-النسخ-الاحتياطي والاستعاشة-من-الكوارث-Backup-Disaster-Recovery)
+7. [إدارة حاوية Odoo](#-إدارة-حاوية-Odoo-Odoo-container-management)
+8. [الدردشة الحية](#-الدردشة الحية-Live-chat)
+9. [ملف docker-compose.yml](#-ملف-docker-compose-yml)
+10. [ملخص نشر نسخ متعددة من Odoo 19.0](#-ملخص-نشر-نسخ-متعددة-من-Odoo-19-0-Odoo-19-Multi-Instance-Deployment-Summary)
+
+---
+
+## 1. ⚡ التثبيت السريع
+
+ثبت [Docker](https://docs.docker.com/get-docker/) و [Docker Compose](https://docs.docker.com/compose/install/) بنفسك، ثم شغل الأمر التالي لإعداد أول نسخة من Odoo:
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo19
 sudo ./scripts/install-odoo19.sh
 ```
 
-The script installs two independent Odoo 19 instances:
-- **Instance 1**: `https://${ODOO19_INSTANCE1_DOMAIN}` — `odoo19-db1` (PostgreSQL 18)
-- **Instance 2**: `https://${ODOO19_INSTANCE2_DOMAIN}` — `odoo19-db2` (PostgreSQL 18)
+يثبت السكربت نسختين مستقلتين من Odoo 19:
 
-No ports are published publicly; Traefik handles access via HTTPS.
+- **النسخة 1**: `https://${ODOO19_INSTANCE1_DOMAIN}` — `odoo19-db1` (PostgreSQL 18)
+- **النسخة 2**: `https://${ODOO19_INSTANCE2_DOMAIN}` — `odoo19-db2` (PostgreSQL 18)
 
-### Installation via Jenkins
+لا يتم نشر أي منافذ علناً؛ يتعامل Traefik مع الوصول عبر HTTPS.
 
-Use the Jenkins Pipeline `Install Odoo 19 – Two Instances` which runs all installation stages automatically.
+### التثبيت عبر Jenkins
 
-### Installation via Terminal
+استخدم خط أنابيب Jenkins `Install Odoo 19 – Two Instances` الذي ينفذ جميع مراحل التثبيت تلقائياً.
+
+### التثبيت عبر Terminal
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo19
 sudo ./scripts/install-odoo19.sh
 ```
 
-## Usage
+---
 
-Start the container:
+## 2. 📖 الاستخدام
+
+ابدأ الحاوية:
+
 ```sh
 cd /opt/odoo19/instance1
 docker-compose up -d
 ```
 
-Then open `https://${ODOO19_INSTANCE1_DOMAIN}` to access Odoo 19 via Traefik HTTPS.
+ثم افتح `https://${ODOO19_INSTANCE1_DOMAIN}` للوصول إلى Odoo 19 عبر Traefik HTTPS.
 
-For the second instance:
+بالنسبة للنسخة الثانية:
+
 ```bash
 cd /opt/odoo19/instance2
 docker-compose up -d
 ```
 
-Open `https://${ODOO19_INSTANCE2_DOMAIN}` to access the second Odoo 19 instance.
+افتح `https://${ODOO19_INSTANCE2_DOMAIN}` للوصول إلى النسخة الثانية من Odoo 19.
 
-- **If you get any permission issues**, change the folder permission to make sure that the container is able to access the directory:
+- إذا واجهت أي مشاكل في الصلاحيات، غيّر صلاحية المجلد لضمان قدرة الحاوية على الوصول إلى الدليل:
 
 ```sh
 $ sudo chmod -R 700 /data/odoo19/instance1/postgresql
 $ sudo chmod -R 700 /data/odoo19/instance2/postgresql
 ```
 
-- If you want to start the server with a different port, change **8069** to another value in **docker-compose.yml** inside the parent dir:
+- إذا كنت تريد تشغيل الخادم على منفذ مختلف، غيّر القيمة **8069** إلى قيمة أخرى في ملف **docker-compose.yml** داخل الدليل الأب:
 
 ```
 ports:
   - "8069:8069"
 ```
 
-- To run Odoo container in detached mode:
+- لتشغيل حاوية Odoo في وضع الانفصال (detached mode):
 
 ```
 docker-compose up -d
 ```
 
-- To Use a restart policy:
+- لاستخدام سياسة إعادة التشغيل:
 
 ```
-restart: always             # run as a service
+restart: always             #運ة كخدمة
 ```
 
-- To increase maximum number of files watching from 8192 (default) to **524288**:
+- لزيادة أقصى عدد لمراقبة الملفات من 8192 (الافتراضي) إلى **524288**:
 
 ```
 $ if grep -qF "fs.inotify.max_user_watches" /etc/sysctl.conf; then echo $(grep -F "fs.inotify.max_user_watches" /etc/sysctl.conf); else echo "fs.inotify.max_user_watches = 524288" | sudo tee -a /etc/sysctl.conf; fi
-$ sudo sysctl -p    # apply new config immediately
+$ sudo sysctl -p    # تطبيق الإعداد الجديد فوراً
 ```
 
-## Custom addons
+---
 
-The **addons/** folder contains custom addons. Just put your custom addons if you have any.
+## 3. 🔌 الإضافات المخصصة — Custom addons
 
-## Odoo configuration & log
+يحتوي مجلد **addons/** على الإضافات المخصصة. فقط أضف إضافاتك المخصصة إذا كانت لديك أي منها.
 
-* To change Odoo configuration, edit file: **etc/odoo.conf**.
-* Log file: **etc/odoo-server.log**
-* Default database password (**admin_passwd**) is set via `vault_odoo_admin_password` in Ansible vault, update it in [etc/odoo.conf](/etc/odoo.conf) or via Jenkins credentials.
+---
 
-## 🔑 كلمات مرور المشرف الافتراضية (before production)
+## 4. ⚙️ تكوين Odoo والسجل
+
+* لتغيير تكوين Odoo، عدّل ملف: **etc/odoo.conf**.
+* ملف السجل: **etc/odoo-server.log**
+* كلمة مرور قاعدة البيانات الافتراضية (**admin_passwd**) تحدد عبر `vault_odoo_admin_password` في Ansible vault، حدّثها في [etc/odoo.conf](/etc/odoo.conf) أو عبر بيانات اعتماد Jenkins.
+
+---
+
+## 8. 🔑 كلمات مرور المشرف الافتراضية (before production)
 
 | الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
 |---------|---------------------|---------------------|----------------|
@@ -95,17 +129,19 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 
 > ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins Credentials أو ملف `.env` أو Ansible Vault.
 
-## 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+---
 
-### نظرة عامة
+## 9. 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+
+### 9.1 نظرة عامة
 
 يدعم النظام نسخًا احتياطية شاملة لكل مكون من مكونات النشر، مع نظام مدير النسخ الاحتياطي المركزي (Backup & Recovery Manager) يدعم أربع عمليات رئيسية: **Backup، Restore، Verify، Schedule**.
 
-### ما الذي نحفظه لكل نسخة Odoo
+### 9.2 ما الذي نحفظه لكل نسخة Odoo
 
 | العنصر | ما الذي نحفظه | الأداة المستخدمة |
 |--------|--------------|----------------|
-| **PostgreSQL** | قواعد البيانات والمستخدمون والصلاحيات | `pg_dump` / `backup-db.sh` |
+| **PostgreSQL** | قواعد البيانات والمستخدمون والصلplies | `pg_dump` / `backup-db.sh` |
 | **Filestore** | المرفقات والصور والملفات المرفوعة | `tar.zst` / `backup.sh` |
 | **Custom Addons** | الإضافات والتعديلات البرمجية المخصصة | Git / `tar.zst` |
 | **Odoo Configuration** | ملفات `odoo.conf` وإعدادات الحاوية | `cp` / Ansible |
@@ -116,7 +152,7 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 | **Jenkins** | إعدادات خطوط الأنابيب والملفات المهمة | Jenkins Backup Plugin |
 | **Git** | رقم Commit والإصدار المستخدم في النشر | Git (tag / commit hash) |
 
-### أنواع النسخ الاحتياطي المدعومة
+### 9.3 أنواع النسخ الاحتياطي المدعومة
 
 | النوع | الوظيفة |
 |-------|----------|
@@ -127,12 +163,12 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 | **Complete Infrastructure Backup** | نسخ جميع نسخ Odoo وملفات البنية التحتية |
 | **Pre-Update Backup** | نسخ تلقائي قبل تحديث Odoo أو الإضافات |
 
-### خيارا الاستخدام اليومي
+### 9.4 خيارا الاستخدام اليومي
 
 - **Backup All**: نسخ شامل لكل نسخ Odoo 19.
 - **Backup Selected**: اختيار نسخة معينة (مثل Odoo 19 Instance 1).
 
-### عملية النسخ الصحيحة
+### 9.5 عملية النسخ الصحيحة
 
 1. التحقق من مساحة التخزين المتاحة.
 2. التأكد من أن PostgreSQL يعمل.
@@ -146,9 +182,9 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
 10. إعادة تشغيل Odoo.
 11. تسجيل نتيجة العملية.
 
-### تنظيم مجلدات النسخ الاحتياطية
+### 9.6 تنظيم مجلدات النسخ الاحتياطية
 
-```
+```text
 /data/backups/
 ├── odoo19/
 │   ├── instance1/
@@ -168,7 +204,7 @@ The **addons/** folder contains custom addons. Just put your custom addons if yo
     └── docker/
 ```
 
-### أخذ نسخة احتياطية
+### 9.7 أخذ نسخة احتياطية
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo19
@@ -184,31 +220,35 @@ sudo ./scripts/list-backups.sh              # عرض النسخ المتوفرة
 sudo ./scripts/restore.sh --backup-id BACKUP_ID  # استعادة نسخة احتياطية
 ```
 
-## Odoo container management
+---
 
-**Run Odoo**:
+## 7. 📦 إدارة حاوية Odoo — Odoo container management
+
+### تشغيل Odoo:
 
 ```bash
 docker-compose up -d
 ```
 
-**Restart Odoo**:
+### إعادة تشغيل Odoo:
 
 ```bash
 docker-compose restart
 ```
 
-**Stop Odoo**:
+### إيقاف Odoo:
 
 ```bash
 docker-compose down
 ```
 
-## Live chat
+---
 
-Live chat runs on port **8072** internally and is routed through Traefik via WebSocket path `/websocket`.
+## 8. 💬 الدردشة الحية — Live chat
 
-Configuring **nginx** to activate live chat feature (in production):
+تعمل الدردشة الحية على المنفذ **8072** داخليًا ويتم توجيهها عبر Traefik عبر مسار WebSocket `/websocket`.
+
+لتكوين **nginx** لتفعيل ميزة الدردشة الحية (في الإنتاج):
 
 ```conf
 #...
@@ -222,13 +262,17 @@ server {
 #...
 ```
 
-## docker-compose.yml
+---
+
+## 9. 🐋 ملف docker-compose.yml
 
 * odoo:19
 * postgres:18
 * PGDATA: /var/lib/postgresql/18/docker
 
-## Odoo 19.0 Multi-Instance Deployment Summary
+---
+
+## 10. 📋 ملخص نشر نسخ متعددة من Odoo 19.0 — Odoo 19.0 Multi-Instance Deployment Summary
 
 | المكون | القيمة |
 |--------|--------|
@@ -241,3 +285,7 @@ server {
 | النطاقات | `${ODOO19_INSTANCE1_DOMAIN}` / `${ODOO19_INSTANCE2_DOMAIN}` |
 | مجلدات البيانات | `/data/odoo19/instance1` / `/data/odoo19/instance2` |
 | Traefik | مشترك (HTTPS) |
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

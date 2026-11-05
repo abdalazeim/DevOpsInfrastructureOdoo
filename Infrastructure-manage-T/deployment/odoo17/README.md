@@ -1,33 +1,41 @@
-# Odoo 17 Multi-Instance Deployment Repository
+# 📦 مستودع نشر نسخ متعددة من Odoo 17 — Odoo 17 Multi-Instance Deployment Repository
 
-> مستودع احترافي لنشر نسختين من **Odoo 17** مع **PostgreSQL 16 مستقل لكل نسخة** عبر Docker Compose وAnsible وJenkins، مع دعم Tr
-afik كبروكسي عكسي مع HTTPS.
-
-<div align="center">
-
-[![Odoo 17](https://img.shields.io/badge/Odoo-17-blue?logo=odoo)](https://www.odoo.com/)
-[![PostgreSQL 16](https://img.shields.io/badge/PostgreSQL-16-blue?logo=postgresql)](https://www.postgresql.org/)
-[![Docker Compose](https://img.shields.io/badge/Docker%20Compose-v3.8-blue?logo=docker)](https://docs.docker.com/compose/)
-[![Ansible](https://img.shields.io/badge/Ansible-Ready-green?logo=ansible)](https://www.ansible.com/)
-[![Jenkins](https://img.shields.io/badge/Jenkins-Pipeline-blue?logo=jenkins)](https://www.jenkins.io/)
-[![Traefik](https://img.shields.io/badge/Traefik-HTTPS-green?logo=traefik)](https://traefik.io/)
-
-**اللغة:** 🇸🇦 العربية • 🇬🇧 English
-
-</div>
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS  
+> **المكونات:** Odoo 17، PostgreSQL 16، Docker Compose v3.8، Ansible، Jenkins، Traefik  
+> **اللغة:** 🇸🇦 العربية • 🇬🇧 English  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026  
+> **الإصدار:** 1.0.0
 
 ---
 
-## 📋 نظرة عامة | Overview
+## 📋 جدول المحتويات
 
-هذا المستودع يوفر نظام نشر آلي بالكامل لـ **نسختين من Odoo 17** مع **قواعد بيانات PostgreSQL مستقلة لكل نسخة**، مع دعم النشر عبر Tr
-afik كبروكسي عكسي مع تشفير HTTPS tramite Let's Encrypt.
+1. [نظرة عامة | Overview](#-نظرة-عامة-overview)
+2. [الهندسة المعمارية | Architektur](#-الهندسة-المعمارية-architektur)
+3. [هيكل الملفات | File Structure](#-هيكل-الملفات-file-structure)
+4. [تكوين النسختين | Instance Configuration](#-تكوين-النسختين-instance-configuration)
+5. [خطوط أنابيب Jenkins | Jenkins Pipeline Stages](#-خطوط-أنابيب-Jenkins-jenkins-pipeline-stages)
+6. [متغيرات النسخ | Instance Variables](#-متغيرات-النسخ-instance-variables)
+7. [ضوابط الأمان | Security Constraints](#-ضوابط-الأمان-security-constraints)
+8. [تنظيم الملفات على الخادم | Server Organization](#-تنظيم-الملفات-على-الخادم-server-organization)
+9. [تركيب وتشغيل | Installation & Usage](#-تركيب-وتشغيل-installation-usage)
+10. [فحص الصحة | Health Check](#-فحص-الصحة-health-check)
+11. [النسخ الاحتياطي | Backup](#-النسخ-الاحتياطي-backup)
+12. [كلمات مرور المشرف الافتراضية (قبل الإنتاج)](#-كلمات-مرور-المشرف-الافتراضية-قبل-الإنتاج)
+13. [المراجع | References](#-المراجع-references)
+
+---
+
+## 1. 📖 نظرة عامة | Overview
+
+هذا المستودع يوفر نظام نشر آلي بالكامل لـ **نسختين من Odoo 17** مع **قواعد بيانات PostgreSQL مستقلة لكل نسخة**، مع دعم النشر عبر Traefik كبروكسي عكسي مع تشفير HTTPS tramite Let's Encrypt.
 
 This repository provides a fully automated deployment system for **two Odoo 17 instances** with **independent PostgreSQL for each instance**, with support for deployment via Traefik reverse proxy with Let's Encrypt HTTPS.
 
 ---
 
-## 🏗 Architektur | Architecture
+## 2. 🏗 الهندسة المعمارية | Architektur
 
 ```text
 GitHub (المستودع الخاص)
@@ -46,7 +54,7 @@ Odoo 17 Instance 2 ←→ PostgreSQL 16 (مستقل)
 
 ---
 
-## 📁 هيكل الملفات | File Structure
+## 3. 📁 هيكل الملفات | File Structure
 
 ```text
 Odoo17-MultiInstance-Deployment/
@@ -86,7 +94,7 @@ Odoo17-MultiInstance-Deployment/
 
 ---
 
-## 🌐 تكوين النسختين | Instance Configuration
+## 4. 🌐 تكوين النسختين | Instance Configuration
 
 | العنصر | النسخة الأولى (Instance 1) | النسخة الثانية (Instance 2) |
 |--------|---------------------------|---------------------------|
@@ -106,24 +114,24 @@ Odoo17-MultiInstance-Deployment/
 
 ---
 
-## 🚀 Jenkins Pipeline | Pipeline Stages
+## 5. ⚙️ خطوط أنابيب Jenkins | Jenkins Pipeline Stages
 
 يحتوي `Jenkinsfile` على مسار execution واحد باسم **Install-Odoo17-Two-Instances** مع 8 مراحل:
 
-| المرحلة | الوصف |
-|--------|-------|
-| 1. Checkout GitHub | سحب آخر نسخة من المستودع الخاص |
-| 2. Pre-Deployment Validation | فحص Docker وCompose وشبكة Traefik والمساحة والذاكرة |
-| 3. Ansible Preparation | تجهيز المجلدات وإعداد مجموعات Ansible |
-| 4. Secrets Configuration | إنشاء وتشفير كلمات مرور PostgreSQL وMaster Password |
-| 5. Docker Deployment | نشر خدمتي Odoo وقاعدتي PostgreSQL عبر Ansible |
-| 6. Traefik Configuration | إضافة Labels وتوجيه النطاقين وإصدار شهادات HTTPS |
-| 7. Health Checks | اختبار قواعد البيانات وOdoo والاتصال عبر HTTPS |
-| 8. Deployment Report | عرض نتيجة النسختين مع الاحتفاظ بسجلات التنفيذ |
+| # | المرحلة | الوصف |
+|---|---------|-------|
+| 1 | Checkout GitHub | سحب آخر نسخة من المستودع الخاص |
+| 2 | Pre-Deployment Validation | فحص Docker وCompose وشبكة Traefik والمساحة والذاكرة |
+| 3 | Ansible Preparation | تجهيز المجلدات وإعداد مجموعات Ansible |
+| 4 | Secrets Configuration | إنشاء وتشفير كلمات مرور PostgreSQL وMaster Password |
+| 5 | Docker Deployment | نشر خدمتي Odoo وقاعدتي PostgreSQL عبر Ansible |
+| 6 | Traefik Configuration | إضافة Labels وتوجيه النطاقين وإصدار شهادات HTTPS |
+| 7 | Health Checks | اختبار قواعد البيانات وOdoo والاتصال عبر HTTPS |
+| 8 | Deployment Report | عرض نتيجة النسختين مع الاحتفاظ بسجلات التنفيذ |
 
 ---
 
-## ⚙️ متغيرات النسخ | Instance Variables
+## 6. 🔧 متغيرات النسخ | Instance Variables
 
 ```yaml
 # instances/odoo17.yml
@@ -159,24 +167,24 @@ odoo_instances:
 
 ---
 
-## 🔒 ضوابط الأمان | Security Constraints
+## 7. 🔒 ضوابط الأمان | Security Constraints
 
-| الضابط | التفاصيل |
-|--------|---------|
-| كلمات مرور مستقلة | كل نسخة لها PostgreSQL وكلمة مرور responsaveل مستقلة |
-| keine كلمات مرور افتراضية | لا تُستخدم كلمات المرور من المستودع الأصلي |
-| keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |
-| proxy_mode | مفعل في Odoo خلف ترافيك |
-| WebSocket | توجيه `/websocket` إلى منفذ 8072 الداخلي |
-| عدم كشف المنافذ | PostgreSQL وOdoo غير منشورتين مباشرة للإنترنت |
-| الحفاظ على البيانات | `docker compose down` لا يُحذف مجلدات البيانات |
-| النسخ الاحتياطي قبل التحديث | تنفيذ نسخة احتياطية قبل أي تغيير |
-| حماية الأسرار | استخدام Ansible Vault أو Jenkins Credentials |
-| فشل واحد يوقف الكل | إذا فشل اختبار نسخة واحدة، يتوقف النشر ولا يُعلن النجاح |
+| # | الضابط | التفاصيل |
+|---|---------|----------|
+| 1 | كلمات مرور مستقلة | كل نسخة لها PostgreSQL وكلمة مرور responsaveل مستقلة |
+| 2 | keine كلمات مرور افتراضية | لا تُستخدم كلمات المرور من المستودع الأصلي |
+| 3 | keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |
+| 4 | proxy_mode | مفعل في Odoo خلف ترافيك |
+| 5 | WebSocket | توجيه `/websocket` إلى منفذ 8072 الداخلي |
+| 6 | عدم كشف المنافذ | PostgreSQL وOdoo غير منشورتين مباشرة للإنترنت |
+| 7 | الحفاظ على البيانات | `docker compose down` لا يُحذف مجلدات البيانات |
+| 8 | النسخ الاحتياطي قبل التحديث | تنفيذ نسخة احتياطية قبل أي تغيير |
+| 9 | حماية الأسرار | استخدام Ansible Vault أو Jenkins Credentials |
+| 10 | فشل واحد يوقف الكل | إذا فشل اختبار نسخة واحدة، يتوقف النشر ولا يُعلن النجاح |
 
 ---
 
-## 📦 تنظيم الملفات على الخادم | Server Organization
+## 8. 📦 تنظيم الملفات على الخادم | Server Organization
 
 ```text
 /opt/
@@ -211,9 +219,9 @@ odoo_instances:
 
 ---
 
-## 🛠 تركيب وتشغيل | Installation & Usage
+## 9. 🛠 تركيب وتشغيل | Installation & Usage
 
-### المتطلبات الأساسية
+### 9.1 المتطلبات الأساسية
 
 | المتطلب | الإصدار |
 |---------|---------|
@@ -223,7 +231,7 @@ odoo_instances:
 | Jenkins | LTS |
 | Ubuntu Server | 22.04+ |
 
-### خطوات النشر
+### 9.2 خطوات النشر
 
 ```bash
 # 1. نسخ المستودع
@@ -248,7 +256,7 @@ ansible-playbook -i ansible/inventory/hosts.ini -e @instances/odoo17.yml ansible
 
 ---
 
-## 🔍 فحص الصحة | Health Check
+## 10. 🔍 فحص الصحة | Health Check
 
 ```bash
 # فحص النسخة الأولى
@@ -260,7 +268,7 @@ ansible-playbook -i ansible/inventory/hosts.ini -e @instances/odoo17.yml ansible
 
 ---
 
-## 💾 النسخ الاحتياطي | Backup
+## 11. 💾 النسخ الاحتياطي | Backup
 
 ```bash
 # نسخ احتياطي للنسخة الأولى
@@ -275,7 +283,7 @@ ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 
 ---
 
-## 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
+## 12. 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
 
 | الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
 |---------|---------------------|---------------------|----------------|
@@ -285,7 +293,7 @@ ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 
 ---
 
-## 📚 المراجع | References
+## 13. 📚 المراجع | References
 
 - [Odoo 17 Documentation](https://www.odoo.com/documentation/17.0/)
 - [PostgreSQL 16 Documentation](https://www.postgresql.org/docs/16/)
@@ -296,10 +304,9 @@ ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 
 ---
 
-<div align="center">
-
-**تم التطوير بواسطة:** نظام مدير البنية التحتية (Infrastructure Manager)
-
+**تم التطوير بواسطة:** نظام مدير البنية التحتية (Infrastructure Manager)  
 **الإصدار:** 1.0.0 • **آخر تحديث:** نوفمبر 2026
 
-</div>
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

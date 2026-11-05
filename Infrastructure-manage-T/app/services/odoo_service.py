@@ -34,38 +34,32 @@ def inspect_odoo(version: str, use_sudo=False):
     if code:
         return {'status': 'error', 'containers': [], 'error': output}
     containers = []
-    has_odoo_container = False
-    has_db_container = False
-    name_conflict = False
+    applications, databases = set(), set()
+    conflict = False
+    import re
+    pattern = re.compile(rf"^odoo{re.escape(version)}(?:-instance[0-9]+)?(?:-db)?$")
     try:
         for line in output.splitlines():
             item = json.loads(line)
-            names = item.get('Names', '')
-            image = item.get('Image', '')
-            # N02/F22: Exact name match only — 'odoo17' must not match 'odoo17-db' as substring.
-            is_odoo = names == f'odoo{version}' or image.startswith(ODOO_IMAGES[version])
-            is_db = names == f'odoo{version}-db' or image.startswith(PG_IMAGES[version])
-            # F22: Detect name conflict — a container with the expected name but wrong image.
-            if names == f'odoo{version}' or names == f'odoo{version}-db':
-                if is_odoo or is_db:
-                    if f'odoo{version}-db' in names:
-                        has_db_container = True
-                    else:
-                        has_odoo_container = True
-                else:
-                    name_conflict = True
-            if is_odoo or is_db:
-                containers.append(item)
-    except (ValueError, AttributeError):
+            name, image = item.get('Names', ''), item.get('Image', '')
+            if not pattern.fullmatch(name):
+                continue
+            containers.append(item)
+            database = name.endswith('-db')
+            expected = PG_IMAGES[version] if database else ODOO_IMAGES[version]
+            valid_image = re.match(r'^' + re.escape(expected) + r'(?:[.:-]|$)', image) is not None
+            if not valid_image:
+                conflict = True
+            elif database:
+                databases.add(name[:-3])
+            else:
+                applications.add(name)
+    except (ValueError, AttributeError, TypeError):
         return {'status': 'error', 'containers': [], 'error': 'Failed to read Docker response.'}
-    # F22: Require both Odoo and DB containers for 'installed'; conflict on name clash.
-    if name_conflict:
-        return {'status': 'conflict', 'containers': containers, 'error': 'Container name conflict'}
-    if has_odoo_container and has_db_container:
-        return {'status': 'installed', 'containers': containers, 'error': ''}
-    if containers:
-        return {'status': 'partial', 'containers': containers, 'error': 'Only one of Odoo/DB container present'}
-    return {'status': 'missing', 'containers': containers, 'error': ''}
+    status = ('conflict' if conflict else 'installed' if applications and applications == databases
+              else 'partial' if containers else 'missing')
+    return {'status': status, 'containers': containers,
+            'error': 'Container image/name conflict' if conflict else ''}
 
 
 def odoo_diagnose(version: str, use_sudo=False):
@@ -147,7 +141,7 @@ def odoo_diagnose(version: str, use_sudo=False):
         names = c.get('Names', '')
         status = c.get('Status', '')
         # N02: docker ps Status is "Up X hours", "Exited (0)...", "Restarting..." — not "running"
-        is_running = status.lower().startswith("up")
+        is_running = status.lower().startswith("up") and not any(x in status.lower() for x in ("paused", "unhealthy"))
         if f'odoo{version}-db' in names:
             if not is_running:
                 issues.append({
@@ -157,7 +151,7 @@ def odoo_diagnose(version: str, use_sudo=False):
                     'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
-                    'fix_command': ['docker', 'start', f'odoo{version}-db'],
+                    'fix_command': ['docker', 'start', names],
                     'fix_description': f'Start Odoo {version} database container.',
                 })
                 repairs.append((f'Start Odoo {version} database', ['docker', 'start', f'odoo{version}-db']))
@@ -172,7 +166,7 @@ def odoo_diagnose(version: str, use_sudo=False):
                     'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
-                    'fix_command': ['docker', 'start', f'odoo{version}'],
+                    'fix_command': ['docker', 'start', names],
                     'fix_description': f'Start Odoo {version} container.',
                 })
                 repairs.append((f'Start Odoo {version}', ['docker', 'start', f'odoo{version}']))
@@ -239,7 +233,7 @@ def odoo_repair(issue: Dict, use_sudo=False):
         return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
-    full_cmd = prefix + fix_cmd
+    full_cmd = docker + fix_cmd[1:] if fix_cmd[0] == 'docker' else prefix + fix_cmd
     try:
         run_step(full_cmd)
         return True, 'Executed successfully.'
@@ -247,81 +241,27 @@ def odoo_repair(issue: Dict, use_sudo=False):
         return False, str(exc)
 
 
-def build_odoo_install_plan(profile, version: str, use_sudo=False, with_traefik: bool = False):
-    """Build Odoo installation plan (run install-odoo.sh)."""
-    destination = f"{profile.paths.data_root}/odoo{version}"
-    command = [
-        "bash",
-        "automation/scripts/install-odoo.sh",
-        version,
-        "--destination",
-        destination,
-    ]
-    if with_traefik:
-        command.append("--with-traefik")
-    prefix = [] if (hasattr(os, 'geteuid') and os.geteuid() == 0) else ['sudo']
-    return [
-        prefix + ['mkdir', '-p', destination],
-        prefix + command,
-    ]
+def build_odoo_install_plan(profile, version: str, use_sudo=False, with_traefik=False):
+    import sys
+    from pathlib import Path
+    from dataclasses import asdict
+    if version not in ODOO_VERSIONS:
+        raise ValueError('Unsupported version')
+    script = str(Path(__file__).with_name('managed_stack.py'))
+    prefix = ['sudo', '-n'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []
+    return [prefix + [sys.executable, script, '--profile-json', json.dumps(asdict(profile)), '--version', version]]
 
 
-def install_odoo(profile, version: str, dry_run: bool = False, use_sudo: bool = False,
-                 with_traefik: bool = False):
-    """Install Odoo version if not installed. If installed, no changes are made."""
+def install_odoo(profile, version, dry_run=False, use_sudo=False, with_traefik=False):
+    from copy import deepcopy
+    profile = deepcopy(profile)
+    profile.deployment_mode = 'domain' if with_traefik else 'local'
+    getattr(profile, 'odoo' + version).enabled = True
     try:
-        if platform.system() != 'Linux':
-            raise ValueError('This installer is for Linux systems only.')
-        if version not in ODOO_VERSIONS:
-            raise ValueError(f'Unsupported version: {version}')
-
-        report = inspect_odoo(version, use_sudo=use_sudo)
-        if report['status'] == 'installed':
-            print(f'Odoo {version} is already installed. Container status shown above. Will not reinstall.')
-            return True
-        if report['status'] == 'conflict':
-            print(f'Odoo {version} container name is used by another container. No changes made.')
-            return False
-        if report['status'] == 'error':
-            print(report['error'])
-            return False
-
-        # Check ports before installation (skip when Traefik publishes ports internally)
-        if not with_traefik:
-            http_port = ODOO_HTTP_PORTS[version]
-            chat_port = ODOO_CHAT_PORTS[version]
-            for port in (http_port, chat_port):
-                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                    sock.bind(('0.0.0.0', port))
-
-        if dry_run:
-            print(f'[DRY-RUN] Will install Odoo {version} with PostgreSQL {PG_IMAGES[version].split(":")[1]}')
-            print(f'[DRY-RUN] Directory: {profile.paths.data_root}/odoo{version}')
-            print(f'[DRY-RUN] HTTP port: {http_port} | Chat port: {chat_port}')
-            print(f'[DRY-RUN] Internal network: {ODOO_INTERNAL_NETWORKS[version]}')
-            print(f'[DRY-RUN] With Traefik: {"yes" if with_traefik else "no"}')
-            return True
-
-        commands = build_odoo_install_plan(profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
-        for command in commands:
-            run_step(command)
-
-        # Check container status after installation
-        code, state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', f'odoo{version}'])
-        if code or state != 'running':
-            print(f'Odoo {version} container created but not in running state: {state}. Check logs.')
-            return False
-        code, db_state = probe(docker_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', f'odoo{version}-db'])
-        if code or db_state != 'running':
-            print(f'Odoo {version} database container created but not in running state: {db_state}. Check logs.')
-            return False
-
-        run_step(docker_command(use_sudo) + ['ps', '-a'])
-        print(f'Odoo {version} running successfully with PostgreSQL {PG_IMAGES[version].split(":")[1]}.')
-        print(f'Address: http://localhost:{http_port} (or via Traefik on HTTPS)')
-        print(f'Data: {profile.paths.data_root}/odoo{version}/postgresql')
-        print(f'Config: {profile.paths.data_root}/odoo{version}/etc/odoo.conf')
+        for command in build_odoo_install_plan(profile, version, use_sudo, with_traefik):
+            run_step(command, dry_run=dry_run)
+        print('Deployment plan only; not verified.' if dry_run else 'Odoo and PostgreSQL health verified.')
         return True
-    except (OSError, ValueError, subprocess.CalledProcessError, KeyboardInterrupt) as exc:
-        print(f'Odoo {version} installation stopped: {exc}. No existing data or containers were deleted; check output.')
+    except (OSError, ValueError, subprocess.SubprocessError) as exc:
+        print(f'Deployment failed: {exc}')
         return False

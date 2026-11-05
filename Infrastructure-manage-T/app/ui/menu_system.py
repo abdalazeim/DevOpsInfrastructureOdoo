@@ -110,6 +110,7 @@ class MenuSystem:
                 icon="",
                 description="Pre-installation checks, install missing components, installation history, failed installations",
                 items=[
+                    MenuItem("7", "Final seven-stage workflow", self.tui.handle_final_workflow, "Prepare, install, verify, integrate, report and document"),
                     MenuItem("1", "Pre-Installation Checks", self.tui.run_preflight_checks,
                              "Verify internet, repositories, disk space, privileges, compatibility"),
                     MenuItem("2", "Install Missing Components", self.tui.handle_install_missing_components,

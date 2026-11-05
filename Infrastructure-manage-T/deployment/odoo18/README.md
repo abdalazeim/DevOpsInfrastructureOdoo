@@ -1,14 +1,36 @@
-# Odoo 18 Multi-Instance Deployment
+# 🐋 نشر Odoo 18 باستخدام Docker و Ansible و Traefik و Jenkins — Odoo 18 Multi-Instance Deployment
 
-نظام نشر مستقل لإصدارات Odoo 18 باستخدام Docker و Ansible و Traefik و Jenkins.
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS  
+> **المكونات:** Odoo 18، PostgreSQL 17، Docker، Ansible، Traefik، Jenkins  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026
 
-## نظرة overview
+---
+
+## 📋 جدول المحتويات
+
+1. [نظرة overview](#-نظرة-overview)
+2. [هيكل الملفات](#-هيكل-الملفات)
+3. [الإعدادات](#-الإعدادات)
+4. [النطاقات](#-النطاقات)
+5. [مجلدات البيانات](#-مجلدات-البيانات)
+6. [التشغيل عبر Terminal](#-التشغيل-عبر-Terminal)
+7. [التشغيل عبر Jenkins](#-التشغيل-عبر-Jenkins)
+8. [كلمات مرور المشرف الافتراضية (قبل الإنتاج)](#-كلمات-مرور-المشرف-الافتراضية-قبل-الإنتاج)
+9. [النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)](#-النسخ-الاحتياطي والاستعاشة-من-الكوارث-Backup-Disaster-Recovery)
+10. [ملاحظة تقنية importante](#-ملاحظة-تقنية-importante)
+
+---
+
+## 1. 📖 نظرة overview
 
 يدعم هذا المستودع نشر نسختين مستقلتين من Odoo 18 على نفس الخادم، مع عزل كل نسخة في شبكتها الداخلية الخاصة، وربطها بشبكة Traefik المشتركة للوصول عبر HTTPS.
 
-## هيكل الملفات
+---
 
-```
+## 2. 📁 هيكل الملفات
+
+```text
 odoo18/
 ├── Jenkinsfile                  # Pipeline Jenkins لـ Odoo 18
 ├── Jenkins/
@@ -40,7 +62,9 @@ odoo18/
 └── README.md
 ```
 
-## الإعدادات
+---
+
+## 3. ⚙️ الإعدادات
 
 | المكون | Odoo 18 |
 |--------|---------|
@@ -53,34 +77,44 @@ odoo18/
 | Traefik | مشترك |
 | بيانات PostgreSQL | مستقلة |
 
-## النطاقات
+---
+
+## 4. 🌐 النطاقات
 
 | النسخة | النطاق |
 |--------|--------|
 | Odoo 18 - النسخة 1 | `${ODOO18_INSTANCE1_DOMAIN}` |
 | Odoo 18 - النسخة 2 | `${ODOO18_INSTANCE2_DOMAIN}` |
 
-## مجلدات البيانات
+---
+
+## 5. 📂 مجلدات البيانات
 
 | المكون | المسار |
 |--------|--------|
 | Odoo 18 - النسخة 1 | `/data/odoo18/instance1` |
 | Odoo 18 - النسخة 2 | `/data/odoo18/instance2` |
 
-## التشغيل عبر Terminal
+---
+
+## 6. 🖥️ التشغيل عبر Terminal
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo18
 sudo ./scripts/install-odoo18.sh
 ```
 
-## التشغيل عبر Jenkins
+---
+
+## 7. 🔗 التشغيل عبر Jenkins
 
 | الزر | الوصف |
 |------|--------|
 | Install Odoo 18 – Two Instances | يثبّت نسختي Odoo 18 مع PostgreSQL 17 |
 
-## 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
+---
+
+## 8. 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
 
 | الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
 |---------|---------------------|---------------------|----------------|
@@ -88,17 +122,19 @@ sudo ./scripts/install-odoo18.sh
 
 > ⚠️ **تنبيه أمني مهم**: هذه كلمات مرور افتراضية للتجربة فقط. **يجب استبدالها قبل النشر في بيئة إنتاج حقيقية** عبر Jenkins Credentials أو ملف `.env` أو Ansible Vault.
 
-## 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+---
 
-### نظرة عامة
+## 9. 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+
+### 9.1 نظرة عامة
 
 يدعم النظام نسخًا احتياطية شاملة لكل مكون من مكونات النشر، مع نظام مدير النسخ الاحتياطي المركزي (Backup & Recovery Manager) يدعم أربع عمليات رئيسية: **Backup، Restore، Verify، Schedule**.
 
-### ما الذي نحفظه لكل نسخة Odoo
+### 9.2 ما الذي نحفظه لكل نسخة Odoo
 
 | العنصر | ما الذي نحفظه | الأداة المستخدمة |
 |--------|--------------|----------------|
-| **PostgreSQL** | قواعد البيانات والمستخدمون والصلاحيات | `pg_dump` / `backup-db.sh` |
+| **PostgreSQL** | قواعد البيانات والمستخدمون والصلplies | `pg_dump` / `backup-db.sh` |
 | **Filestore** | المرفقات والصور والملفات المرفوعة | `tar.zst` / `backup.sh` |
 | **Custom Addons** | الإضافات والتعديلات البرمجية المخصصة | Git / `tar.zst` |
 | **Odoo Configuration** | ملفات `odoo.conf` وإعدادات الحاوية | `cp` / Ansible |
@@ -109,7 +145,7 @@ sudo ./scripts/install-odoo18.sh
 | **Jenkins** | إعدادات خطوط الأنابيب والملفات المهمة | Jenkins Backup Plugin |
 | **Git** | رقم Commit والإصدار المستخدم في النشر | Git (tag / commit hash) |
 
-### أنواع النسخ الاحتياطي المدعومة
+### 9.3 أنواع النسخ الاحتياطي المدعومة
 
 | النوع | الوظيفة |
 |-------|----------|
@@ -120,12 +156,12 @@ sudo ./scripts/install-odoo18.sh
 | **Complete Infrastructure Backup** | نسخ جميع نسخ Odoo وملفات البنية التحتية |
 | **Pre-Update Backup** | نسخ تلقائي قبل تحديث Odoo أو الإضافات |
 
-### خيارا الاستخدام اليومي
+### 9.4 خيارا الاستخدام اليومي
 
 - **Backup All**: نسخ شامل لكل نسخ Odoo 18.
 - **Backup Selected**: اختيار نسخة معينة (مثل Odoo 18 Instance 1).
 
-### عملية النسخ الصحيحة
+### 9.5 عملية النسخ الصحيحة
 
 1. التحقق من مساحة التخزين المتاحة.
 2. التأكد من أن PostgreSQL يعمل.
@@ -139,9 +175,9 @@ sudo ./scripts/install-odoo18.sh
 10. إعادة تشغيل Odoo.
 11. تسجيل نتيجة العملية.
 
-### تنظيم مجلدات النسخ الاحتياطية
+### 9.6 تنظيم مجلدات النسخ الاحتياطية
 
-```
+```text
 /data/backups/
 ├── odoo18/
 │   ├── instance1/
@@ -161,7 +197,7 @@ sudo ./scripts/install-odoo18.sh
     └── docker/
 ```
 
-### أخذ نسخة احتياطية
+### 9.7 أخذ نسخة احتياطية
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo18
@@ -177,6 +213,12 @@ sudo ./scripts/list-backups.sh              # عرض النسخ المتوفرة
 sudo ./scripts/restore.sh --backup-id BACKUP_ID  # استعادة نسخة احتياطية
 ```
 
-## ملاحظة تقنية importante
+---
+
+## 10. ⚠️ ملاحظة تقنية importante
 
 يجب استبدال كلمات المرور الافتراضية ومراجعة استخدام `user: root` وصلاحيات الملفات قبل الإنتاج.
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

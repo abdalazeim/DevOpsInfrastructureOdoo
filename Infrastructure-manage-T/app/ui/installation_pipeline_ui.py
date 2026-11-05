@@ -110,7 +110,12 @@ class InstallationPipelineUI:
             input(f"\n{DIM}Press Enter to continue...{RESET}")
             return
 
-        pipeline = InstallationPipeline(dry_run=False, use_sudo=False, on_output=self._pipeline_log)
+        from copy import deepcopy
+        profile = deepcopy(self.tui.profile)
+        for version in ('17', '18', '19'):
+            getattr(profile, 'odoo' + version).enabled = version == odoo_version
+        pipeline = InstallationPipeline(dry_run=getattr(self.tui, 'dry_run', False), use_sudo=True,
+                                        on_output=self._pipeline_log, profile=profile, report_dir="reports/installation")
         report = pipeline.run()
         self._display_report(report)
         input(f"\n{DIM}Press Enter to return to pipeline menu...{RESET}")
@@ -118,7 +123,7 @@ class InstallationPipelineUI:
     def _dry_run_pipeline(self) -> None:
         """Run the pipeline in dry-run mode."""
         print(f"\n{CYAN}{BOLD}DRY-RUN PIPELINE (NO CHANGES){RESET}\n")
-        pipeline = InstallationPipeline(dry_run=True, use_sudo=False, on_output=self._pipeline_log)
+        pipeline = InstallationPipeline(dry_run=True, use_sudo=True, on_output=self._pipeline_log, profile=self.tui.profile)
         report = pipeline.run()
         print(f"\n{GREEN}{BOLD}DRY-RUN COMPLETE{RESET}")
         print(f"  Overall: {'SUCCESS' if report['overall_success'] else 'FAILED'}")

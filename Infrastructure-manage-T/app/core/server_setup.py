@@ -17,6 +17,10 @@ and blocks dependents when prerequisites fail.
 from __future__ import annotations
 
 import os
+import sys
+import json
+from pathlib import Path
+from dataclasses import asdict
 import subprocess
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -379,6 +383,7 @@ class ServerSetupWorkflow:
         self._failed_components: set[str] = set()
         self._blocked_components: set[str] = set()
         # N12: Filter Odoo components based on profile.enabled
+        self._configure_components()
         self._filter_components_by_profile()
         self._initialize_components()
 
@@ -438,7 +443,7 @@ class ServerSetupWorkflow:
         try:
             # Check if already installed
             result = subprocess.run(
-                comp_def.check_cmd,
+                (["sudo", "-n"] if self.use_sudo and not self._is_root() else []) + comp_def.check_cmd,
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -467,7 +472,8 @@ class ServerSetupWorkflow:
                 self._log(f"  [READY] {comp_def.name}: READY TO INSTALL")
 
         except (subprocess.TimeoutExpired, FileNotFoundError, OSError) as exc:
-            record.status = InstallationStatus.NOT_CHECKED
+            record.status = InstallationStatus.FAILED
+            self._failed_components.add(comp_def.name)
             record.details = f"Could not inspect: {exc}"
             self._log(f"  [?] {comp_def.name}: NOT CHECKED ({exc})")
 
@@ -558,7 +564,10 @@ class ServerSetupWorkflow:
                 break
 
         if all_success:
-            record.status = InstallationStatus.INSTALLED
+            record.status = InstallationStatus.SKIPPED if self.dry_run else InstallationStatus.INSTALLED
+            if self.dry_run:
+                record.skip_reason = "Dry-run; no installation performed"
+                return record
             record.installed_at = datetime.now().isoformat()
             # Verify version after install
             if comp_def.version_cmd:
@@ -634,7 +643,7 @@ class ServerSetupWorkflow:
 
         try:
             result = subprocess.run(
-                comp_def.check_cmd,
+                (["sudo", "-n"] if self.use_sudo and not self._is_root() else []) + comp_def.check_cmd,
                 capture_output=True,
                 text=True,
                 timeout=30,
@@ -677,7 +686,8 @@ class ServerSetupWorkflow:
             if r.status == InstallationStatus.NOT_CHECKED
         ]
 
-        overall_success = len(failed) == 0 and len(warnings) == 0
+        overall_success = (not failed and not warnings and not ready and not not_checked
+                           and all(r.skip_reason == 'Already installed' for r in skipped))
 
         return {
             "components": self.components,
@@ -701,6 +711,56 @@ class ServerSetupWorkflow:
             return os.geteuid() == 0
         except AttributeError:
             return False
+
+    def _configure_components(self):
+        """Build real commands from the profile; PostgreSQL belongs to each Odoo stack."""
+        import copy
+        self.COMPONENT_DEFINITIONS = copy.deepcopy(type(self).COMPONENT_DEFINITIONS)
+        runner = str(Path(__file__).resolve().parents[1] / 'services' / 'managed_stack.py')
+        base = [sys.executable, runner, '--profile-json', json.dumps(asdict(self.profile))]
+        kept = []
+        odoo_dependencies = ['odoo' + v for v in ('17', '18', '19') if getattr(self.profile, 'odoo' + v).enabled]
+        for comp in self.COMPONENT_DEFINITIONS:
+            if comp.name == 'postgresql':
+                continue
+            if comp.name == 'docker-engine':
+                comp.check_cmd = ['bash', '-c', 'docker info >/dev/null && docker compose version']
+            elif comp.name == 'docker-network':
+                comp.check_cmd = ['docker', 'network', 'inspect', self.profile.network.proxy_network_name]
+                comp.install_cmds = [['docker', 'network', 'create', '--driver', 'bridge',
+                                     '--subnet', self.profile.network.proxy_subnet, self.profile.network.proxy_network_name]]
+            elif comp.name == 'ansible':
+                comp.install_cmds = [['apt-get', 'update'], ['apt-get', 'install', '-y', 'ansible'],
+                                    ['ansible-galaxy', 'collection', 'install', 'community.docker', 'community.general', 'ansible.posix']]
+            elif comp.name in ('traefik', 'jenkins'):
+                if comp.name == 'jenkins' and not self.profile.jenkins_enabled:
+                    continue
+                if comp.name == 'traefik' and not self.profile.traefik.enabled:
+                    continue
+                command = base + ['--component', comp.name]
+                comp.install_cmds = [command]
+                comp.check_cmd = command + ['--verify']
+                comp.version_cmd = None
+                comp.depends_on = ['docker-network'] + (odoo_dependencies if comp.name == 'traefik' else ['ansible'])
+            elif comp.name.startswith('odoo'):
+                command = base + ['--version', comp.name[4:]]
+                comp.install_cmds = [command]
+                comp.check_cmd = command + ['--verify']
+                comp.version_cmd = None
+                comp.depends_on = ['docker-network', 'python-runtime']
+            kept.append(comp)
+        kept.extend([
+            ComponentSetup('python-runtime', 'Runtime', [sys.executable, '-c', 'import ssl, venv, pip; print("Python verified")'],
+                           [['apt-get', 'install', '-y', 'python3', 'python3-pip', 'python3-venv']], ['system-packages']),
+            ComponentSetup('git', 'Runtime', ['git', '--version'], [['apt-get', 'install', '-y', 'git']], ['system-packages']),
+            ComponentSetup('docker-compose', 'Container Runtime', ['docker', 'compose', 'version'],
+                           [['apt-get', 'install', '-y', 'docker-compose-plugin']], ['docker-engine'])])
+        for comp in kept:
+            if comp.name == 'docker-network':
+                comp.depends_on = ['docker-compose']
+            if comp.name == 'ansible':
+                comp.depends_on = ['python-runtime']
+        self.COMPONENT_DEFINITIONS = kept
 
     def _filter_components_by_profile(self) -> None:
         """N12: Remove Odoo component definitions not enabled in the profile."""

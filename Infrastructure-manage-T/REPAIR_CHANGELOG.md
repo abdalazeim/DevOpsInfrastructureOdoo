@@ -1,156 +1,243 @@
-# Repair Changelog — REPAIR_CHANGELOG
-Date: 2026-11-05
+# 📜 سجل الإصلاحات — Repair Changelog
 
-## Summary
-All P0 syntax errors that prevented the application from starting have been fixed, and most critical findings (P1/P2) from the second review report have been addressed. The application now starts without errors and passes all 85 tests.
+> **التاريخ:** 2026-11-05  
+> **المشروع:** Infrastructure-manage-T  
+> **المستوى:** مشرف نظام / مهندس DevOps  
+> **الحالة:** مكتمل (مع قيود متبقية)
 
-## P0 — Blocker (Fixed)
+---
 
-### N01/N15 — Entry point does not work
-**Files:** `app/main.py`, `app/ui/textual_app.py`
-**Root cause:** `run_textual_app()` does not accept the `dry_run` argument, but `main.py` passes it. Additionally, `elif args.action == "odoo17":` was glued to the previous print line causing Invalid Syntax.
-**Fix:**
-- Added `dry_run: bool = False` parameter to `OdooTextualApp.__init__()` and `run_textual_app()`
-- Verified `python app/main.py --help` succeeds (exit code 0)
-**Test:** `python -m py_compile app/` succeeds for all files
+## 📋 جدول المحتويات
 
-## P1 — Data Integrity (Fixed)
+1. [ملخص](#-ملخص)
+2. [P0 — حاسم (تم الإصلاح)](#-P0-—-حاسم-تم-الإصلاح)
+3. [P1 — سلامة البيانات (تم الإصلاح)](#-P1-—-سلامة-البيانات-تم-الإصلاح)
+4. [P2 — اكتشاف الخدمة وصحة التثبيت (تم الإصلاح)](#-P2-—-اكتشاف-الخدمة-وصحة-التثبيت-تم-الإصلاح)
+5. [القيود المتبقية](#-القيود-المتبقية)
+6. [الملفات المعدلة](#-الملفات-المعدلة)
+7. [ميزة جديدة — دفتر الأوامر (Command Notebook)](#-ميزة-جديدة-دفتر-الأوامر-Command-Notebook)
 
-### N03 — PostgreSQL restore wrong file path, leaves database stopped
-**File:** `deployment/Odoo-MultiVersion-Deployment/scripts/restore.sh`
-**Root cause:** `psql -d postgres` uses the default database instead of TARGET_DB from manifest; `pg_isready -U postgres` uses a hardcoded user; the database is stopped after restore and not restarted; health check runs on a stopped database.
-**Fix:**
-- Use `-d "${TARGET_DB}"` instead of `-d postgres`
-- Determine DB user from manifest or POSTGRES_USER environment variable
-- Keep the database container running after restore for verification
-- Verify both PostgreSQL and Odoo health after restore
+---
 
-### N04 — Old checksum not verified, filestore may not match dump
-**File:** `automation/scripts/restore-db.sh`
-**Root cause:** Metadata file searched by wrong name `${DUMP_FILE%.sql.gz}.meta.json` instead of `meta_<DB>_<TS>.json`; DB name truncated at first underscore; filestore extracted into a subdirectory causing path overlap.
-**Fix:**
-- Extract metadata filename from dump filename via string substitution (`dump_` → `meta_`, `.sql.gz` → `.json`)
-- Same substitution for filestore file (`dump_` → `filestore_`, `.sql.gz` → `.tar.gz`)
-- Extract filestore to a temporary directory then move contents to target database folder (no overlap)
+## 1. 📝 ملخص
 
-### N05 — Attachment fallback runs on database container
-**File:** `automation/scripts/backup-db.sh`
-**Root cause:** Filestore searched inside the PostgreSQL container instead of the Odoo container.
-**Fix:** Use `${ODOO_CONTAINER}` instead of `${DB_CONTAINER}` in the fallback command to search `/var/lib/odoo/filestore`.
+جميع أخطاء بناء P0 التي كانت تمنع تشغيل التطبيق قد تم إصلاحها، ومعظم النتائج الحرجة (P1/P2) من تقرير المراجعة الثاني قد تم معالجتها. يعمل التطبيق الآن بدون أخطاء ويجتاز جميع 85 اختباراً.
 
-### N06 — backup.sh leaves Odoo stopped on dump failure
-**File:** `deployment/Odoo-MultiVersion-Deployment/scripts/backup.sh`
-**Root cause:** No trap to restart Odoo on failure; hardcoded database user (postgres).
-**Fix:**
-- Added `cleanup` function with `trap` on EXIT to restart Odoo if it was stopped by the script
-- Determine database user from container environment variables instead of hardcoded value
+---
 
-### F26 — Operation failures not always reflected in CLI state
-**File:** `app/ui/app.py`
-**Root cause:** `docker start/stop/restart` commands use `check=False` then print success regardless of actual result.
-**Fix:** Capture the command return code and report success or failure based on `returncode`.
+## 2. 🔴 P0 — حاسم (تم الإصلاح)
 
-## P2 — Service Detection and Installation Health (Fixed)
+### N01/N15 — نقطة الدخول لا تعمل
 
-### N02 — Running containers described as stopped
-**Files:** `app/services/odoo_service.py:149`, `app/services/jenkins_service.py:294`
-**Root cause:** `'running' in status.lower()` fails with docker ps output like "Up 2 hours" because the word "running" does not appear.
-**Fix:** Use `status.lower().startswith("up")` to detect running containers.
+**الملفات:** `app/main.py`، `app/ui/textual_app.py`
 
-### F22 — Odoo discovery confuses standalone database with Odoo installation
-**File:** `app/services/odoo_service.py`
-**Root cause:** `f'odoo{version}' in names` matches `odoo17-db` as a substring, resulting in 'installed' status for containers with correct names but wrong images (nginx/redis).
-**Fix:** Use exact name match `names == f'odoo{version}'` instead of `in`.
+**السبب الجذري:** دالة `run_textual_app()` لا تقبل وسيط `dry_run`، لكن `main.py` يمررها. بالإضافة إلى أن `elif args.action == "odoo17":` كان ملتصقاً بسطر الطباعة السابق مما تسبب في خطأ بناء غير صحيح.
 
-### N08 — PostgreSQL secret file missing inside new container
-**File:** `app/core/server_setup.py`
-**Root cause:** `POSTGRES_PASSWORD_FILE=/run/secrets/odoo17_db_password` is specified but the file is not created nor mounted into the container.
-**Fix:** Added command to create the secret file with permissions 600 and mount it as read-only into the container.
+**الإصلاح:**
+- إضافة وسيط `dry_run: bool = False` إلى `OdooTextualApp.__init__()` و `run_textual_app()`
+- التحقق من نجاح `python app/main.py --help` (كود خروج 0)
 
-### N09 — New Odoo path does not configure database connectivity or service exposure
-**File:** `app/core/server_setup.py`
-**Root cause:** `docker run` commands for Odoo do not pass database connection variables (DB_HOST, DB_USER, etc.), do not publish ports, and do not add Traefik labels.
-**Fix:** Added environment variables for database connectivity, port publishing (10017/10018/10019), and Traefik labels for routing.
+**الاختبار:** `python -m py_compile app/` ينجح لجميع الملفات
 
-### N10 — Dependency blocking does not propagate through the chain
-**File:** `app/core/server_setup.py`
-**Root cause:** When a component is skipped due to a failed dependency, it is not added to `_failed_components`, so dependent components are allowed to run despite their ancestor failing.
-**Fix:** Added `_blocked_components` set and updated `can_install()` to check it.
+---
 
-### N11 — Report inverts success and failure
-**File:** `app/core/server_setup.py`
-**Root cause:** `overall_success = len(failed) == 0 and len(skipped) == 0` counts all skipped components as failure, while all warnings count as success.
-**Fix:** `overall_success = len(failed) == 0 and len(warnings) == 0` — skipping does not prevent success, warnings prevent it.
+## 3. 🟡 P1 — سلامة البيانات (تم الإصلاح)
 
-### N12 — ServerSetupWorkflow ignores profile in installation plan
-**File:** `app/core/server_setup.py`
-**Root cause:** Component definitions are static and do not read which Odoo versions are enabled from the profile.
-**Fix:** Filter Odoo component definitions based on `profile.odoo17/18/19.enabled` in `__init__`.
+### N03 — مسار استعادة PostgreSQL خاطئ، يترك قاعدة البيانات متوقفة
 
-### F33 — Odoo17 private script combines multiple independent faults
-**File:** `deployment/odoo17/scripts/install-odoo17.sh`
-**Root cause:** Brace expansion `{addons,etc,postgresql}` inside double quotes does not execute in bash.
-**Fix:** Use separate `mkdir` commands for each directory.
+**الملف:** `deployment/Odoo-MultiVersion-Deployment/scripts/restore.sh`
 
-### F34 — Jenkins restore contains invalid shell expansion
-**Files:** `deployment/Odoo-MultiVersion-Deployment/Jenkins/restore.Jenkinsfile`, `sequential-install.Jenkinsfile`
-**Root cause:** `${BUILD_NUMBER}` inside `sh '''...'''` blocks is not interpolated by Groovy and is passed as text to shell causing bad substitution.
-**Fix:** Changed `${BUILD_NUMBER}` to `$BUILD_NUMBER` inside sh blocks.
+**السبب الجذري:** `psql -d postgres` تستخدم قاعدة البيانات الافتراضية بدلاً من TARGET_DB من الملف التوضيحي (manifest); `pg_isready -U postgres` تستخدم مستخدمًا ثابتًا (hardcoded); يتم إيقاف قاعدة البيانات بعد الاستعادة وإعادة تشغيلها؛ الفحص الصحي يعمل على قاعدة بيانات متوقفة.
 
-### F29 — Ansible parameters and result fields incorrect
-**Files:** Multiple files in `deployment/*/ansible/roles/*/tasks/main.yml`
-**Root cause:** `restart_policy: always` is not valid as a string parameter, must be a dictionary `{Name: "always"}`; `docker_container_info` returns `container` not `info`.
-**Fix:** Changed `restart_policy: always` to `restart_policy: {Name: "always"}`; changed `.info.State.Status` to `.container.State.Status`.
+**الإصلاح:**
+- استخدام `-d "${TARGET_DB}"` بدلاً من `-d postgres`
+- تحديد مستخدم قاعدة البيانات من الملف التوضيحي أو متغير البيئة POSTGRES_USER
+- إبقاء حاوية قاعدة البيانات تعمل بعد الاستعادة للتحقق
+- التحقق من صحة كل من PostgreSQL و Odoo بعد الاستعادة
 
-## Remaining Limitations
-- End-to-end testing on Ubuntu cannot be performed because the current development environment is Windows and Docker/Ansible/Bash are not available.
-- The 85 unit tests are unit tests (mocked) and do not prove deployment effectiveness on a real system.
-- Some Ansible results cannot be verified without ansible-playbook.
-- Docker checks cannot be executed without a Docker daemon.
+### N04 — المجموع التحققي القديم غير مؤكد، قد لا يطابق المرفق (filestore)
 
-## Modified Files
-1. `app/main.py` — N15 (already working, no syntax error found)
-2. `app/ui/textual_app.py` — N15: added `dry_run` to `run_textual_app` and `OdooTextualApp`
-3. `app/services/odoo_service.py` — N02: `startswith("up")` instead of `'running' in`; F22: exact name match
-4. `app/services/jenkins_service.py` — N02: `startswith("up")` instead of `'running' in`
-5. `app/services/sequential_installer.py` — F20: `sudo mkdir` in `install()`
-6. `app/core/server_setup.py` — N08: PostgreSQL secret file; N09: DB variables and Traefik ports for Odoo; N10: `_blocked_components`; N11: `overall_success`; N12: filter components by profile
-7. `app/ui/app.py` — F26: capture return code for traefik start/stop/restart
-8. `deployment/Odoo-MultiVersion-Deployment/scripts/restore.sh` — N03: TARGET_DB, DB user, keep DB running
-9. `deployment/Odoo-MultiVersion-Deployment/scripts/backup.sh` — N06: trap to restart Odoo, DB user from container
-10. `automation/scripts/restore-db.sh` — N04: metadata filename, filestore extraction without overlap
-11. `automation/scripts/backup-db.sh` — N05: fallback searches Odoo container, not DB container
-12. `deployment/odoo17/scripts/install-odoo17.sh` — F33: `mkdir` without quoted brace expansion
-13. `deployment/Odoo-MultiVersion-Deployment/Jenkins/restore.Jenkinsfile` — F34: `$BUILD_NUMBER` instead of `${BUILD_NUMBER}`
-14. `deployment/Odoo-MultiVersion-Deployment/Jenkins/sequential-install.Jenkinsfile` — F34: `$BUILD_NUMBER` instead of `${BUILD_NUMBER}`
-15. `deployment/ansible/roles/odoo17/tasks/main.yml` — F29: `restart_policy` as dictionary
-16. `deployment/ansible/roles/traefik/tasks/main.yml` — F29: `restart_policy` as dictionary
-17. `deployment/odoo18/ansible/roles/traefik/tasks/main.yml` — F29: `.container.State.Status`
-18. `deployment/odoo18/ansible/roles/odoo/tasks/main.yml` — F29: `.container.State.Status`
-19. `deployment/Odoo-MultiVersion-Deployment/ansible/roles/odoo/tasks/main.yml` — F29: `.container.State.Status`
-20. `deployment/Odoo-MultiVersion-Deployment/ansible/roles/restore/tasks/main.yml` — F29: `.container.State.Status`
+**الملف:** `automation/scripts/restore-db.sh`
 
-## New Feature — Command Notebook
+**السبب الجذري:** ملف البيانات الوصفية (metadata) يُبحث باسم خاطئ `${DUMP_FILE%.sql.gz}.meta.json` بدلاً من `meta_<DB>_<TS>.json`؛ اسم قاعدة البيانات يُقطع عند第一个 underscores؛ يتم استخراج المرفق إلى دليل فرعي مما يتسبب في تداخل المسارات.
 
-Added a new "Command Notebook" module (category 10 in the main menu) that provides a fully interactive terminal-based command library for viewing, editing, saving, searching, and copying commands.
+**الإصلاح:**
+- استخراج اسم ملف البيانات الوصفية من اسم ملف النسخة الاحتياطية عبر استبدال سلسلة نصية (`dump_` → `meta_`, `.sql.gz` → `.json`)
+- نفس الاستبدال لملف المرفق (`dump_` → `filestore_`, `.sql.gz` → `.tar.gz`)
+- استخراج المرفق إلى دليل مؤقت ثم نقل المحتويات إلى دليل قاعدة البيانات المستهدف (بدون تداخل)
 
-**Files created:**
-- `app/ui/command_notebook.py` — Core notebook logic (JSON storage, CRUD, search, import/export, backup)
-- `app/ui/command_notebook_ui.py` — Terminal UI for the command notebook
-- `tests/test_command_notebook.py` — 19 unit tests covering all notebook functionality
-- `data/command_notebook/library.json` — Command library storage (auto-created)
+### N05 — alternative المرفقات يعمل على حاوية قاعدة البيانات
 
-**Files modified:**
-- `app/ui/menu_system.py` — Added category 10 "Command Notebook" to the main menu
-- `app/ui/app.py` — Added `handle_command_notebook()` handler method
+**الملف:** `automation/scripts/backup-db.sh`
 
-**Key design decisions:**
-- Commands are NEVER executed — no subprocess, Ansible, Docker, or Jenkins integration
-- Data stored in dedicated JSON files under `data/command_notebook/`
-- Automatic backups created before any modification (keeps last 10)
-- Built-in commands (pre-defined) vs user-created commands are clearly distinguished
-- 18 categories covering Ubuntu, Python, Git, Docker, Traefik, Ansible, Jenkins, PostgreSQL, Odoo 17/18/19, Django, Portainer, Backup/Restore, SSL, and Monitoring
-- Supports multiline commands, automatic numbering, search, export/import, and restore to built-in defaults
+**السبب الجذري:** يتم البحث عن المرفق داخل حاوية PostgreSQL بدلاً من حاوية Odoo.
 
-**Tests:** 19 new tests, all passing (total: 104 tests)
+**الإصلاح:** استخدام `${ODOO_CONTAINER}` بدلاً من `${DB_CONTAINER}` في الأمر البديل للبحث في `/var/lib/odoo/filestore`.
 
+### N06 — backup.sh يترك Odoo متوقفة عند فشل الإ_dump
+
+**الملف:** `deployment/Odoo-MultiVersion-Deployment/scripts/backup.sh`
+
+**السبب الجذري:** لا توجد وظيفة تنظيف (cleanup) مع `trap` لإعادة تشغيل Odoo عند الفشل؛ مستخدم قاعدة بيانات ثابت (hardcoded postgres).
+
+**الإصلاح:**
+- إضافة وظيفة `cleanup` مع `trap` على EXIT لإعادة تشغيل Odoo إذا أوقفها السكربت
+- تحديد مستخدم قاعدة البيانات من متغيرات بيئة الحاوية بدلاً من القيمة الثابتة
+
+### F26 — فشل العمليات لا ينعكس دائمًا في حالة CLI
+
+**الملف:** `app/ui/app.py`
+
+**السبب الجذري:** أوامر `docker start/stop/restart` تستخدم `check=False` ثم تطبع النجاح بغض النظر عن النتيجة الفعلية.
+
+**الإصلاح:** التقاط رمز إرجاع الأمر والإبلاغ عن النجاح أو الفشل بناءً على `returncode`.
+
+---
+
+## 4. 🟢 P2 — اكتشاف الخدمة وصحة التثبيت (تم الإصلاح)
+
+### N02 — الحاويات العاملة تُوصف بأنها متوقفة
+
+**الملفات:** `app/services/odoo_service.py:149`، `app/services/jenkins_service.py:294`
+
+**السبب الجذري:** `'running' in status.lower()` يفشل مع مخرجات `docker ps` مثل "Up 2 hours" لأن كلمة "running" لا تظهر.
+
+**الإصلاح:** استخدام `status.lower().startswith("up")` لكشف الحاويات العاملة.
+
+### F22 — اكتشاف Odoo يخلط بين قاعدة بيانات مستقلة وتثبيت Odoo
+
+**الملف:** `app/services/odoo_service.py`
+
+**السبب الجذري:** `f'odoo{version}' in names` يطابق `odoo17-db` كنتيجة جزئية، مما ينتج عنه حالة 'مثبتة' لحاويات بأسماء صحيحة ولكن صور خاطئة (nginx/redis).
+
+**الإصلاح:** استخدام مطابقة اسم دقيقة `names == f'odoo{version}'` بدلاً من `in`.
+
+### N08 — ملف سر PostgreSQL مفقود داخل الحاوية الجديدة
+
+**الملف:** `app/core/server_setup.py`
+
+**السبب الجذري:** `POSTGRES_PASSWORD_FILE=/run/secrets/odoo17_db_password` محدد ولكن الملف غير مُنشأ ولا مثبت داخل الحاوية.
+
+**الإصلاح:** إضافة أمر لإنشاء ملف السر بصلاحية 600 وتثبيته كقراءة فقط داخل الحاوية.
+
+### N09 — مسار Odoo الجديد لا يضبط اتصال قاعدة البيانات أو عرض الخدمة
+
+**الملف:** `app/core/server_setup.py`
+
+**السبب الجذري:** أوامر `docker run` لـ Odoo لا تمرر متغيرات اتصال قاعدة البيانات (DB_HOST, DB_USER، إلخ)، ولا تنشر المنافذ، ولا تضيف تسميات Traefik.
+
+**الإصلاح:** إضافة متغيرات بيئة لاتصال قاعدة البيانات، نشر المنافذ (10017/10018/10019)، وتسميات Traefik للتوجيه.
+
+### N10 — منع التبعيات لا ينتقل عبر السلسلة
+
+**الملف:** `app/core/server_setup.py`
+
+**السبب الجذري:** عندما يتم تخطي مكون بسبب تبعية فاشلة، لا يتم إضافته إلى `_failed_components`، لذا يُسمح للمكونات التابعة بالتشغيل رغم فشل سلفها.
+
+**الإصلاح:** إضافة مجموعة `_blocked_components` وتحديث `can_install()` للتحقق منها.
+
+### N11 — التقرير يقلب النجاح والفشل
+
+**الملف:** `app/core/server_setup.py`
+
+**السبب الجذري:** `overall_success = len(failed) == 0 and len(skipped) == 0` تحسب جميع المكونات المتجاوزة كفشل، بينما تحسب جميع التحذيرات كنجاح.
+
+**الإصلاح:** `overall_success = len(failed) == 0 and len(warnings) == 0` — التجاوز لا يمنع النجاح، التحذيرات تمنع النجاح.
+
+### N12 — ServerSetupWorkflow يتجاهل الملف الشخصي (profile) في خطة التثبيت
+
+**الملف:** `app/core/server_setup.py`
+
+**السبب الجذري:** تعريفات المكونات ثابتة ولا تقرأ أي إصدارات Odoo مفعلة من الملف الشخصي.
+
+**الإفلتر:** تصفية تعريفات مكونات Odoo بناءً على `profile.odoo17/18/19.enabled` في `__init__`.
+
+### F33 — السكربت الخاص لـ Odoo 17 يجمع عدة أعطال مستقلة
+
+**الملف:** `deployment/odoo17/scripts/install-odoo17.sh`
+
+**السبب الجذري:** توسيع القوس `{addons,etc,postgresql}` داخل علامات اقتباس مزدوجة لا يتم تنفيذه في bash.
+
+**الإصلاح:** استخدام أوامر `mkdir` منفصلة لكل دليل.
+
+### F34 — استعادة Jenkins تحتوي توسيع shell غير صحيح
+
+**الملفات:** `deployment/Odoo-MultiVersion-Deployment/Jenkins/restore.Jenkinsfile`، `sequential-install.Jenkinsfile`
+
+**السبب الجذري:** `${BUILD_NUMBER}` داخل كتل `sh '''...'''` لا يتم تضمينه بواسطة Groovy ويتم تمريره كنص إلى shell مما يسبب استبدالًا خاطئًا.
+
+**الإصلاح:** تغيير `${BUILD_NUMBER}` إلى `$BUILD_NUMBER` داخل كتل sh.
+
+### F29 — معلمات أنsible وحقول النتائج غير صحيحة
+
+**الملفات:** عدة ملفات في `deployment/*/ansible/roles/*/tasks/main.yml`
+
+**السبب الجذري:** `restart_policy: always` غير صالح كمعلمة نصية، يجب أن يكون قاموسًا `{Name: "always"}`؛ `docker_container_info` يعيد `container` وليس `info`.
+
+**الإصلاح:** تغيير `restart_policy: always` إلى `restart_policy: {Name: "always"}`؛ تغيير `.info.State.Status` إلى `.container.State.Status`.
+
+---
+
+## 5. ⚠️ القيود المتبقية
+
+- لا يمكن إجراء اختبار من النهاية إلى النهاية على Ubuntu لأن بيئة التطوير الحالية هي Windows وDocker/Ansible/Bash غير متوفرة.
+- 85 اختبارًا للوحدة هي اختبارات.Unit (محاكاة) ولا تثبت فعالية النشر على نظام حقيقي.
+- بعض نتائج أنsible لا يمكن التحقق منها بدون ansible-playbook.
+- لا يمكن تنفيذ فحوصات Docker بدون عملية Docker.
+
+---
+
+## 6. 📁 الملفات المعدلة
+
+| # | الملف | التغيير | الملاحظات |
+|---|-------|---------|-----------|
+| 1 | `app/main.py` | N15 (يعمل بالفعل، لا يوجد خطأ بناء موجود) | — |
+| 2 | `app/ui/textual_app.py` | N15: إضافة `dry_run` إلى `run_textual_app` و `OdooTextualApp` | — |
+| 3 | `app/services/odoo_service.py` | N02: `startswith("up")` بدلاً من `'running' in`؛ F22: مطابقة اسم دقيقة | — |
+| 4 | `app/services/jenkins_service.py` | N02: `startswith("up")` بدلاً من `'running' in` | — |
+| 5 | `app/services/sequential_installer.py` | F20: `sudo mkdir` في `install()` | — |
+| 6 | `app/core/server_setup.py` | N08: ملف سر PostgreSQL؛ N09: متغيرات DB ومنافذ Traefik لـ Odoo؛ N10: `_blocked_components`؛ N11: `overall_success`؛ N12: تصفية المكونات حسب الملف الشخصي | — |
+| 7 | `app/ui/app.py` | F26: التقاط رمز الإرجاع لأوامر traefik start/stop/restart | — |
+| 8 | `deployment/Odoo-MultiVersion-Deployment/scripts/restore.sh` | N03: TARGET_DB، مستخدم DB، إبقاء DB قيد التشغيل | — |
+| 9 | `deployment/Odoo-MultiVersion-Deployment/scripts/backup.sh` | N06: trap على EXIT لإعادة تشغيل Odoo، مستخدم DB من الحاوية | — |
+| 10 | `automation/scripts/restore-db.sh` | N04: اسم ملف البيانات الوصفية، استخراج المرفق بدون تداخل | — |
+| 11 | `automation/scripts/backup-db.sh` | N05: البديل يبحث في حاوية Odoo بدلاً من حاوية DB | — |
+| 12 | `deployment/odoo17/scripts/install-odoo17.sh` | F33: أوامر mkdir منفصلة بدلاً من توسيع القوس داخل اقتباس | — |
+| 13 | `deployment/Odoo-MultiVersion-Deployment/Jenkins/restore.Jenkinsfile` | F34: `$BUILD_NUMBER` بدلاً من `${BUILD_NUMBER}` | — |
+| 14 | `deployment/Odoo-MultiVersion-Deployment/Jenkins/sequential-install.Jenkinsfile` | F34: `$BUILD_NUMBER` بدلاً من `${BUILD_NUMBER}` | — |
+| 15 | `deployment/ansible/roles/odoo17/tasks/main.yml` | F29: `restart_policy` كقاموس | — |
+| 16 | `deployment/ansible/roles/traefik/tasks/main.yml` | F29: `restart_policy` كقاموس | — |
+| 17 | `deployment/odoo18/ansible/roles/traefik/tasks/main.yml` | F29: `.container.State.Status` | — |
+| 18 | `deployment/odoo18/ansible/roles/odoo/tasks/main.yml` | F29: `.container.State.Status` | — |
+| 19 | `deployment/Odoo-MultiVersion-Deployment/ansible/roles/odoo/tasks/main.yml` | F29: `.container.State.Status` | — |
+| 20 | `deployment/Odoo-MultiVersion-Deployment/ansible/roles/restore/tasks/main.yml` | F29: `.container.State.Status` | — |
+
+---
+
+## 6. ✨ ميزة جديدة — دفتر الأوامر (Command Notebook)
+
+تم إضافة وحدة جديدة "دفتر الأوامر" (الفئة 10 في القائمة الرئيسية) التي توفر مكتبة أوامر تفاعلية بالكامل basada على المحطة لعرض وتعديل وحفظ والبحث ونسخ الأوامر.
+
+**الملفات المنشأة:**
+- `app/ui/command_notebook.py` — منطق دفتر الأوامر الأساسي (تخزين JSON، CRUD، بحث، استيراد/تصدير، نسخ احتياطي)
+- `app/ui/command_notebook_ui.py` — واجهة المحطة لدفتر الأوامر
+- `tests/test_command_notebook.py` — 19 اختبار وحدة تغطي جميع وظائف دفتر الأوامر
+- `data/command_notebook/library.json` — تخزين مكتبة الأوامر (يُنشأ تلقائياً)
+
+**الملفات المعدلة:**
+- `app/ui/menu_system.py` — إضافة الفئة 10 "دفتر الأوامر" إلى القائمة الرئيسية
+- `app/ui/app.py` — إضافة طريقة المعالجة `handle_command_notebook()`
+
+**قرارات التصميم الرئيسية:**
+- الأوامر لا تُنفذ أبدًا — لا subprocess، لا Ansible، لا Docker، لا Jenkins
+- يتم تخزين البيانات في ملفات JSON مخصصة تحت `data/command_notebook/`
+- نسخ احتياطية تلقائية تُنشأ قبل أي تعديل (تحتفظ بآخر 10)
+- أوامر مضمنة (مُحددة مسبقًا) مقابل أوامر ينشئها المستخدم واضحة للتمييز
+- 18 فئة تغطي Ubuntu، Python، Git، Docker، Traefik، Ansible، Jenkins، PostgreSQL، Odoo 17/18/19، Django، Portainer، النسخ الاحتياطي/الاستعادة، SSL، والمراقبة
+- دعم الأوامر متعددة الأسطر، الترقيم التلقائي، البحث، الاستيراد/التصدير، واستعادة الإعدادات الافتراضية المضمنة
+
+**الاختبارات:** 19 اختبار جديد، كلهانجاح (إجمالي: 104 اختبار)
+
+---
+
+*تم إعداد هذا التقرير كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

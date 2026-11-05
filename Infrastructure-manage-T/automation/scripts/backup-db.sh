@@ -4,6 +4,7 @@
 # Usage: ./backup-db.sh <17|19> [database_name] [retention_count]
 # ==============================================================================
 set -Eeuo pipefail
+umask 077
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
@@ -24,6 +25,7 @@ fi
 DB_CONTAINER="odoo${VERSION}-db"
 ODOO_CONTAINER="odoo${VERSION}"
 DB_NAME="${2:-odoo${VERSION}_prod}"
+[[ "${DB_NAME}" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ ]] || { echo "Invalid database identifier" >&2; exit 1; }
 RETENTION="${3:-7}"
 DATA_ROOT="${ODOO_DATA_ROOT:-/opt/odoo-infrastructure}"
 BACKUP_DIR="${DATA_ROOT}/backups/odoo${VERSION}"
@@ -71,12 +73,10 @@ else
   # F13: Fallback - check container volume for filestore when host mount is unknown
   # Odoo filestore lives in the Odoo application container, not the DB container (N05)
   log_info "Host filestore path not found: ${ODOO_DATA_DIR}; checking Odoo container volume..."
-  if docker exec "${ODOO_CONTAINER}" test -d /var/lib/odoo/filestore 2>/dev/null; then
+  if docker exec "${ODOO_CONTAINER}" test -d "/var/lib/odoo/filestore/${DB_NAME}" 2>/dev/null; then
     log_info "Found filestore in Odoo container volume at /var/lib/odoo/filestore"
     # Create a temporary archive from the Odoo container
-    docker exec "${ODOO_CONTAINER}" tar -czf /tmp/filestore_backup.tar.gz -C /var/lib/odoo filestore 2>/dev/null || true
-    docker cp "${ODOO_CONTAINER}:/tmp/filestore_backup.tar.gz" "${FILESTORE_FILE}" 2>/dev/null || true
-    docker exec "${ODOO_CONTAINER}" rm -f /tmp/filestore_backup.tar.gz 2>/dev/null || true
+    docker exec "${ODOO_CONTAINER}" tar -czf - -C /var/lib/odoo/filestore "${DB_NAME}" > "${FILESTORE_FILE}"
     if [[ -f "${FILESTORE_FILE}" ]]; then
       log_ok "Filestore archived from Odoo container: $(basename "${FILESTORE_FILE}")"
       FILestore_FOUND=true

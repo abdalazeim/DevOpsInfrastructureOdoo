@@ -18,6 +18,7 @@ trap 'log_err "Restore operation aborted at line ${LINENO}"' ERR
 VERSION="${1:-}"
 DUMP_FILE="${2:-}"
 TARGET_DB="${3:-}"
+[[ "${TARGET_DB}" =~ ^[a-zA-Z0-9_][a-zA-Z0-9_-]*$ ]] || { echo "Invalid database identifier" >&2; exit 1; }
 FORCE_FLAG="${4:-}"
 
 if [[ -z "${VERSION}" || -z "${DUMP_FILE}" || -z "${TARGET_DB}" ]]; then
@@ -38,6 +39,7 @@ fi
 # F12: Verify checksum before any destructive operation
 # Derive meta/filestore filenames from dump filename by pattern replacement:
 # dump_<DB>_<TS>.sql.gz  ->  meta_<DB>_<TS>.json  /  filestore_<DB>_<TS>.tar.gz
+DIRNAME=$(dirname "${DUMP_FILE}")
 BASENAME=$(basename "${DUMP_FILE}")
 META_FILE="${DIRNAME}/meta_${BASENAME#dump_}"
 META_FILE="${META_FILE%.sql.gz}.json"
@@ -46,6 +48,10 @@ FILESTORE_FILE="${FILESTORE_FILE%.sql.gz}.tar.gz"
 if [[ -f "${META_FILE}" ]]; then
   log_info "Verifying SHA256 checksum from metadata..."
   EXPECTED_SHA=$(python3 -c "import json; print(json.load(open('${META_FILE}'))['sha256'])" 2>/dev/null || echo "")
+  if [[ ! "${EXPECTED_SHA}" =~ ^[a-fA-F0-9]{64}$ ]]; then
+    log_err "Invalid checksum metadata"
+    exit 1
+  fi
   if [[ -n "${EXPECTED_SHA}" ]]; then
     ACTUAL_SHA=$(sha256sum "${DUMP_FILE}" | awk '{print $1}')
     if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
@@ -55,7 +61,8 @@ if [[ -f "${META_FILE}" ]]; then
     log_ok "Checksum verified: ${ACTUAL_SHA:0:16}..."
   fi
 else
-  log_warn "No metadata file found at ${META_FILE}; skipping checksum verification."
+  log_err "Required metadata missing: ${META_FILE}"
+  exit 1
 fi
 
 DB_CONTAINER="odoo${VERSION}-db"

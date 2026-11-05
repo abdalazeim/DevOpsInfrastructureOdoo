@@ -1,75 +1,110 @@
-# Odoo Multi-Version Deployment - Operating Methods (Linux Ubuntu Only)
+# 🚀 Odoo Multi-Version Deployment - طرق التشغيل (Linux Ubuntu فقط)
 
-## Project Location
-`D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\deployment\Odoo-MultiVersion-Deployment\scripts\`
-
-> **Important Notice**: This system is fully programmed for **Linux Ubuntu** (versions 20, 22, 24 and above). It does not contain any Windows-specific components. The path above is a storage path on a Windows disk for ease of editing only, but actual execution is performed on a Linux Ubuntu server.
-
----
-
-## System Requirements (Linux Ubuntu)
-
-| Component | Minimum | Recommended |
-|-----------|---------|-------------|
-| Operating System | Ubuntu Server 20.04 LTS | Ubuntu Server 22.04 / 24.04 LTS |
-| Processor | 2 cores | 4 cores or more |
-| Memory | 4 GB RAM | 8 GB RAM or more |
-| Storage | 100 GB SSD | 500 GB SSD or more |
-| Docker Engine | 20.10+ | Latest version |
-| Docker Compose | v2 | Latest version |
-| Ansible | Core + collections | Latest version |
-| Python3 | 3.8+ | Latest version |
-| Git | 2.x | Latest version |
+> **النظام المستهدف:** Linux Ubuntu (الإصدارات 20، 22، 24 وما فوق)  
+> **ملاحظة:** هذا النظام مبرمج بالكامل لـ **Linux Ubuntu** ولا يحتوي على أي مكونات خاصة بنظام Windows. المسار أعلاه هو مسار تخزين على قرص Windows لتسهيل التعديل فقط، لكن التنفيذ الفعلي يتم على خادم Linux Ubuntu.  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية  
+> **التاريخ:** نوفمبر 2026  
+> **الإصدار:** 1.0  
+> **الحالة:** Production Ready
 
 ---
 
-## Method 1: Quick Start (Single Command)
+## 📋 جدول المحتويات
 
-Open Terminal on your Linux Ubuntu server and run:
+1. [موقع المشروع](#-موقع-المشروع)
+2. [متطلبات النظام (Linux Ubuntu)](#-متطلبات-النظام-Linux-Ubuntu)
+3. [الطريقة الأولى: التشغيل السريع (أمر واحد)](#-الطريقة-الألية-التشغيل-السريع-أمر-واحد)
+4. [الطريقة الثانية: التنفيذ خطوة بخطوة](#-الطريقة-الثانية-التنفيذ-خطوة-بخطوة)
+5. [الطريقة الثالثة: التنفيذ اليدوي لكل مكون](#-الطريقة-الثالثة-التنفيذ-اليدوي-لكل-مكون)
+6. [الطريقة الرابعة: عبر Jenkins](#-الطريقة-الرابعة-عبر-Jenkins)
+7. [الطريقة الخامسة: عبر أنsible Playbooks مباشرة](#-الطريقة-الخامسة-عبر-Ansible-Playbooks-مباشرة)
+8. [الروابط النهائية بعد التشغيل الناجح](#-الروابط-النهائية-بعد-التشغيل-الناجح)
+9. [ملاحظة هامة حول الصلاحيات](#-ملاحظة-هامة-حول-الصلاحيات)
+10. [ملفات السكريبت في المجلد](#-ملفات-السكريبت-في-المجلد)
+11. [مسارات النظام بعد التثبيت](#-مسارات-النظام-بعد-التثبيت)
+12. [الدعم](#-الدعم)
+
+---
+
+## 1. 📍 موقع المشروع
+
+```
+D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\deployment\Odoo-MultiVersion-Deployment\scripts\
+```
+
+> **تنبيه هام**: هذا النظام مبرمج بالكامل لـ **Linux Ubuntu** (الإصدارات 20، 22، 24 وما فوق). لا يحتوي على أي مكونات خاصة بنظام Windows. المسار أعلاه هو مسار تخزين على قرص Windows لتسهيل التعديل فقط، لكن التنفيذ الفعلي يتم على خادم Linux Ubuntu.
+
+---
+
+## 2. 🔧 متطلبات النظام (Linux Ubuntu)
+
+| # | المكون | الحد الأدنى | الموصى به |
+|---|---------|-----------|-----------|
+| 1 | نظام التشغيل | Ubuntu Server 20.04 LTS | Ubuntu Server 22.04 / 24.04 LTS |
+| 2 | المعالج | 2 نوى | 4 نوى أو أكثر |
+| 3 | الذاكرة | 4 جيجابايت RAM | 8 جيجابايت RAM أو أكثر |
+| 4 | التخزين | 100 جيجابايت SSD | 500 جيجابايت SSD أو أكثر |
+| 5 | Docker Engine | 20.10+ | أحدث إصدار |
+| 6 | Docker Compose | v2 | أحدث إصدار |
+| 7 | Ansible | Core + collections | أحدث إصدار |
+| 8 | Python3 | 3.8+ | أحدث إصدار |
+| 9 | Git | 2.x | أحدث إصدار |
+
+---
+
+## 3. ⚡ الطريقة الأولى: التشغيل السريع (أمر واحد)
+
+افتح المحطة على خادم Linux Ubuntu الخاص بك وشغل الأمر التالي:
 
 ```bash
-# Navigate to scripts directory
+# الانتقال إلى مجلد السكريبتات
 cd /opt/Odoo-MultiVersion-Deployment/scripts
 
-# Run the main script with root privileges (automatically runs bootstrap)
+# تشغيل السكريبت الرئيسي بصلاحيات الجذر (يقوم بتشغيل bootstrap تلقائياً)
 sudo bash launch-odoo-infra.sh
 ```
 
 ---
 
-## Method 2: Step-by-Step Execution
+## 4. 📋 الطريقة الثانية: التنفيذ خطوة بخطوة
 
-### Step 1: Install Dependencies and Set Up Environment
+### الخطوة 1: تثبيت التبعيات وتجهيز البيئة
+
 ```bash
 sudo bash bootstrap-odoo-infra.sh
 ```
 
-### Step 2: Run Project and Install Odoo 17 and 19
+### الخطوة 2: تشغيل المشروع وتثبيت Odoo 17 و 19
+
 ```bash
 sudo bash launch-odoo-infra.sh
 ```
 
 ---
 
-## Method 3: Manual Execution for Each Component
+## 5. 🛠️ الطريقة الثالثة: التنفيذ اليدوي لكل مكون
 
-### Install Odoo 17 Only (Two Instances)
+### 5.1 تثبيت Odoo 17 فقط (نسختان مستقلتان)
+
 ```bash
 sudo bash install-odoo17.sh
 ```
 
-### Install Odoo 19 Only (Two Instances)
+### 5.2 تثبيت Odoo 19 فقط (نسختان مستقلتان)
+
 ```bash
 sudo bash install-odoo19.sh
 ```
 
-### Check Service Health
+### 5.3 فحص صحة الخدمات
+
 ```bash
 sudo bash health-check.sh instance1 8069 8072
 sudo bash health-check.sh instance2 8069 8072
 ```
 
-### Take a Backup
+### 5.4 أخذ نسخة احتياطية
+
 ```bash
 sudo bash backup.sh instance1 odoo17 /data/backups/odoo17
 sudo bash backup.sh instance2 odoo17 /data/backups/odoo17
@@ -77,130 +112,140 @@ sudo bash backup.sh instance1 odoo19 /data/backups/odoo19
 sudo bash backup.sh instance2 odoo19 /data/backups/odoo19
 ```
 
-### Restore a Backup
+### 5.5 استعادة نسخة احتياطية
+
 ```bash
 sudo bash restore.sh odoo17-instance1-20261104 odoo17 instance1 existing
 ```
 
-### Verify Backup Integrity
+### 5.6 التحقق من سلامة النسخة الاحتياطية
+
 ```bash
 sudo bash verify-backups.sh /data/backups
 ```
 
-### List All Available Backups
+### 5.7 عرض جميع النسخ الاحتياطية المتاحة
+
 ```bash
 sudo bash list-backups.sh /data/backups
 ```
 
-### Backup Ubuntu System Configuration
+### 5.8 نسخ إعدادات نظام Ubuntu
+
 ```bash
 sudo bash backup-system-config.sh
 ```
 
-### Restore Ubuntu System Configuration
+### 5.9 استعادة إعدادات نظام Ubuntu
+
 ```bash
 sudo bash restore-system-config.sh 2026-11-04_020000
 ```
 
 ---
 
-## Method 4: Via Jenkins
+## 6. 🔗 الطريقة الرابعة: عبر Jenkins
 
-Open the Jenkins control panel on your Linux server and run the following pipelines:
+افتح لوحة تحكم Jenkins على خادم Linux الخاص بك وشغل خطوط الأنابيب التالية:
 
-| Pipeline | Path | Purpose |
+| خط الأنابيب | المسار | الغرض |
 |----------|------|---------|
-| Install Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | Install two Odoo 17 instances |
-| Install Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | Install two Odoo 19 instances |
-| Backup | `Jenkins/backup.Jenkinsfile` | Take a backup |
-| Restore | `Jenkins/restore.Jenkinsfile` | Restore a backup (requires confirmation) |
-| Verify Backups | `Jenkins/verify-backups.Jenkinsfile` | Verify backup integrity |
-| System Config Backup | `Jenkins/system-config-backup.Jenkinsfile` | Backup Ubuntu system configuration |
+| تثبيت Odoo 17 | `Jenkins/install-odoo17.Jenkinsfile` | تثبيت نسختين من Odoo 17 |
+| تثبيت Odoo 19 | `Jenkins/install-odoo19.Jenkinsfile` | تثبيت نسختين من Odoo 19 |
+| النسخ الاحتياطي | `Jenkins/backup.Jenkinsfile` | أخذ نسخة احتياطية |
+| الاستعادة | `Jenkins/restore.Jenkinsfile` | استعادة نسخة احتياطية (يتطلب تأكيد) |
+| التحقق من النسخ الاحتياطية | `Jenkins/verify-backups.Jenkinsfile` | التحقق من سلامة النسخ الاحتياطية |
+| نسخ إعدادات النظام | `Jenkins/system-config-backup.Jenkinsfile` | نسخ إعدادات نظام Ubuntu |
 
 ---
 
-## Method 5: Via Ansible Playbooks Directly
+## 7. 🔧 الطريقة الخامسة: عبر Ansible Playbooks مباشرة
 
 ```bash
-# Navigate to project directory
+# الانتقال إلى مجلد المشروع
 cd /opt/Odoo-MultiVersion-Deployment
 
-# Install Odoo 17
+# تثبيت Odoo 17
 ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo17.yml ansible/playbooks/install-odoo17.yml
 
-# Install Odoo 19
+# تثبيت Odoo 19
 ansible-playbook -i ansible/inventory/hosts.ini -e @versions/odoo19.yml ansible/playbooks/install-odoo19.yml
 
-# Take a backup
+# أخذ نسخة احتياطية
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 
-# Verify backups
+# التحقق من النسخ الاحتياطية
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/verify.yml
 
-# Backup system configuration
+# نسخ إعدادات نظام التكوين
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/system-config-backup.yml
 ```
 
 ---
 
-## Final Links After Successful Startup
+## 8. 🔗 الروابط النهائية بعد التشغيل الناجح
 
-| Service | Link |
+| الخدمة | الرابط |
 |---------|------|
-| Odoo 17 - Instance 1 | https://${ODOO17_INSTANCE1_DOMAIN} |
-| Odoo 17 - Instance 2 | https://${ODOO17_INSTANCE2_DOMAIN} |
-| Odoo 19 - Instance 1 | https://${ODOO19_INSTANCE1_DOMAIN} |
-| Odoo 19 - Instance 2 | https://${ODOO19_INSTANCE2_DOMAIN} |
+| Odoo 17 - النسخة 1 | https://${ODOO17_INSTANCE1_DOMAIN} |
+| Odoo 17 - النسخة 2 | https://${ODOO17_INSTANCE2_DOMAIN} |
+| Odoo 19 - النسخة 1 | https://${ODOO19_INSTANCE1_DOMAIN} |
+| Odoo 19 - النسخة 2 | https://${ODOO19_INSTANCE2_DOMAIN} |
 
 ---
 
-## Important Note on Permissions
+## 9. ⚠️ ملاحظة هامة حول الصلاحيات
 
-All scripts must be run with **root (sudo/root)** privileges because they:
-- Install system packages (Docker, Ansible, Python3, Git)
-- Create Docker networks and permissions
-- Set up data directories (`/data/`) and configuration directories (`/opt/`)
-- Run and manage Docker containers
+يجب تشغيل جميع السكريبتات بصلاحيات **الجذر (sudo/root)** لأنها:
+
+- تثبت حزم النظام (Docker، Ansible، Python3، Git)
+- تنشئ شبكات Docker وصلاحياتها
+- تنشئ مجلدات البيانات (`/data/`) ومجلدات الإعدادات (`/opt/`)
+- تدير حاويات Docker وتشغلها
 
 ---
 
-## Script Files in the Folder
+## 10. 📁 ملفات السكريبت في المجلد
 
-| File | Purpose |
+| الملف | الغرض |
 |------|---------|
-| `bootstrap-odoo-infra.sh` | Install dependencies and set up basic environment (Linux only) |
-| `launch-odoo-infra.sh` | Run the full project (automatically runs bootstrap) |
-| `install-odoo17.sh` | Install Odoo 17 (two independent instances) |
-| `install-odoo19.sh` | Install Odoo 19 (two independent instances) |
-| `health-check.sh` | Check service and container health |
-| `backup.sh` | Take Odoo backup |
-| `restore.sh` | Restore Odoo backup |
-| `verify-backups.sh` | Verify backup integrity |
-| `list-backups.sh` | List all available backups |
-| `backup-system-config.sh` | Backup Ubuntu system configuration (network, SSH, Docker, etc.) |
-| `restore-system-config.sh` | Restore Ubuntu system configuration |
+| `bootstrap-odoo-infra.sh` | تثبيت التبعيات وتجهيز البيئة الأساسية (Linux فقط) |
+| `launch-odoo-infra.sh` | تشغيل المشروع completo (يقوم بتشغيل bootstrap تلقائياً) |
+| `install-odoo17.sh` | تثبيت Odoo 17 (نسختان مستقلتان) |
+| `install-odoo19.sh` | تثبيت Odoo 19 (نسختان مستقلتان) |
+| `health-check.sh` | فحص صحة الخدمة والحاوية |
+| `backup.sh` | أخذ نسخة احتياطية من Odoo |
+| `restore.sh` | استعادة نسخة احتياطية من Odoo |
+| `verify-backups.sh` | التحقق من سلامة النسخ الاحتياطية |
+| `list-backups.sh` | عرض جميع النسخ الاحتياطية المتاحة |
+| `backup-system-config.sh` | نسخ إعدادات نظام Ubuntu (شبكة، SSH، Docker، إلخ) |
+| `restore-system-config.sh` | استعادة إعدادات نظام Ubuntu |
 
 ---
 
-## System Paths After Installation
+## 11. 📂 مسارات النظام بعد التثبيت
 
-| Component | Path |
+| المكون | المسار |
 |-----------|------|
-| Project files | `/opt/Odoo-MultiVersion-Deployment/` |
-| Odoo 17 data | `/data/odoo17/instance1, /data/odoo17/instance2` |
-| Odoo 19 data | `/data/odoo19/instance1, /data/odoo19/instance2` |
-| Odoo 17 configuration | `/opt/odoo17/instance1, /opt/odoo17/instance2` |
-| Odoo 19 configuration | `/opt/odoo19/instance1, /opt/odoo19/instance2` |
-| Backups | `/data/backups/odoo17, /data/backups/odoo19` |
-| Bootstrap logs | `/var/log/odoo-bootstrap.log` |
+| ملفات المشروع | `/opt/Odoo-MultiVersion-Deployment/` |
+| بيانات Odoo 17 | `/data/odoo17/instance1, /data/odoo17/instance2` |
+| بيانات Odoo 19 | `/data/odoo19/instance1, /data/odoo19/instance2` |
+| إعدادات Odoo 17 | `/opt/odoo17/instance1, /opt/odoo17/instance2` |
+| إعدادات Odoo 19 | `/opt/odoo19/instance1, /opt/odoo19/instance2` |
+| النسخ الاحتياطية | `/data/backups/odoo17, /data/backups/odoo19` |
+| سجلات bootstrap | `/var/log/odoo-bootstrap.log` |
 
 ---
 
-## Support
+## 12. 📞 الدعم
 
-For any issues or inquiries, please open an Issue in the project's GitHub repository.
+لأي مشاكل أو استفسارات، يرجى فتح Issue في مستودع المشروع على GitHub.
 
-**Version:** 1.0  
-**Last Updated:** 2026-11-04  
-**Target System:** Linux Ubuntu 20.04 / 22.04 / 24.04 LTS  
-**Status:** Production Ready
+**الإصدار:** 1.0  
+**آخر تحديث:** 2026-11-04  
+**النظام المستهدف:** Linux Ubuntu 20.04 / 22.04 / 24.04 LTS  
+**الحالة:** Production Ready
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

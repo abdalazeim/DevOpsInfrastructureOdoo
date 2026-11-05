@@ -31,12 +31,42 @@ def main():
     parser.add_argument("--action", "-a", choices=[
         "tui", "textual", "preflight", "prep", "traefik", "traefik-audit", "traefik-backup",
         "odoo17", "odoo18", "odoo19", "full", "health", "validate", "runtimes", "sequential-install",
-        "server-setup", "inspect", "install-report",
+        "server-setup", "inspect", "install-report", "final-workflow",
     ], default="tui", help="Action to execute directly or launch interactive TUI")
+    parser.add_argument('--odoo-version', choices=['17', '18', '19'])
+    parser.add_argument('--mode', choices=['local', 'domain'], default=None)
+    parser.add_argument('--http-port', type=int)
+    parser.add_argument('--apply', action='store_true', help='Apply installation in final-workflow; default is read-only verification')
+    parser.add_argument('--resume', action='store_true')
+    parser.add_argument('--report-dir', default='reports/final-workflow')
     args = parser.parse_args()
 
     tui = TerminalUI(profile_path=args.profile)
     tui.dry_run = args.dry_run
+    if args.action in ('final-workflow', 'server-setup', 'sequential-install') and not args.odoo_version:
+        parser.error('--odoo-version is required; no automatic installation of every Odoo version')
+    if args.odoo_version:
+        for version in ('17', '18', '19'):
+            getattr(tui.profile, 'odoo' + version).enabled = version == args.odoo_version
+        if args.http_port:
+            if not 1024 <= args.http_port <= 65535:
+                parser.error('--http-port must be in 1024..65535')
+            getattr(tui.profile, 'odoo' + args.odoo_version).http_port = args.http_port
+    if args.mode:
+        tui.profile.deployment_mode = args.mode
+    if args.action == 'final-workflow':
+        from app.core.final_workflow import FinalWorkflow
+        report = FinalWorkflow(tui.profile, args.report_dir, args.dry_run, args.apply, args.resume).run()
+        print(report['status'])
+        if not args.dry_run and report['status'] == 'NOT READY':
+            sys.exit(1)
+        return
+    if args.dry_run and args.action in ('tui', 'preflight'):
+        from app.core.installation_pipeline import InstallationPipeline
+        report = InstallationPipeline(dry_run=True, profile=tui.profile, on_output=print).run()
+        print('DRY RUN: commands planned; infrastructure not modified or verified.')
+        return
+
 
     if args.action == "textual":
         from app.ui.textual_app import run_textual_app
@@ -69,6 +99,9 @@ def main():
             print(f"Port {p.port}: {'IN USE' if p.is_in_use else 'FREE'} ({p.service_name})")
     elif args.action == "traefik-backup":
         from app.services.traefik_manager import TraefikDockerManager
+        if args.dry_run:
+            print("DRY RUN: would archive Traefik configuration; no files written")
+            return
         snap = TraefikDockerManager.create_backup_snapshot("/opt/traefik")
         print(f"Traefik Snapshot created: {snap['archive_path']} (SHA256: {snap['sha256']})")
     elif args.action == "odoo17":
@@ -98,45 +131,10 @@ def main():
         if op.status == OperationStatus.FAILED:
             sys.exit(1)
     elif args.action == "sequential-install":
-        installer = SequentialInstaller(
-            log_dir="/var/log/odoo-installer",
-            dry_run=args.dry_run,
-            use_sudo=True,
-            on_output=lambda msg: print(msg, end=""),
-        )
-        installer.add_component(
-            name="Basic System Packages",
-            commands=[
-                ["apt-get", "update"],
-                ["apt-get", "install", "-y", "curl", "wget", "gnupg", "software-properties-common",
-                 "apt-transport-https", "ca-certificates", "python3", "python3-pip",
-                 "python3-venv", "git", "vim", "sudo", "ufw", "jq", "tar", "gzip", "zstd"],
-            ],
-        )
-        installer.add_component(
-            name="Docker Engine",
-            commands=[
-                ["install", "-m", "0755", "-d", "/etc/apt/keyrings"],
-                ["bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg"],
-                ["chmod", "a+r", "/etc/apt/keyrings/docker.gpg"],
-                ["bash", "-c", 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null'],
-                ["apt-get", "update"],
-                ["apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"],
-                ["systemctl", "enable", "docker"],
-                ["systemctl", "start", "docker"],
-            ],
-        )
-        installer.add_component(
-            name="Ansible",
-            commands=[
-                ["python3", "-m", "pip", "install", "--upgrade", "pip"],
-                ["python3", "-m", "pip", "install", "ansible"],
-            ],
-        )
-        report = installer.run_all()
-        print(f"\nSequential installation complete. Report: {report.report_file}")
-        print(f"Overall: {report.overall_status.value} | SUCCESS: {report.success_count} | FAILED: {report.failure_count} | SKIPPED: {report.skip_count} | WARNING: {report.warning_count}")
-        if report.overall_status == OperationStatus.FAILED:
+        from app.core.installation_pipeline import InstallationPipeline
+        report = InstallationPipeline(profile=tui.profile, dry_run=args.dry_run, use_sudo=True, on_output=print).run()
+        print(f"Planned only: {args.dry_run}; success: {report['overall_success']}")
+        if not args.dry_run and not report['overall_success']:
             sys.exit(1)
 
     elif args.action == "server-setup":

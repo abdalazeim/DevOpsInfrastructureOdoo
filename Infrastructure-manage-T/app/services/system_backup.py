@@ -42,42 +42,32 @@ class SystemBackupService:
     @classmethod
     def _dump_databases(cls, tmp_dir: str) -> List[str]:
         """Dump all running PostgreSQL Odoo containers into SQL files in tmp_dir."""
-        dumped: List[str] = []
-        code, output, _ = cls._run_docker_cmd(
-            DOCKER + ["ps", "-a", "--format", "{{json .}}"]
-        )
-        if code != 0:
-            return dumped
-        try:
-            import json as _json
-            for line in output.splitlines():
-                line = line.strip()
-                if not line:
-                    continue
-                item = _json.loads(line)
-                name = item.get("Names", "")
-                image = item.get("Image", "")
-                status = item.get("Status", "")
-                if "-db" not in name:
-                    continue
-                if "postgres" not in image:
-                    continue
-                if "Exited" in status or "Created" in status:
-                    continue
-                # Derive Odoo version and DB name from container name
-                parts = name.split("-")
-                odoo_ver = parts[0] if parts else "odoo"
-                db_name = f"{odoo_ver}_prod"
-                dump_path = os.path.join(tmp_dir, f"{name}_database.sql")
-                dcode, dout, derr = cls._run_docker_cmd(
-                    DOCKER + ["exec", "-i", name, "pg_dump", "-U", "postgres", db_name]
-                )
-                if dcode == 0:
-                    with open(dump_path, "w", encoding="utf-8") as f:
-                        f.write(dout)
-                    dumped.append(dump_path)
-        except (ValueError, AttributeError, KeyError):
-            pass
+        from app.services.instance_backup import dump
+        dumped = []
+        code, output, error = cls._run_docker_cmd(DOCKER + ['ps', '-a', '--format', '{{json .}}'])
+        if code:
+            raise RuntimeError('Cannot inspect databases for backup: ' + error)
+        for line in output.splitlines():
+            item = json.loads(line)
+            name = item.get('Names', '')
+            if not name.startswith('odoo') or not name.endswith('-db') or 'postgres' not in item.get('Image', ''):
+                continue
+            code, detail, error = cls._run_docker_cmd(DOCKER + ['inspect', name])
+            if code:
+                raise RuntimeError('Cannot inspect database: ' + name)
+            info = json.loads(detail)[0]
+            if not info['State'].get('Running') or info['State'].get('Paused'):
+                raise RuntimeError('Database must be running for backup: ' + name)
+            env = dict(v.split('=', 1) for v in info['Config'].get('Env', []) if '=' in v)
+            user = env.get('POSTGRES_USER', 'postgres')
+            code, names, error = cls._run_docker_cmd(DOCKER + ['exec', name, 'psql', '-U', user, '-d', 'postgres', '-Atc',
+                "SELECT datname FROM pg_database WHERE NOT datistemplate AND datname <> 'postgres'"])
+            if code:
+                raise RuntimeError('Cannot enumerate databases in ' + name + ': ' + error)
+            for index, database in enumerate(names.splitlines()):
+                destination = os.path.join(tmp_dir, f'{name}_{index}_database.sql')
+                dump(name, user, database, __import__('pathlib').Path(destination))
+                dumped.append(destination)
         return dumped
 
     @classmethod
@@ -137,10 +127,16 @@ class SystemBackupService:
                         files_to_pack.append(dest)
 
         # Build tar archive
-        with tarfile.open(archive_path, "w:gz") as tar:
-            for item in files_to_pack:
-                if os.path.exists(item):
-                    tar.add(item)
+        try:
+            with tarfile.open(archive_path, "w:gz") as tar:
+                for item in files_to_pack:
+                    if os.path.exists(item):
+                        arcname = ("database_dumps/" + os.path.basename(item) if '_db_staging_' in item
+                                   else "certificates/acme.json" if item == traefik_acme else item)
+                        tar.add(item, arcname=arcname)
+        finally:
+            if include_db_dumps and 'staged_db_dir' in locals():
+                shutil.rmtree(staged_db_dir)
 
         file_size = os.path.getsize(archive_path)
         sha256_hash = cls.calculate_sha256(archive_path)
@@ -162,6 +158,8 @@ class SystemBackupService:
             "database_dumps": [os.path.basename(d) for d in db_dump_files],
             "include_db_dumps": include_db_dumps,
             "status": "verified",
+            "scope": "configuration_and_sql_export",
+            "database_backup_status": "included" if db_dump_files else "not_present" if include_db_dumps else "not_requested",
         }
 
         with open(manifest_path, "w") as mf:
@@ -237,6 +235,8 @@ class SystemBackupService:
                 except Exception:
                     pass
 
+        if not expected_sha256:
+            raise ValueError("A valid matching snapshot manifest and SHA256 are required")
         if not cls.verify_archive(archive_path, expected_sha256=expected_sha256):
             raise ValueError(f"Snapshot archive {archive_path} is corrupted, empty, or SHA256 mismatch.")
 
@@ -253,5 +253,5 @@ class SystemBackupService:
             "restored_archive": archive_path,
             "safety_snapshot": safety_manifest,
             "sha256_verified": expected_sha256 is not None,
-            "message": "Infrastructure snapshot restored successfully.",
+            "message": "Verified snapshot extracted. Database dumps and certificates require explicit deployment; live databases were not modified.",
         }

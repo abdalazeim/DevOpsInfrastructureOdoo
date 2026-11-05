@@ -105,12 +105,13 @@ class ComponentInstaller:
         return False, None
 
     def _prepare_log_file(self) -> str:
-        # F20: Ensure log directory is writable; use sudo when configured.
-        if self.use_sudo and not self._is_root():
-            import subprocess as _sp
-            _sp.run(["sudo", "mkdir", "-p", self.log_dir], check=False)
-        else:
+        try:
             os.makedirs(self.log_dir, exist_ok=True)
+            if not os.access(self.log_dir, os.W_OK):
+                raise PermissionError(self.log_dir)
+        except OSError:
+            self.log_dir = os.path.join(os.path.expanduser('~'), '.local', 'state', 'odoo-installer')
+            os.makedirs(self.log_dir, mode=0o700, exist_ok=True)
         ts = datetime.now().strftime("%Y%m%d_%H%M%S")
         safe_name = self.name.replace(" ", "_").replace("/", "_")
         return os.path.join(self.log_dir, f"install_{safe_name}_{ts}.log")
@@ -245,10 +246,6 @@ class ComponentInstaller:
             self._log(f"  [{self.name}] SKIPPED: Already installed (version: {version or 'unknown'})\n")
             return record
 
-        os.makedirs(self.log_dir, exist_ok=True) if not (self.use_sudo and not self._is_root()) else None
-        if self.use_sudo and not self._is_root():
-            import subprocess as _sp
-            _sp.run(["sudo", "mkdir", "-p", self.log_dir], check=False)
         log_file = self._prepare_log_file()
         record.log_file = log_file
 

@@ -102,6 +102,7 @@ class OdooInstanceConfig:
     domain: str = field(default_factory=_default_domain)
     image: str = "odoo:17.0"
     workers: int = 3
+    http_port: int = 0
     memory_limit_soft: str = "2147483648"
     memory_limit_hard: str = "2684354560"
     database: DatabaseConfig = field(default_factory=DatabaseConfig)
@@ -125,6 +126,8 @@ class SecurityConfig:
 @dataclass
 class InfrastructureProfile:
     profile_name: str
+    deployment_mode: str = "local"
+    jenkins_enabled: bool = False
     description: str = ""
     version: str = "1.0.0"
     server: ServerConfig = field(default_factory=ServerConfig)
@@ -194,6 +197,7 @@ class InfrastructureProfile:
         odoo17 = OdooInstanceConfig(
             enabled=bool(o17_data.get("enabled", True)),
             version="17",
+            http_port=int(o17_data.get("http_port", 10017)),
             domain=o17_data.get("domain", _default_odoo_domain("17", "1")),
             image=o17_data.get("image", "odoo:17.0"),
             workers=int(o17_data.get("workers", 3)),
@@ -215,6 +219,7 @@ class InfrastructureProfile:
         odoo18 = OdooInstanceConfig(
             enabled=bool(o18_data.get("enabled", True)),
             version="18",
+            http_port=int(o18_data.get("http_port", 10018)),
             domain=o18_data.get("domain", _default_odoo_domain("18", "1")),
             image=o18_data.get("image", "odoo:18.0"),
             workers=int(o18_data.get("workers", 3)),
@@ -236,6 +241,7 @@ class InfrastructureProfile:
         odoo19 = OdooInstanceConfig(
             enabled=bool(o19_data.get("enabled", True)),
             version="19",
+            http_port=int(o19_data.get("http_port", 10019)),
             domain=o19_data.get("domain", _default_odoo_domain("19", "1")),
             image=o19_data.get("image", "odoo:19.0"),
             workers=int(o19_data.get("workers", 3)),
@@ -271,6 +277,8 @@ class InfrastructureProfile:
         )
 
         return cls(
+            deployment_mode=data.get("deployment_mode", "local"),
+            jenkins_enabled=bool(data.get("jenkins_enabled", False)),
             profile_name=data.get("profile_name", "unnamed-profile"),
             description=data.get("description", ""),
             version=data.get("version", "1.0.0"),

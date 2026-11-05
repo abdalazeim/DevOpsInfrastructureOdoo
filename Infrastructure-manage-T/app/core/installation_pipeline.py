@@ -106,7 +106,12 @@ class InstallationPipeline:
         dry_run: bool = False,
         use_sudo: bool = False,
         on_output: Optional[Callable[[str], None]] = None,
+        profile=None,
+        report_dir=None,
     ):
+        from app.models.profile import InfrastructureProfile
+        self.profile = profile or InfrastructureProfile.from_dict({})
+        self.report_dir = report_dir
         self.dry_run = dry_run
         self.use_sudo = use_sudo
         self.on_output = on_output
@@ -125,183 +130,14 @@ class InstallationPipeline:
     # Component definition
     # ------------------------------------------------------------------
     def _build_default_components(self) -> None:
-        """Build the default sequential installation pipeline."""
-        self._component_defs = [
-            {
-                "name": "ubuntu_preparation",
-                "category": "System",
-                "label": "Ubuntu System Preparation",
-                "depends_on": [],
-                "install_cmds": [
-                    ["bash", "-c", "uname -a && cat /etc/os-release 2>/dev/null || echo \"OS info unavailable\""],
-                    ["bash", "-c", "df -h / | tail -1"],
-                    ["bash", "-c", "free -h | head -2"],
-                    ["bash", "-c", "id || echo \"id command unavailable\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Ubuntu preparation verified\""],
-                ],
-                "critical": True,
-            },
-            {
-                "name": "python_install",
-                "category": "Runtime",
-                "label": "Python Installation & Verification",
-                "depends_on": ["ubuntu_preparation"],
-                "install_cmds": [
-                    ["bash", "-c", "which python3 || echo \"python3 not found\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "python3 --version"],
-                    ["bash", "-c", "python3 -c \"print('Python runtime test OK')\""],
-                ],
-                "critical": True,
-            },
-            {
-                "name": "git_install",
-                "category": "Runtime",
-                "label": "Git Installation & Verification",
-                "depends_on": ["ubuntu_preparation"],
-                "install_cmds": [
-                    ["bash", "-c", "which git || echo \"git not found\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "git --version"],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "docker_engine",
-                "category": "Container Runtime",
-                "label": "Docker Engine Installation",
-                "depends_on": ["ubuntu_preparation"],
-                "install_cmds": [
-                    ["bash", "-c", "which docker || echo \"docker not found\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "docker --version"],
-                    ["bash", "-c", "docker version 2>/dev/null || true"],
-                ],
-                "critical": True,
-            },
-            {
-                "name": "docker_compose",
-                "category": "Container Runtime",
-                "label": "Docker Compose Installation",
-                "depends_on": ["docker_engine"],
-                "install_cmds": [
-                    ["bash", "-c", "docker compose version 2>/dev/null || echo \"docker compose not found\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "docker compose version"],
-                ],
-                "critical": True,
-            },
-            {
-                "name": "docker_network",
-                "category": "Container Runtime",
-                "label": "Docker Network Preparation",
-                "depends_on": ["docker_engine"],
-                "install_cmds": [
-                    ["bash", "-c", "docker network inspect proxy >/dev/null 2>&1 || docker network create --driver bridge proxy || true"],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "docker network inspect proxy >/dev/null 2>&1 && echo \"proxy network OK\" || echo \"proxy network unavailable\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "odoo_version_select",
-                "category": "Application",
-                "label": "Odoo Version Selection",
-                "depends_on": ["docker_engine", "docker_compose"],
-                "install_cmds": [],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Odoo version selection stage\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "postgresql",
-                "category": "Application",
-                "label": "PostgreSQL Preparation & Verification",
-                "depends_on": ["docker_network", "odoo_version_select"],
-                "install_cmds": [
-                    ["bash", "-c", "echo \"PostgreSQL preparation stage\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"PostgreSQL verification stage\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "odoo_install",
-                "category": "Application",
-                "label": "Odoo Installation & Runtime Verification",
-                "depends_on": ["postgresql"],
-                "install_cmds": [
-                    ["bash", "-c", "echo \"Odoo installation stage\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Odoo runtime verification stage\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "traefik_install",
-                "category": "Infrastructure",
-                "label": "Traefik Installation & Integration",
-                "depends_on": ["odoo_install"],
-                "install_cmds": [
-                    ["bash", "-c", "echo \"Traefik installation stage\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Traefik verification stage\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "ansible_install",
-                "category": "Automation",
-                "label": "Ansible Installation & Verification",
-                "depends_on": ["python_install"],
-                "install_cmds": [
-                    ["bash", "-c", "which ansible-playbook || echo \"ansible not found\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "ansible --version 2>/dev/null || echo \"ansible not available\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "jenkins_install",
-                "category": "CI/CD",
-                "label": "Jenkins CI/CD Installation & Integration",
-                "depends_on": ["docker_engine", "ansible_install"],
-                "install_cmds": [
-                    ["bash", "-c", "echo \"Jenkins installation stage\""],
-                ],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Jenkins verification stage\""],
-                ],
-                "critical": False,
-            },
-            {
-                "name": "final_integration",
-                "category": "Validation",
-                "label": "Final Integration & Health Check",
-                "depends_on": ["odoo_install", "traefik_install", "ansible_install", "jenkins_install"],
-                "install_cmds": [],
-                "verify_cmds": [
-                    ["bash", "-c", "echo \"Final integration health check\""],
-                ],
-                "critical": True,
-            },
-        ]
+        """Reuse the same verified installation commands as server setup."""
+        from app.core.server_setup import ServerSetupWorkflow
+        setup = ServerSetupWorkflow(self.profile, self.dry_run, self.use_sudo)
+        self._component_defs = [dict(name=c.name, label=c.name, category=c.category,
+                                    depends_on=c.depends_on, critical=c.critical,
+                                    install_cmds=c.install_cmds, verify_cmds=[c.check_cmd], check_cmd=c.check_cmd)
+                                for c in setup.COMPONENT_DEFINITIONS]
 
-    # ------------------------------------------------------------------
-    # Pipeline execution
-    # ------------------------------------------------------------------
     def _compute_install_order(self) -> List[str]:
         """Topological sort respecting dependencies."""
         order: List[str] = []
@@ -377,7 +213,7 @@ class InstallationPipeline:
                 end_time=end.isoformat(),
                 duration_seconds=(end - start).total_seconds(),
                 success=True,
-                verified=True,
+                verified=False,
                 verification_detail="[DRY-RUN] Verification skipped",
             )
 
@@ -440,6 +276,12 @@ class InstallationPipeline:
 
         self._log(f"\n{BOLD}[INSTALLING]{RESET} {comp_def['label']}\n")
 
+        if not self.dry_run and comp_def.get('check_cmd'):
+            check = self._run_step('Inspect existing component', comp_def['check_cmd'])
+            if check.success:
+                record.steps.append(check)
+                record.status = InstallationStatus.ALREADY_INSTALLED
+                return record
         all_success = True
 
         # Install steps
@@ -469,8 +311,10 @@ class InstallationPipeline:
         record.duration_seconds = (end_dt - start_dt).total_seconds()
 
         if all_success:
-            record.status = InstallationStatus.INSTALLED
-            self._log(f"  [OK] {comp_def['label']} installed and verified\n")
+            record.status = InstallationStatus.SKIPPED if self.dry_run else InstallationStatus.INSTALLED
+            if self.dry_run:
+                record.skip_reason = "Dry-run; not installed"
+            self._log(f"  [{'PLANNED' if self.dry_run else 'OK'}] {comp_def['label']} {'not executed' if self.dry_run else 'installed and verified'}\n")
         else:
             record.status = InstallationStatus.FAILED
             self._failed_components.add(name)
@@ -512,19 +356,38 @@ class InstallationPipeline:
                 continue
             self._run_component(comp_def)
 
-        return self.generate_report()
+        report = self.generate_report()
+        if self.report_dir and not self.dry_run:
+            import json
+            from dataclasses import asdict
+            from pathlib import Path
+            folder = Path(self.report_dir)
+            folder.mkdir(parents=True, exist_ok=True)
+            os.chmod(folder, 0o700)
+            payload = dict(report)
+            payload['components'] = {name: asdict(record) for name, record in self.components.items()}
+            for key in ('successful', 'failed', 'skipped', 'pending'):
+                payload[key] = [r.name for r in report[key]]
+            payload['failed_components'] = list(self._failed_components)
+            payload['blocked_components'] = list(self._blocked_components)
+            target = folder / 'latest-installation.json'
+            target.write_text(json.dumps(payload, indent=2), encoding='utf-8')
+            os.chmod(target, 0o600)
+        return report
 
     # ------------------------------------------------------------------
     # Reporting
     # ------------------------------------------------------------------
     def generate_report(self) -> Dict[str, Any]:
         """Generate a comprehensive pipeline report."""
-        successful = [r for r in self.components.values() if r.status == InstallationStatus.INSTALLED]
+        successful = [r for r in self.components.values() if r.status in (InstallationStatus.INSTALLED, InstallationStatus.ALREADY_INSTALLED)]
         failed = [r for r in self.components.values() if r.status == InstallationStatus.FAILED]
         skipped = [r for r in self.components.values() if r.status == InstallationStatus.SKIPPED]
         pending = [r for r in self.components.values() if r.status == InstallationStatus.NOT_CHECKED]
 
-        overall_success = len(failed) == 0
+        overall_success = not failed and not pending and not self._blocked_components
+        if not self.dry_run:
+            overall_success = overall_success and not skipped
 
         return {
             "components": self.components,

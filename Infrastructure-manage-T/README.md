@@ -1,30 +1,36 @@
-# Odoo Infrastructure Manager - مدير البنية التحتية لنظام أودو
+# 🏗 Odoo Infrastructure Manager - مدير البنية التحتية لنظام أودو
 
-> نظام احترافي لأتمتة إعداد وإدارة بيئات Odoo متعددة الإصدارات باستخدام Docker وTraefik وAnsible وJenkins، بواجهة Terminal تفاعلية سهلة الاستخدام.
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS / 24.04 LTS  
+> **المكونات:** Docker Engine، Docker Compose V2، Traefik v3.7، Ansible، Jenkins، PostgreSQL  
+> **المستوى:** مشرف نظام / مسؤول بنية تحتية / مهندس DevOps  
+> **التاريخ:** نوفمبر 2026  
+> **الإصدار:** 1.0.0  
+> **الحالة:** Production Ready (يتطلب تحقق على Ubuntu)
 
 ---
 
 ## 📋 جدول المحتويات
 
-- [نظرة عامة](#نظرة-عامة)
-- [المميزات الرئيسية](#المميزات-الرئيسية)
-- [الإصدارات المدعومة](#الإصدارات-المدعومة)
-- [بنية المشروع](#بينة-المشروع)
-- [التثبيت والبدء السريع](#التثبيت-والبدء-السريع)
-- [التثبيت عبر Terminal](#التثبيت-عبر-Terminal)
-- [التثبيت عبر Jenkins](#التثبيت-عبر-Jenkins)
-- [إعدادات الإصدارات](#إعدادات-الإصدارات)
-- [الأمان والتشفير](#الأمان-والتشفير)
-- [النطاقات وشهادات SSL/TLS](#النطاقات-وشهادات-SSLTLS)
-- [النسخ الاحتياطي والاستعادة](#النسخ-الاحتياطي-والاستعادة)
-- [مراقبة الصحة والفحص](#مراقبة-الصحة-والفحص)
-- [اختبارات الجودة](#اختبارات-الجودة)
-- [خطة الأمان والتراجع](#خطة-الأمان-والتراجع)
-- [المساهمة والترخيص](#المساهمة-والترخيص)
+1. [نظرة عامة](#-نظرة-عامة)
+2. [المميزات الرئيسية](#-المميزات-الرئيسية)
+3. [الإصدارات المدعومة](#-الإصدارات-المدعومة)
+4. [بنية المشروع](#-بنية-المشروع)
+5. [التثبيت والبدء السريع](#-التثبيت-والبدء-السريع)
+6. [التثبيت عبر Terminal](#-التثبيت-عبر-Terminal)
+7. [التثبيت عبر Jenkins](#-التثبيت-عبر-Jenkins)
+8. [إعدادات الإصدارات](#-إعدادات-الإصدارات)
+9. [الأمان والتشفير](#-الأمان-والتشفير)
+10. [النطاقات وشهادات SSL/TLS](#-النطاقات-وشهادات-SSLTLS)
+11. [النسخ الاحتياطي والاستعادة](#-النسخ-الاحتياطي-والاستعادة)
+12. [مراقبة الصحة والفحص](#-مراقبة-الصحة-والفحص)
+13. [اختبارات الجودة](#-اختبارات-الجودة)
+14. [خطة الأمان والتراجع](#-خطة-الأمان-والتراجع)
+15. [المساهمة والترخيص](#-المساهمة-والترخيص)
+16. [الدعم](#-الدعم)
 
 ---
 
-## نظرة عامة
+## 1. 📖 نظرة عامة
 
 **Odoo Infrastructure Manager** هو أداة DevOps شاملة لنشر وإدارة بيئات Odoo متعددة الإصدارات على نفس الخادم باستخدام تقنيات حاويات Docker، وموزع العكسي Traefik v3.7، وقواعد بيانات PostgreSQL معزولة لكل إصدار.
 
@@ -32,7 +38,7 @@
 
 ---
 
-## المميزات الرئيسية
+## 2. 🌟 المميزات الرئيسية
 
 | الفئة | المميزات |
 |-------|----------|
@@ -47,15 +53,15 @@
 
 ---
 
-## الإصدارات المدعومة
+## 3. 📦 الإصدارات المدعومة
 
-| الإصدار | صورة Odoo | PostgreSQL | PGDATA المسار | المنفذ الداخلي Odoo | المنفذ الداخلي Live Chat | عدد النسخ | النطاقات |
-|---------|------------|-------------|----------------|----------------------|--------------------------|-----------|----------|
-| **Odoo 17** | `odoo:17` | 16 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO17_INSTANCE1_DOMAIN}`、`${ODOO17_INSTANCE2_DOMAIN}` |
-| **Odoo 18** | `odoo:18` | 17 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO18_INSTANCE1_DOMAIN}`、`${ODOO18_INSTANCE2_DOMAIN}` |
-| **Odoo 19** | `odoo:19` | 18 | `/var/lib/postgresql/18/docker` | 8069 | 8072 | 2 | `${ODOO19_INSTANCE1_DOMAIN}`、`${ODOO19_INSTANCE2_DOMAIN}` |
+| # | الإصدار | صورة Odoo | PostgreSQL | PGDATA المسار | المنفذ الداخلي Odoo | المنفذ الداخلي Live Chat | عدد النسخ | النطاقات |
+|---|---------|------------|-------------|----------------|----------------------|--------------------------|-----------|----------|
+| 1 | **Odoo 17** | `odoo:17` | 16 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO17_INSTANCE1_DOMAIN}`、`${ODOO17_INSTANCE2_DOMAIN}` |
+| 2 | **Odoo 18** | `odoo:18` | 17 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO18_INSTANCE1_DOMAIN}`、`${ODOO18_INSTANCE2_DOMAIN}` |
+| 3 | **Odoo 19** | `odoo:19` | 18 | `/var/lib/postgresql/18/docker` | 8069 | 8072 | 2 | `${ODOO19_INSTANCE1_DOMAIN}`、`${ODOO19_INSTANCE2_DOMAIN}` |
 
-### تفاصيل النشر
+### 3.1 تفاصيل النشر
 
 | المكون | الإعداد |
 |--------|---------|
@@ -69,7 +75,7 @@
 
 ---
 
-## بينة المشروع
+## 4. 🏛 بنية المشروع
 
 ```
 odoo-infrastructure-manager/
@@ -103,9 +109,9 @@ odoo-infrastructure-manager/
 
 ---
 
-## التثبيت والبدء السريع
+## 5. 🚀 التثبيت والبدء السريع
 
-### 1. المتطلبات الأساسية
+### 5.1 المتطلبات الأساسية
 
 | المتطلب | الحد الأدنى | الموصى به |
 |----------|-----------|-----------|
@@ -117,7 +123,7 @@ odoo-infrastructure-manager/
 | ذاكرة RAM | 4 GB | 8 GB+ |
 | مساحة قرص | 50 GB | 100 GB+ |
 
-### 2. استنساخ المستودع وتجهيز البيئة
+### 5.2 استنساخ المستودع وتجهيز البيئة
 
 ```bash
 # استنساخ المستودع
@@ -132,7 +138,7 @@ source venv/bin/activate
 pip install -e .
 ```
 
-### 3. إعداد ملف الأسرار وتأمين الصلاحيات
+### 5.3 إعداد ملف الأسرار وتأمين الصلاحيات
 
 ```bash
 # الطريقة الموصى بها (تثبيت Docker + Ansible وتوليد .env تلقائياً)
@@ -146,7 +152,7 @@ nano .env
 
 > ⚠️ **ملاحظة أمان**: ملف `.env` يحوي كلمات مرور حساسة، يجب أن تكون صلاحياته `0600` فقط، ولا يُرفع أبداً إلى مستودع Git.
 
-### 4. تشغيل النظام
+### 5.4 تشغيل النظام
 
 ```bash
 # واجهة Terminal التفاعلية (الافتراضي)
@@ -176,25 +182,25 @@ python3 app/main.py --action full
 
 ---
 
-## التثبيت عبر Terminal
+## 6. 🖥️ التثبيت عبر Terminal
 
 يمكن تثبيت كل إصدار باستخدام سكريبت واحد ينفذ جميع مراحل النشر تلقائياً عبر Ansible Playbook.
 
-### Odoo 17
+### 6.1 Odoo 17
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo17
 sudo ./scripts/install-odoo17.sh
 ```
 
-### Odoo 18
+### 6.2 Odoo 18
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo18
 sudo ./scripts/install-odoo18.sh
 ```
 
-### Odoo 19
+### 6.3 Odoo 19
 
 ```bash
 cd /opt/Odoo-MultiVersion-Deployment/odoo19
@@ -210,7 +216,7 @@ sudo ./scripts/install-odoo19.sh
 
 ---
 
-## التثبيت عبر Jenkins
+## 7. ⚙️ التثبيت عبر Jenkins
 
 يوفر النظام خط أنابيب (Pipeline) مستقل لكل إصدار يمكن تفعيله بزر "Build Now" في واجهة Jenkins.
 
@@ -220,7 +226,7 @@ sudo ./scripts/install-odoo19.sh
 | Install Odoo 18 – Two Instances | Odoo 18 | 17 | 2 |
 | Install Odoo 19 – Two Instances | Odoo 19 | 18 | 2 |
 
-### ملفات Jenkins
+### 7.1 ملفات Jenkins
 
 | الملف | المسار | الوصف |
 |------|--------|-------|
@@ -229,7 +235,7 @@ sudo ./scripts/install-odoo19.sh
 | Jenkinsfile (Odoo 18) | `Jenkins/install-odoo18.Jenkinsfile` | Pipeline مخصص لـ Odoo 18 |
 | Jenkinsfile (Odoo 19) | `Jenkins/install-odoo19.Jenkinsfile` | Pipeline مخصص لـ Odoo 19 |
 
-### مراحل كل Pipeline
+### 7.2 مراحل كل Pipeline
 
 1. **Checkout GitHub** - استنساخ الكود من المستودع
 2. **Pre-Deployment Validation** - فحص المتطلبات وإنشاء المجلدات
@@ -241,9 +247,9 @@ sudo ./scripts/install-odoo19.sh
 
 ---
 
-## إعدادات الإصدارات
+## 8. 🔧 إعدادات الإصدارات
 
-### ملفات الإصدارات (versions/)
+### 8.1 ملفات الإصدارات (versions/)
 
 | الملف | المسار | المحتوى |
 |-------|--------|---------|
@@ -251,7 +257,7 @@ sudo ./scripts/install-odoo19.sh
 | Odoo 18 | `versions/odoo18.yml` | إعدادات نسختي Odoo 18 (instance1, instance2) |
 | Odoo 19 | `versions/odoo19.yml` | إعدادات نسختي Odoo 19 (instance1, instance2) |
 
-### مثال على هيكل ملف الإصدار
+### 8.2 مثال على هيكل ملف الإصدار
 
 ```yaml
 odoo_version: "19"
@@ -274,7 +280,7 @@ odoo_instances:
     container_name: odoo19-instance2
 ```
 
-### 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
+### 8.3 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)
 
 | الإصدار | Odoo Admin Password | PostgreSQL Password | container_name |
 |---------|---------------------|---------------------|----------------|
@@ -294,7 +300,7 @@ odoo_instances:
 
 ---
 
-## الأمان والتشفير
+## 9. 🔐 الأمان والتشفير
 
 | ميزة | التفاصيل |
 |------|----------|
@@ -309,9 +315,55 @@ odoo_instances:
 
 ---
 
-## 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)
+## 10. 🌐 النطاقات وشهادات SSL/TLS
 
-### نظرة عامة على النسخ الاحتياطي
+### 10.1 النطاقات المدعومة
+
+| الخدمة | النطاق |
+|-------|--------|
+| Odoo 17 - النسخة 1 | `${ODOO17_INSTANCE1_DOMAIN}` |
+| Odoo 17 - النسخة 2 | `${ODOO17_INSTANCE2_DOMAIN}` |
+| Odoo 18 - النسخة 1 | `${ODOO18_INSTANCE1_DOMAIN}` |
+| Odoo 18 - النسخة 2 | `${ODOO18_INSTANCE2_DOMAIN}` |
+| Odoo 19 - النسخة 1 | `${ODOO19_INSTANCE1_DOMAIN}` |
+| Odoo 19 - النسخة 2 | `${ODOO19_INSTANCE2_DOMAIN}` |
+| pgAdmin | `${PGADMIN_DOMAIN}` |
+| Traefik Dashboard | `${TRAEFIK_DASHBOARD_DOMAIN}` |
+
+### 10.2 إعداد DNS
+
+```text
+${ODOO17_INSTANCE1_DOMAIN}    ➔  IP_ADDRESS
+${ODOO17_INSTANCE2_DOMAIN}    ➔  IP_ADDRESS
+${ODOO18_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
+${ODOO18_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
+${ODOO19_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
+${ODOO19_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
+${PGADMIN_DOMAIN}   ➔  IP_ADDRESS
+${TRAEFIK_DASHBOARD_DOMAIN}   ➔  IP_ADDRESS
+```
+
+### 10.3 متطلبات جدار الحماية
+
+| المنفذ | البروتوكول | الغرض |
+|-------|-----------|-------|
+| 80 | TCP | HTTP (تحويل تلقائي إلى HTTPS) |
+| 443 | TCP | HTTPS (Let's Encrypt) |
+| 8072 | TCP | WebSocket / Live Chat (داخلي) |
+| 5432 | TCP | PostgreSQL (داخلي فقط، غير مفتوح للعامة) |
+
+### 10.4 شهادات SSL
+
+- إصدار شهادات مجانية عبر **Let's Encrypt (ACME)**
+- تحويل تلقائي من HTTP (منفذ 80) إلى HTTPS (منفذ 443)
+- تخزين الشهادات في `acme.json` بصلاحية `0600`
+- تجديد تلقائي للشهادات قبل انتهاء صلاحيتها
+
+---
+
+## 11. 💾 النسخ الاحتياطي والاستعادة
+
+### 11.1 نظرة عامة على النسخ الاحتياطي
 
 يدعم النظام نسخًا احتياطية شاملة لكل مكون من مكونات النشر، مع إمكانية الاستعادة التلقائية والآمنة عند حدوث أي عطل أو كارثة.
 
@@ -328,7 +380,7 @@ odoo_instances:
 | **Jenkins** | إعدادات خطوط الأنابيب والملفات المهمة | Jenkins Backup Plugin | أسبوعي |
 | **Git** | رقم Commit والإصدار المستخدم في النشر | Git (tag / commit hash) | كل عملية نشر |
 
-### أخذ نسخة احتياطية فورية
+### 11.2 أخذ نسخة احتياطية فورية
 
 ```bash
 # Odoo 17 - النسخة 1
@@ -351,11 +403,11 @@ tar -czf /data/backups/traefik_$(date +%Y%m%d).tar.gz /etc/traefik /opt/traefik
 tar -czf /data/backups/ansible_jenkins_$(date +%Y%m%d).tar.gz ansible/ Jenkins/
 ```
 
-### محتويات النسخة الاحتياطية لكل قاعدة بيانات
+### 11.3 محتويات النسخة الاحتياطية لكل قاعدة بيانات
 
 | الملف | الوصف | الصيغة |
 |-------|-------|--------|
-| `dump_odooXX_prod_YYYYMMDD_HHMMSS.sql.gz` | تفريغ قاعدة بيانات PostgreSQL (البيانات والمستخدمين والصلاحيات) | SQL مضغوط بـ gzip |
+| `dump_odooXX_prod_YYYYMMDD_HHMMSS.sql.gz` | تفريغ قاعدة بيانات PostgreSQL (البيانات والمستخدمين والصلplies) | SQL مضغوط بـ gzip |
 | `filestore_odooXX_prod_YYYYMMDD_HHMMSS.tar.gz` | أرشيف مرفقات Odoo (Filestore - الصور والملفات المرفوعة) | tar.gz |
 | `custom_addons_odooXX_YYYYMMDD_HHMMSS.tar.gz` | الإضافات والتعديلات البرمجية المخصصة | tar.gz |
 | `odoo_config_XX_YYYYMMDD_HHMMSS.tar.gz` | ملفات إعدادات Odoo (`odoo.conf`) | tar.gz |
@@ -363,7 +415,7 @@ tar -czf /data/backups/ansible_jenkins_$(date +%Y%m%d).tar.gz ansible/ Jenkins/
 | `env_encrypted_XX_YYYYMMDD_HHMMSS.gpg` | متغيرات البيئة والأسرار المشفرة | GPG مشفر |
 | `metadata_odooXX_prod_YYYYMMDD_HHMMSS.json` | بيانات وصفية وبصمة التشفير (SHA256) + رقم Commit Git | JSON |
 
-### استعادة قاعدة بيانات (مع تدابير الأمان)
+### 11.4 استعادة قاعدة بيانات (مع تدابير الأمان)
 
 ```bash
 # استعادة قاعدة بيانات Odoo 17
@@ -378,18 +430,18 @@ bash automation/scripts/restore-db.sh 19 /opt/odoo-infrastructure/backups/odoo19
 
 > ⚠️ **أمان الاستعادة**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في مجلد `safety_pre_restore` قبل الكتابة فوق أي قاعدة بيانات قائمة، ويتطلب تأكيداً كتابياً صريحاً (`RESTORE-SNAPSHOT-<ID>`).
 
-## 🔄 طريقة الاستعادة (Restore)
+### 11.5 طريقة الاستعادة (Restore)
 
 الاستعادة أهم من عملية النسخ نفسها. يجب ألا يكون زر الاستعادة مجرد فك ضغط للملفات.
 
-### أنواع الاستعادة المدعومة
+#### أنواع الاستعادة المدعومة
 
 | النوع | الوصف | الاستخدام |
 |-------|-------|-----------|
 | **Restore to Existing Instance** | استعادة النسخة فوق نسخة موجودة بعد أخذ احتياط إضافي منها | الاستعادة العادية للإصدار الحالي |
 | **Restore as New Instance** | إنشاء نسخة جديدة مستقلة للاختبار دون التأثير على النسخة الأصلية | الاختبار والتطوير |
 
-### خطوات الاستعادة التلقائية
+#### خطوات الاستعادة التلقائية
 
 عند اختيار نسخة احتياطية، ينفذ النظام الخطوات التالية:
 
@@ -403,18 +455,18 @@ bash automation/scripts/restore-db.sh 19 /opt/odoo-infrastructure/backups/odoo19
 | 6 | استعادة PostgreSQL | إنشاء قاعدة البيانات واستعادة البيانات من `pg_dump` |
 | 7 | استعادة Filestore | استعادة المرفقات والصور في مسارها الصحيح |
 | 8 | استعادة Custom Addons | استعادة الإضافات والتعديلات البرمجية المتوافقة |
-| 9 | ضبط الصلاحيات | تعيين صلاحيات الملفات والمجلدات correctamente |
+| 9 | ضبط الصلاحيات | تعيين صلاحيات الملفات والمجلدات بشكل صحيح |
 | 10 | تشغيل Odoo | إعادة تشغيل الحاوية وتأكيد عملها |
 | 11 | اختبارات التحقق | اختبار قاعدة البيانات والمرفقات والوصول عبر المتصفح |
 | 12 | تقرير الاستعادة | تسجيل تقرير كامل بعملية الاستعادة ونتيجتها |
 
-### ضمانات الاستعادة
+#### ضمانات الاستعادة
 
 > ✅ **لا تحذف قاعدة البيانات الحالية أو تستبدل ملفاتها قبل التحقق من النسخة الاحتياطية الجديدة.**
 > ✅ **إذا فشلت الاستعادة، يتم العودة تلقائياً إلى الحالة السابقة.**
 > ✅ **عملية الإيقاف والإعادة محمية بـ `try/finally` لضمان عدم بقاء الخدمة متوقفة.**
 
-### أوامر الاستعادة
+#### أوامر الاستعادة
 
 ```bash
 # استعادة إلى نسخة موجودة (Odoo 17)
@@ -430,9 +482,9 @@ bash automation/scripts/restore-db.sh 19 /opt/odoo-infrastructure/backups/odoo19
 bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_test --new-instance
 ```
 
-## 🔧 تشغيل النسخ الاحتياطي من Jenkins وTerminal
+### 11.6 تشغيل النسخ الاحتياطي من Jenkins وTerminal
 
-### خطوط أنابيب Jenkins للنسخ الاحتياطي والاستعادة
+#### خطوط أنابيب Jenkins للنسخ الاحتياطي والاستعادة
 
 يوفر النظام ثلاثة خطوط أنابيب (Pipelines) مستقلة في Jenkins:
 
@@ -442,10 +494,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 | **Restore-Odoo** | استعادة نسخة احتياطية مع تأكيد مطلوب | `Build Now` (يتطلب تأكيد) |
 | **Verify-Backups** | فحص سلامة الملفات وقواعد البيانات وتجربة الاستعادة في بيئة اختبار | `Build Now` |
 
-#### Pipeline 1: Backup-Odoo
-
-يؤدي نسخًا احتياطيًا شاملاً لبيانات Odoo وFilestore والإعدادات.
-
+**Pipeline 1: Backup-Odoo**
 ```groovy
 // مراحل Backup-Odoo:
 // 1. اختيار الإصدار والنسخة (أو all)
@@ -455,10 +504,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 // 5. رفع النسخة إلى موقع التخزين الآمن
 ```
 
-#### Pipeline 2: Restore-Odoo
-
-يؤدي استعادة نسخة احتياطية مع تأكيد صريح من المستخدم.
-
+**Pipeline 2: Restore-Odoo**
 ```groovy
 // مراحل Restore-Odoo:
 // 1. اختيار النسخة الاحتياطية للتاريخ والإصدار
@@ -471,10 +517,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 // 8. تقرير الاستعادة النهائي
 ```
 
-#### Pipeline 3: Verify-Backups
-
-يؤدي فحصًا تلقائيًا لسلامة جميع النسخ الاحتياطية.
-
+**Pipeline 3: Verify-Backups**
 ```groovy
 // مراحل Verify-Backups:
 // 1. فحص جميع ملفات النسخ الاحتياطية
@@ -483,7 +526,7 @@ bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17
 // 4. تقرير التحقق النهائي
 ```
 
-### التشغيل عبر Terminal
+#### التشغيل عبر Terminal
 
 ```bash
 # نسخ احتياطي
@@ -497,7 +540,7 @@ bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
 ./scripts/health-check.sh instance1 8069 8072
 ```
 
-### خطة الاستعاشة من الكوارث (Disaster Recovery Plan)
+### 11.7 خطة الاستعاشة من الكوارث (Disaster Recovery Plan)
 
 | السيناريو | الإجراء | الوقت المستهدف للتعافي (RTO) |
 |-----------|---------|---------------------------|
@@ -508,7 +551,7 @@ bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
 | فشل الخادم بالكامل | نشر النظام على خادم جديد باستخدام Jenkins Pipeline | < ساعة واحدة |
 | تلف ملفات الإعداد (.env) | استعادة من نسخة Git أو النسخ الاحتياطية المشفرة | < 10 دقائق |
 
-### سياسة الاحتفاظ بالنسخ (Retention Policy)
+### 11.8 سياسة الاحتفاظ بالنسخ (Retention Policy)
 
 | نوع النسخة | فترة الاحتفاظ | الحذف التلقائي |
 |-----------|--------------|---------------|
@@ -517,7 +560,7 @@ bash automation/scripts/restore-db.sh 17 <backup_file> <database_name> --force
 | نسخ شهرية | 3 أشهر | نعم |
 | نسخ سنوية | سنة واحدة | نعم |
 
-### 명령 النسخ الاحتياطي عبر Ansible
+### 11.9 명령 النسخ الاحتياطي عبر Ansible
 
 ```bash
 # نسخ احتياطي لجميع نسخ Odoo 17
@@ -527,7 +570,7 @@ ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml
 ansible-playbook -i ansible/inventory/hosts.ini ansible/playbooks/backup.yml -e "instance=instance1"
 ```
 
-### أوامر النسخ الاحتياطي والاستعادة عبر Terminal (مستقلة)
+### 11.10 أوامر النسخ الاحتياطي والاستعادة عبر Terminal (مستقلة)
 
 ```bash
 # نسخ شامل لجميع نسخ Odoo
@@ -562,88 +605,9 @@ sudo ./scripts/restore.sh --version 17 --instance instance1 --backup-id odoo17-i
 
 ---
 
-## النطاقات وشهادات SSL/TLS
+## 12. 🔍 مراقبة الصحة والفحص
 
-### النطاقات المدعومة
-
-| الخدمة | النطاق |
-|-------|--------|
-| Odoo 17 - النسخة 1 | `${ODOO17_INSTANCE1_DOMAIN}` |
-| Odoo 17 - النسخة 2 | `${ODOO17_INSTANCE2_DOMAIN}` |
-| Odoo 18 - النسخة 1 | `${ODOO18_INSTANCE1_DOMAIN}` |
-| Odoo 18 - النسخة 2 | `${ODOO18_INSTANCE2_DOMAIN}` |
-| Odoo 19 - النسخة 1 | `${ODOO19_INSTANCE1_DOMAIN}` |
-| Odoo 19 - النسخة 2 | `${ODOO19_INSTANCE2_DOMAIN}` |
-| pgAdmin | `${PGADMIN_DOMAIN}` |
-| Traefik Dashboard | `${TRAEFIK_DASHBOARD_DOMAIN}` |
-
-### إعداد DNS
-
-```text
-${ODOO17_INSTANCE1_DOMAIN}    ➔  IP_ADDRESS
-${ODOO17_INSTANCE2_DOMAIN}    ➔  IP_ADDRESS
-${ODOO18_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
-${ODOO18_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
-${ODOO19_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
-${ODOO19_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
-${PGADMIN_DOMAIN}   ➔  IP_ADDRESS
-${TRAEFIK_DASHBOARD_DOMAIN}   ➔  IP_ADDRESS
-```
-
-### متطلبات جدار الحماية
-
-| المنفذ | البروتوكول | الغرض |
-|-------|-----------|-------|
-| 80 | TCP | HTTP (تحويل تلقائي إلى HTTPS) |
-| 443 | TCP | HTTPS (Let's Encrypt) |
-| 8072 | TCP | WebSocket / Live Chat (داخلي) |
-| 5432 | TCP | PostgreSQL (داخلي فقط، غير مفتوح للعامة) |
-
-### شهادات SSL
-
-- إصدار شهادات مجانية عبر **Let's Encrypt (ACME)**
-- تحويل تلقائي من HTTP (منفذ 80) إلى HTTPS (منفذ 443)
-- تخزين الشهادات في `acme.json` بصلاحية `0600`
-- تجديد تلقائي للشهادات قبل انتهاء صلاحيتها
-
----
-
-## النسخ الاحتياطي والاستعادة
-
-### أخذ نسخة احتياطية
-
-```bash
-# Odoo 17
-bash automation/scripts/backup-db.sh 17 odoo17_prod 7
-
-# Odoo 18
-bash automation/scripts/backup-db.sh 18 odoo18_prod 7
-
-# Odoo 19
-bash automation/scripts/backup-db.sh 19 odoo19_prod 14
-```
-
-### محتويات النسخة الاحتياطية
-
-| الملف | الوصف |
-|-------|-------|
-| `dump_odooXX_prod_YYYYMMDD_HHMMSS.sql.gz` | تفريغ قاعدة بيانات PostgreSQL |
-| `filestore_odooXX_prod_YYYYMMDD_HHMMSS.tar.gz` | أرشيف مرفقات Odoo (Filestore) |
-| `metadata_odooXX_prod_YYYYMMDD_HHMMSS.json` | بيانات وصفية وبصمة SHA256 |
-
-### استعادة قاعدة بيانات
-
-```bash
-bash automation/scripts/restore-db.sh 17 /opt/odoo-infrastructure/backups/odoo17/dump_odoo17_prod_XXXX.sql.gz odoo17_prod --force
-```
-
-> ⚠️ **أمان الاستعادة**: عند تمرير `--force`، يقوم النظام تلقائياً بتوليد نسخة أمان احتياطية في مجلد `safety_pre_restore` قبل الكتابة فوق أي قاعدة بيانات قائمة، ويتطلب تأكيداً كتابياً صريحاً (`RESTORE-SNAPSHOT-<ID>`).
-
----
-
-## مراقبة الصحة والفحص
-
-### فحص صحة الخدمات
+### 12.1 فحص صحة الخدمات
 
 ```bash
 # فحص جميع الخدمات
@@ -653,7 +617,7 @@ python3 app/main.py --action health
 ./scripts/health-check.sh instance1 8069 8072
 ```
 
-### نقاط الفحص
+### 12.2 نقاط الفحص
 
 | المكون | طريقة الفحص | المعيار |
 |-------|-------------|---------|
@@ -666,7 +630,7 @@ python3 app/main.py --action health
 
 ---
 
-## اختبارات الجودة
+## 13. 🧪 اختبارات الجودة
 
 ```bash
 # تشغيل جميع الاختبارات
@@ -688,7 +652,7 @@ python3 -m unittest tests.test_security -v
 
 ---
 
-## خطة الأمان والتراجع (Security & Rollback Plan)
+## 14. 🛡️ خطة الأمان والتراجع (Security & Rollback Plan)
 
 | السيناريو | الإجراء |
 |-----------|---------|
@@ -697,7 +661,7 @@ python3 -m unittest tests.test_security -v
 | اختراق أمان | عزل الحاويات المتأثرة، تغيير كلمات المرور فوراً |
 | تعطل Traefik | التحقق من شبكة `proxy` وشهادات SSL، إعادة تشغيل الحاوية |
 
-###禁止事项 (محظورات)
+### 14.1禁止事项 (محظورات)
 
 - ✅ لا تنفيذ `down -v` إلا بعد تأكيد خطي صريح
 - ✅ لا مسح وحدات التخزين المستدامة (Persistent Volumes) بدون تأكيد
@@ -706,9 +670,9 @@ python3 -m unittest tests.test_security -v
 
 ---
 
-## المساهمة والترخيص
+## 15. 🤝 المساهمة والترخيص
 
-### المساهمة
+### 15.1 المساهمة
 
 نرحب بالمساهمات من مجتمع المطورين. يرجى:
 
@@ -718,13 +682,13 @@ python3 -m unittest tests.test_security -v
 4. Push إلى الفرع (`git push origin feature/amazing-feature`)
 5. فتح طلب سحب (Pull Request)
 
-### الترخيص
+### 15.2 الترخيص
 
 مرخص بموجب رخصة **Apache-2.0**. مطور بعناية لمهندسي DevOps ومديري الأنظمة.
 
 ---
 
-## 연락 والدعم
+## 16. 📞 الدعم
 
 لأي استفسارات أو دعم تقني، يرجى فتح Issue في مستودع المشروع على GitHub.
 
@@ -732,4 +696,8 @@ python3 -m unittest tests.test_security -v
 
 **تم التحديث في:** نوفمبر 2026  
 **الإصدار:** 1.0.0  
-**الحالة:** producción ready
+**الحالة:** Producción Ready
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

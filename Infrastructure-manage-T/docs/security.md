@@ -1,30 +1,28 @@
-# Security & Hardening Architecture
+# 🔐架构 وأمان—the Security & Hardening Architecture
 
-## Security Principles
+> **النظام المدعوم:** Ubuntu Server 22.04 LTS / 24.04 LTS  
+> **المكونات:** Docker، Traefik v3.7، PostgreSQL، Odoo 17/18/19  
+> **المستوى:** مسؤول أمان / مهندس بنية تحتية  
+> **التاريخ:** نوفمبر 2026
 
-1. **Least Privilege (Principle of Least Privilege)**:
-   - Traefik containers run with `security_opt: no-new-privileges:true`.
-   - Host volumes are mounted read-only (`:ro`) wherever write access is not required.
-   
-2. **PostgreSQL Network Isolation**:
-   - PostgreSQL instances (`odoo17-db` and `odoo19-db`) do **NOT** publish ports to the host interface (`0.0.0.0:5432` is not bound).
-   - Only Odoo containers located on the internal bridge network (`odoo17_internal` / `odoo19_internal`) can reach PostgreSQL.
-   - External internet and Traefik cannot access database ports directly.
+---
 
-3. **Secrets Management**:
-   - No passwords or tokens are stored in YAML profiles or committed to Git.
-   - All database credentials, master passwords, and ACME tokens are referenced via environment variables (`.env`).
-   - `.env` must be assigned restrictive Unix permissions:
-     ```bash
-     chmod 600 .env
-     ```
-   - Traefik `acme.json` certificate store is strictly managed with `chmod 600`.
+## 📋 جدول المحتويات
 
-4. **Firewall & Kernel Hardening**:
-   - UFW default rules: allow SSH (port 22), HTTP (port 80), and HTTPS (port 443).
-   - Sysctl tunings for high-concurrency connection queues (`somaxconn`), memory map limits (`max_map_count`), and file handles.
+1. [مبادئ الأمان](#-مبادئ-الأمان)
 
-5. **Safe Subprocess Execution**:
-   - All shell scripts enforce `set -Eeuo pipefail`.
-   - Python execution service uses parameter lists (`List[str]`), avoiding string interpolation vulnerabilities.
-   - Destructive operations (`down -v`, database drop) require mandatory typed safety tokens and explicit flags (`--force`).
+---
+
+## 1. 🛡️ مبادئ الأمان
+
+| # | المبدأ | التفاصيل |
+|---|---------|----------|
+| 1 | **أقل امتياز (Principle of Least Privilege)** | حاويات Traefik تعمل بـ `security_opt: no-new-privileges:true`. أحجام المضيف مثبتة للقراءة فقط (`:ro`) حيث لا يتطلب الأمر إمكانية الكتابة. |
+| 2 | **عزل شبكة PostgreSQL** | حاويات PostgreSQL (`odoo17-db` و `odoo19-db`) لا تنشر المنافذ على واجهة المضيف (`0.0.0.0:5432` غير مربوطة). فقط حاويات Odoo الواقعة على الشبكة الداخلية للbridge (`odoo17_internal` / `odoo19_internal`) يمكنها الوصول إلى PostgreSQL. الإنترنت الخارجي وTraefik لا يمكنهما الوصول إلى منافذ قاعدة البيانات مباشرة. |
+| 3 | **إدارة الأسرار** | لا توجد كلمات مرور أو رموز مخزنة في ملفات YAML أو ملتزمة بـ Git. جميع بيانات اعتماد قاعدة البيانات وكلمات مرور الماستر ورموز ACME يتم الرجوع إليها عبر متغيرات البيئة (`.env`). يجب تعيين قيود نظام Unix صارمة على ملف `.env`: `chmod 600 .env`. ملف `acme.json` لمتجر شهادات Traefik يتم إدارته بصلاحية `chmod 600` صارمة. |
+| 4 | **جدار الحماية وتصلب النواة** | قواعد UFW الافتراضية: السماح بـ SSH (المنفذ 22)، HTTP (المنفذ 80)، HTTPS (المنفذ 443). تحسينات sysctl لطوابير الاتصال عالية التزامن (`somaxconn`)، حدود خريطة الذاكرة (`max_map_count`), ومقابض الملفات. |
+| 5 | **تنفيذ subprocess آمن** | جميع سكريبتات Shell تفرض `set -Eeuo pipefail`. خدمة تنفيذ Python تستخدم قوائم معلمات (`List[str]`)، وتجنب ثغرات अंतरpole في السلسلة النصية. العمليات التدميرية (`down -v`، حذف قاعدة البيانات) تتطلب رموز أمان مكتوبة وأعلام صريحة (`--force`). |
+
+---
+
+*تم إعداد هذا الدليل كجزء من نظام إدارة البنية التحتية لـ Odoo (Infrastructure Manager).*

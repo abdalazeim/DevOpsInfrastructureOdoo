@@ -291,7 +291,7 @@ def jenkins_diagnose(use_sudo=False):
         for c in report['containers']:
             status = c.get('Status', '')
             # N02: docker ps Status is "Up X hours", not "running"
-            if not status.lower().startswith("up"):
+            if not status.lower().startswith("up") or any(x in status.lower() for x in ("paused", "unhealthy")):
                 issues.append({
                     'id': JENKINS_ISSUE_CONTAINER_NOT_RUNNING,
                     'component': 'Jenkins',
@@ -315,7 +315,7 @@ def jenkins_repair(issue, use_sudo=False):
         return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
-    full_cmd = prefix + fix_cmd
+    full_cmd = docker + fix_cmd[1:] if fix_cmd[0] == 'docker' else prefix + fix_cmd
     try:
         run_step(full_cmd)
         return True, 'Executed successfully.'

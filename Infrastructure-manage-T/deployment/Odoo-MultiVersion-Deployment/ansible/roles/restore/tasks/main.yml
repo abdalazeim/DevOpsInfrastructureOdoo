@@ -1,167 +1,35 @@
-# Odoo Multi-Version Deployment - Role: restore
-# Restore Odoo backups with full safety measures
+- name: Require explicit restore authorization
+  ansible.builtin.assert:
+    that: confirm_restore | default(false) | bool
+    fail_msg: "Set confirm_restore=true after reviewing database replacement"
 
-- name: Create restore safety directories
+- name: Allocate private helper on target
   become: true
-  ansible.builtin.file:
-    path: "{{ item }}"
-    state: directory
-    mode: '0755'
-  loop:
-    - "{{ backup_root }}/safety_pre_restore_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}"
+  ansible.builtin.tempfile:
+    state: file
+    suffix: _odoo_backup.py
+  register: backup_helper
 
-- name: Verify backup exists
+- name: Run verified backup contract
   become: true
-  ansible.builtin.stat:
-    path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}"
-  register: backup_stat
-  failed_when: not backup_stat.stat.exists
-
-- name: Verify backup manifest exists
-  become: true
-  ansible.builtin.stat:
-    path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/manifest.json"
-  register: manifest_stat
-  failed_when: not manifest_stat.stat.exists
-
-- name: Verify backup checksums exist
-  become: true
-  ansible.builtin.stat:
-    path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/checksums.sha256"
-  register: checksums_stat
-  failed_when: not checksums_stat.stat.exists
-
-- name: Verify backup integrity via SHA256
-  become: true
-  ansible.builtin.command: sha256sum -c checksums.sha256
-  args:
-    chdir: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}"
-  register: integrity_check
-  failed_when: integrity_check.rc != 0
-
-- name: Stop Odoo container before restore
-  become: true
-  community.docker.docker_container:
-    name: "{{ item.container_name }}"
-    state: stopped
-    timeout: 60
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Take safety backup of current state before restore
-  become: true
-  ansible.builtin.command: cp -r "{{ item.data_path }}" "{{ backup_root }}/safety_pre_restore_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/"
-  args:
-    creates: "{{ backup_root }}/safety_pre_restore_{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/{{ item.name }}"
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name and ansible_facts['mounts'] | selectattr('mount', 'equalto', '/data') | list | length > 0
-
-- name: Discover database dump file in backup
-  become: true
-  ansible.builtin.command: ls "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/database_dump_*.sql" "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/database.dump" 2>/dev/null | head -1
-  register: db_dump_file
-  changed_when: false
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Copy database dump to container for restore
-  become: true
-  ansible.builtin.command: docker cp "{{ db_dump_file.stdout | first }}" "{{ item.container_name }}-db:/tmp/restore_database.sql"
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name and db_dump_file.stdout | first | length > 0
-
-- name: Restore PostgreSQL database
-  become: true
-  community.docker.docker_container_exec:
-    container: "{{ item.container_name }}-db"
-    command: psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /tmp/restore_database.sql
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name and db_dump_file.stdout | first | length > 0
-
-- name: Restore Filestore
-  become: true
-  ansible.builtin.unarchive:
-    src: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/filestore_*.tar.zst"
-    dest: "{{ item.data_path }}"
-    remote_src: yes
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Restore Custom Addons
-  become: true
-  ansible.builtin.unarchive:
-    src: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/addons_*.tar.zst"
-    dest: "{{ item.config_path }}"
-    remote_src: yes
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Restore Odoo Configuration
-  become: true
-  ansible.builtin.unarchive:
-    src: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/config_*.tar.zst"
-    dest: "{{ item.config_path }}"
-    remote_src: yes
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Set PostgreSQL data directory permissions
-  become: true
-  ansible.builtin.file:
-    path: "{{ item.data_path }}/postgresql"
-    state: directory
-    owner: '999'
-    group: '999'
-    mode: '0700'
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Set config directory permissions
-  become: true
-  ansible.builtin.file:
-    path: "{{ item.config_path }}/etc"
-    state: directory
-    mode: '0755'
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Set addons directory permissions
-  become: true
-  ansible.builtin.file:
-    path: "{{ item.config_path }}/addons"
-    state: directory
-    mode: '0755'
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Start Odoo container after restore
-  become: true
-  community.docker.docker_container:
-    name: "{{ item.container_name }}"
-    state: started
-    timeout: 120
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Verify Odoo container is running after restore
-  become: true
-  community.docker.docker_container_info:
-    name: "{{ item.container_name }}"
-  register: odoo_container_info
-  failed_when: odoo_container_info.exists == false or odoo_container_info.container.State.Status != 'running'
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Verify PostgreSQL is ready after restore
-  become: true
-  community.docker.docker_container_exec:
-    container: "{{ item.container_name }}-db"
-    command: pg_isready -U postgres -d {{ item.db_name }}
-  register: pg_status
-  failed_when: pg_status.rc != 0
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-
-- name: Display restore completion message
-  ansible.builtin.debug:
-    msg: "✓ Odoo {{ odoo_version }} - {{ instance_name }} restored successfully from backup: {{ backup_id }}"
+  block:
+    - name: Copy standalone backup engine
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../../../../app/services/instance_backup.py"
+        dest: "{{ backup_helper.path }}"
+        mode: '0700'
+    - name: Execute restore
+      ansible.builtin.command:
+        argv:
+          - python3
+          - "{{ backup_helper.path }}"
+          - restore
+          - --confirm-replace
+          - "{{ backup_root }}/odoo{{ odoo_version | string | regex_replace('^odoo', '') }}/{{ instance_name }}/{{ backup_id }}"
+          - --root
+          - "{{ backup_root }}"
+  always:
+    - name: Remove helper
+      ansible.builtin.file:
+        path: "{{ backup_helper.path }}"
+        state: absent

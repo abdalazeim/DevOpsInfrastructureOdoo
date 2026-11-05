@@ -40,7 +40,8 @@ class TestSystemBackupService(unittest.TestCase):
     def test_create_and_verify_snapshot(self):
         manifest = SystemBackupService.create_full_snapshot(
             data_root=self.temp_dir,
-            output_dir=self.temp_dir
+            output_dir=self.temp_dir,
+            include_db_dumps=False
         )
         self.assertEqual(manifest["status"], "verified")
         self.assertTrue(os.path.exists(manifest["archive_path"]))
