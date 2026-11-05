@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Odoo Infrastructure Manager - Database & Filestore Safe Restore Engine
-# Usage: ./restore-db.sh <17|19> <backup_file_path> <target_database> [--force]
+# Usage: ./restore-db.sh <17|18|19> <backup_file_path> <target_database> [--force]
 # ==============================================================================
 set -Eeuo pipefail
 
@@ -21,13 +21,35 @@ TARGET_DB="${3:-}"
 FORCE_FLAG="${4:-}"
 
 if [[ -z "${VERSION}" || -z "${DUMP_FILE}" || -z "${TARGET_DB}" ]]; then
-  log_err "Usage: $0 <17|19> <backup_file_path> <target_database> [--force]"
+  log_err "Usage: $0 <17|18|19> <backup_file_path> <target_database> [--force]"
+  exit 1
+fi
+
+if [[ "${VERSION}" != "17" && "${VERSION}" != "18" && "${VERSION}" != "19" ]]; then
+  log_err "Invalid version. Supported: 17, 18, 19"
   exit 1
 fi
 
 if [[ ! -f "${DUMP_FILE}" ]]; then
   log_err "Backup file does not exist: ${DUMP_FILE}"
   exit 1
+fi
+
+# F12: Verify checksum before any destructive operation
+META_FILE="${DUMP_FILE%.sql.gz}.meta.json"
+if [[ -f "${META_FILE}" ]]; then
+  log_info "Verifying SHA256 checksum from metadata..."
+  EXPECTED_SHA=$(python3 -c "import json; print(json.load(open('${META_FILE}'))['sha256'])" 2>/dev/null || echo "")
+  if [[ -n "${EXPECTED_SHA}" ]]; then
+    ACTUAL_SHA=$(sha256sum "${DUMP_FILE}" | awk '{print $1}')
+    if [[ "${ACTUAL_SHA}" != "${EXPECTED_SHA}" ]]; then
+      log_err "Checksum mismatch! Expected ${EXPECTED_SHA}, got ${ACTUAL_SHA}. Aborting."
+      exit 1
+    fi
+    log_ok "Checksum verified: ${ACTUAL_SHA:0:16}..."
+  fi
+else
+  log_warn "No metadata file found at ${META_FILE}; skipping checksum verification."
 fi
 
 DB_CONTAINER="odoo${VERSION}-db"
@@ -50,7 +72,7 @@ if [[ "${EXISTS}" == "1" ]]; then
     log_err "Explicit safety flag '--force' required to overwrite existing database '${TARGET_DB}'."
     exit 2
   fi
-  
+
   # Step 1: Pre-restore Safety Backup
   SAFETY_BACKUP_DIR="${DATA_ROOT}/backups/safety_pre_restore"
   mkdir -p "${SAFETY_BACKUP_DIR}"
@@ -65,7 +87,7 @@ if [[ "${EXISTS}" == "1" ]]; then
     SELECT pg_terminate_backend(pid) 
     FROM pg_stat_activity 
     WHERE datname = '${TARGET_DB}' AND pid <> pg_backend_pid();" >/dev/null 2>&1 || true
-    
+
   log_info "Dropping existing database '${TARGET_DB}'..."
   docker exec "${DB_CONTAINER}" dropdb -U "${DB_USER}" --if-exists "${TARGET_DB}"
 fi
@@ -74,27 +96,43 @@ fi
 log_info "Creating database '${TARGET_DB}' with UTF-8 encoding..."
 docker exec "${DB_CONTAINER}" createdb -U "${DB_USER}" -E UTF8 "${TARGET_DB}"
 
-# Step 4: Stream restoration
+# Step 4: Stream restoration with ON_ERROR_STOP (F12: stop on SQL error)
 log_info "Restoring SQL dump into '${TARGET_DB}'..."
 if [[ "${DUMP_FILE}" == *.gz ]]; then
-  gunzip -c "${DUMP_FILE}" | docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${TARGET_DB}" >/dev/null
+  gunzip -c "${DUMP_FILE}" | docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 >/dev/null
 else
-  docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${TARGET_DB}" < "${DUMP_FILE}" >/dev/null
+  docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 < "${DUMP_FILE}" >/dev/null
 fi
 log_ok "Database SQL schema and data restored successfully."
 
-# Step 5: Check for companion filestore archive
+# Step 5: Restore companion filestore linked to target DB name (F12: not source name)
 DIRNAME=$(dirname "${DUMP_FILE}")
 FILENAME=$(basename "${DUMP_FILE}")
-FILESTORE_CANDIDATE="${DIRNAME}/${FILENAME/dump_/filestore_}"
-FILESTORE_CANDIDATE="${FILESTORE_CANDIDATE%.sql.gz}.tar.gz"
+# Derive source DB name from dump filename: dump_<DB>_<ts>.sql.gz
+SOURCE_DB_CANDIDATE="${FILENAME#dump_}"
+SOURCE_DB_CANDIDATE="${SOURCE_DB_CANDIDATE%%_*}"
 
-if [[ -f "${FILESTORE_CANDIDATE}" ]]; then
-  log_info "Companion filestore archive detected: $(basename "${FILESTORE_CANDIDATE}")"
+FILESTORE_CANDIDATE="${DIRNAME}/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz"
+FILESTORE_CANDIDATE_GZ="${DIRNAME}/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz"
+
+# Find matching filestore archive
+FILESTORE_FILE=""
+shopt -s nullglob
+for cand in "${DIRNAME}"/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz; do
+  FILESTORE_FILE="${cand}"
+  break
+done
+shopt -u nullglob
+
+if [[ -n "${FILESTORE_FILE}" ]]; then
+  log_info "Companion filestore archive detected: $(basename "${FILESTORE_FILE}")"
+  # F12: Restore filestore under the TARGET database name, not the source name
   TARGET_FILESTORE="${DATA_ROOT}/odoo${VERSION}/data/filestore/${TARGET_DB}"
   mkdir -p "${TARGET_FILESTORE}"
-  tar -xzf "${FILESTORE_CANDIDATE}" -C "${DATA_ROOT}/odoo${VERSION}/data/filestore"
-  log_ok "Filestore restored successfully."
+  tar -xzf "${FILESTORE_FILE}" -C "${TARGET_FILESTORE}"
+  log_ok "Filestore restored to target name: ${TARGET_DB}"
+else
+  log_warn "No filestore archive found for source DB '${SOURCE_DB_CANDIDATE}'; skipping filestore restore."
 fi
 
 # Step 6: Verify restored tables count
@@ -104,5 +142,6 @@ log_ok "Verification: Database '${TARGET_DB}' contains ${TABLE_COUNT} public tab
 if [[ "${TABLE_COUNT}" -gt 0 ]]; then
   log_ok "Restore operation completed with status: SUCCESS"
 else
-  log_warn "Restore completed, but no tables were detected in target database."
+  log_err "Restore completed, but no tables were detected in target database. Possible incomplete restore."
+  exit 1
 fi

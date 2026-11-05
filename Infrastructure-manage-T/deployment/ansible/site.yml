@@ -1,0 +1,36 @@
+---
+# Site playbook - Orchestrates all Ansible roles in dependency order
+# Usage: ansible-playbook -i inventory/hosts.ini site.yml
+
+- name: Server Preparation
+  hosts: all
+  become: true
+  roles:
+    - server-prep
+
+- name: Docker Engine
+  hosts: all
+  become: true
+  roles:
+    - docker
+
+- name: Infrastructure Services (Traefik + PostgreSQL)
+  hosts: all
+  become: true
+  roles:
+    - traefik
+    - postgresql
+
+- name: Automation Tools (Ansible)
+  hosts: all
+  become: true
+  roles:
+    - jenkins
+
+- name: Application Deployment (Odoo 17/18/19)
+  hosts: all
+  become: true
+  roles:
+    - odoo17
+    - odoo18
+    - odoo19

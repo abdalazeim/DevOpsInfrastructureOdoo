@@ -34,7 +34,9 @@ def inspect_odoo(version: str, use_sudo=False):
     if code:
         return {'status': 'error', 'containers': [], 'error': output}
     containers = []
-    collision = False
+    has_odoo_container = False
+    has_db_container = False
+    name_conflict = False
     try:
         for line in output.splitlines():
             item = json.loads(line)
@@ -42,13 +44,27 @@ def inspect_odoo(version: str, use_sudo=False):
             image = item.get('Image', '')
             is_odoo = f'odoo{version}' in names or image.startswith(ODOO_IMAGES[version])
             is_db = f'odoo{version}-db' in names or image.startswith(PG_IMAGES[version])
+            # F22: Detect name conflict — a container with the expected name but wrong image.
+            if names == f'odoo{version}' or names == f'odoo{version}-db':
+                if is_odoo or is_db:
+                    if f'odoo{version}-db' in names:
+                        has_db_container = True
+                    else:
+                        has_odoo_container = True
+                else:
+                    name_conflict = True
             if is_odoo or is_db:
                 containers.append(item)
-                collision |= not (is_odoo or is_db)
     except (ValueError, AttributeError):
         return {'status': 'error', 'containers': [], 'error': 'Failed to read Docker response.'}
-    return {'status': 'conflict' if collision else 'installed' if containers else 'missing',
-            'containers': containers, 'error': ''}
+    # F22: Require both Odoo and DB containers for 'installed'; conflict on name clash.
+    if name_conflict:
+        return {'status': 'conflict', 'containers': containers, 'error': 'Container name conflict'}
+    if has_odoo_container and has_db_container:
+        return {'status': 'installed', 'containers': containers, 'error': ''}
+    if containers:
+        return {'status': 'partial', 'containers': containers, 'error': 'Only one of Odoo/DB container present'}
+    return {'status': 'missing', 'containers': containers, 'error': ''}
 
 
 def odoo_diagnose(version: str, use_sudo=False):
@@ -110,14 +126,29 @@ def odoo_diagnose(version: str, use_sudo=False):
         })
         return issues, repairs
 
+    if report['status'] == 'partial':
+        issues.append({
+            'id': f'odoo{version}_partial_install',
+            'component': f'Odoo {version}',
+            'title': f'Odoo {version} partially installed',
+            'description': 'Only one of the Odoo or PostgreSQL containers is present. Reinstallation is needed.',
+            'severity': 'high',
+            'auto_fix': False,
+            'fix_command': None,
+            'fix_description': 'Remove existing containers and re-run installation.',
+        })
+        return issues, repairs
+
     # Check container status
     odoo_running = False
     db_running = False
     for c in report['containers']:
         names = c.get('Names', '')
         status = c.get('Status', '')
+        # F24: Require 'running' status, not just 'not Exited/Created'.
+        is_running = 'running' in status.lower()
         if f'odoo{version}-db' in names:
-            if 'Exited' in status or 'Created' in status:
+            if not is_running:
                 issues.append({
                     'id': f'odoo{version}_db_not_running',
                     'component': f'Odoo {version}',
@@ -125,14 +156,14 @@ def odoo_diagnose(version: str, use_sudo=False):
                     'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
-                    'fix_command': ['start', f'odoo{version}-db'],
+                    'fix_command': ['docker', 'start', f'odoo{version}-db'],
                     'fix_description': f'Start Odoo {version} database container.',
                 })
                 repairs.append((f'Start Odoo {version} database', ['docker', 'start', f'odoo{version}-db']))
             else:
                 db_running = True
         if f'odoo{version}' in names and '-db' not in names:
-            if 'Exited' in status or 'Created' in status:
+            if not is_running:
                 issues.append({
                     'id': f'odoo{version}_container_not_running',
                     'component': f'Odoo {version}',
@@ -140,7 +171,7 @@ def odoo_diagnose(version: str, use_sudo=False):
                     'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
-                    'fix_command': ['start', f'odoo{version}'],
+                    'fix_command': ['docker', 'start', f'odoo{version}'],
                     'fix_description': f'Start Odoo {version} container.',
                 })
                 repairs.append((f'Start Odoo {version}', ['docker', 'start', f'odoo{version}']))
@@ -207,7 +238,7 @@ def odoo_repair(issue: Dict, use_sudo=False):
         return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
-    full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
+    full_cmd = prefix + fix_cmd
     try:
         run_step(full_cmd)
         return True, 'Executed successfully.'
@@ -254,12 +285,13 @@ def install_odoo(profile, version: str, dry_run: bool = False, use_sudo: bool = 
             print(report['error'])
             return False
 
-        # Check ports before installation
-        http_port = ODOO_HTTP_PORTS[version]
-        chat_port = ODOO_CHAT_PORTS[version]
-        for port in (http_port, chat_port):
-            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
-                sock.bind(('0.0.0.0', port))
+        # Check ports before installation (skip when Traefik publishes ports internally)
+        if not with_traefik:
+            http_port = ODOO_HTTP_PORTS[version]
+            chat_port = ODOO_CHAT_PORTS[version]
+            for port in (http_port, chat_port):
+                with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
+                    sock.bind(('0.0.0.0', port))
 
         if dry_run:
             print(f'[DRY-RUN] Will install Odoo {version} with PostgreSQL {PG_IMAGES[version].split(":")[1]}')

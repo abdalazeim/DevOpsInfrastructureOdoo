@@ -79,7 +79,7 @@ def probe(command):
 
 
 def build_ansible_install_plan(use_sudo=False):
-    """Build Ansible installation plan (create script and run it)."""
+    """Build Ansible installation plan (write script and run it)."""
     docker = ['sudo'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []
     prefix = docker
     install_script = '/tmp/install-ansible.sh'
@@ -183,10 +183,12 @@ def build_ansible_install_plan(use_sudo=False):
         '  ansible local -m ping\n'
         '  ansible-playbook playbooks/site.yml\n'
     )
+    # F21: Write the script content to disk so tee is not left waiting on stdin.
+    with open(install_script, "w", encoding="utf-8") as f:
+        f.write(script_content)
+    os.chmod(install_script, 0o755)
     return [
-        prefix + ['tee', '/tmp/install-ansible.sh'],
-        prefix + ['chmod', '+x', '/tmp/install-ansible.sh'],
-        prefix + ['bash', '/tmp/install-ansible.sh'],
+        prefix + ['bash', install_script],
     ]
 
 

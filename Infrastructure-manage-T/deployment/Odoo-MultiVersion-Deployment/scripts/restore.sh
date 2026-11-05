@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # ==============================================================================
 # Odoo Multi-Version Deployment - Restore Script
-# Restores backup with full safety measures
-# Supports Odoo 17 and Odoo 19 with multiple instances per version
+# Restores backup with full safety measures.
+# Consumes the archive contract produced by backup.sh (manifest.json +
+# checksums.sha256 + database_dump_*.sql + filestore_*.tar.*).
+# Supports Odoo 17, 18 and 19 with multiple instances per version.
 # ==============================================================================
 set -euo pipefail
 
@@ -53,7 +55,7 @@ if [ ! -d "${BACKUP_PATH}" ]; then
     exit 1
 fi
 
-# Verify essential backup files exist
+# Verify essential backup files exist (F01/F04)
 for file in manifest.json checksums.sha256; do
     if [ ! -f "${BACKUP_PATH}/${file}" ]; then
         print_error "File '${file}' not found in backup"
@@ -61,7 +63,7 @@ for file in manifest.json checksums.sha256; do
     fi
 done
 
-# Verify backup integrity via SHA256
+# Verify backup integrity via SHA256 (F01)
 print_info "Verifying backup integrity via SHA256..."
 cd "${BACKUP_PATH}"
 if ! sha256sum -c checksums.sha256 >/dev/null 2>&1; then
@@ -70,105 +72,206 @@ if ! sha256sum -c checksums.sha256 >/dev/null 2>&1; then
 fi
 print_success "File integrity verified successfully"
 
-# Read backup info from manifest
+# Read backup info from manifest (F03: target correct DB from manifest)
 print_info "Reading backup info from manifest.json..."
 ODOO_VER_FROM_MANIFEST=$(python3 -c "import json; print(json.load(open('manifest.json'))['odoo_version'])" 2>/dev/null || echo "unknown")
 PG_VER_FROM_MANIFEST=$(python3 -c "import json; print(json.load(open('manifest.json'))['postgres_version'])" 2>/dev/null || echo "unknown")
+DB_NAME_FROM_MANIFEST=$(python3 -c "import json; print(json.load(open('manifest.json'))['database'])" 2>/dev/null || echo "")
+BACKUP_DB_FILE=$(python3 -c "import json; print(json.load(open('manifest.json'))['database_backup'])" 2>/dev/null || echo "")
+BACKUP_FILestore_FILE=$(python3 -c "import json; print(json.load(open('manifest.json'))['filestore_backup'])" 2>/dev/null || echo "")
+BACKUP_ADDONS_FILE=$(python3 -c "import json; print(json.load(open('manifest.json'))['addons_backup'])" 2>/dev/null || echo "")
+BACKUP_CONFIG_FILE=$(python3 -c "import json; print(json.load(open('manifest.json'))['config_backup'])" 2>/dev/null || echo "")
+
 print_info "Odoo version in backup: ${ODOO_VER_FROM_MANIFEST}"
 print_info "PostgreSQL version in backup: ${PG_VER_FROM_MANIFEST}"
+print_info "Database in backup: ${DB_NAME_FROM_MANIFEST}"
+
+# Handle new-instance: build new destination BEFORE any writing (F05)
+if [ "${RESTORE_TYPE}" = "new-instance" ]; then
+    if [ -z "${NEW_INSTANCE_NAME}" ]; then
+        print_error "Restore type new-instance requires NEW_INSTANCE_NAME"
+        exit 1
+    fi
+    # Derive new paths
+    NEW_DATA_PATH="/data/${ODOO_VERSION}/${NEW_INSTANCE_NAME}"
+    NEW_CONFIG_PATH="/opt/${ODOO_VERSION}/${NEW_INSTANCE_NAME}"
+    NEW_ODOO_CONTAINER="${ODOO_VERSION}-${NEW_INSTANCE_NAME}"
+    NEW_DB_CONTAINER="${ODOO_VERSION}-${NEW_INSTANCE_NAME}-db"
+    print_info "Creating new instance destination: ${NEW_INSTANCE_NAME}"
+    mkdir -p "${NEW_DATA_PATH}" "${NEW_CONFIG_PATH}"
+    # Do not touch the source instance
+    DATA_PATH="${NEW_DATA_PATH}"
+    CONFIG_PATH="${NEW_CONFIG_PATH}"
+    INSTANCE="${NEW_INSTANCE_NAME}"
+    ODOO_CONTAINER="${NEW_ODOO_CONTAINER}"
+    DB_CONTAINER="${NEW_DB_CONTAINER}"
+else
+    ODOO_CONTAINER="${ODOO_VERSION}-${INSTANCE}"
+    DB_CONTAINER="${ODOO_VERSION}-${INSTANCE}-db"
+fi
 
 # Check storage space
 print_info "Checking available storage space..."
 AVAILABLE_SPACE=$(df /data --output=avail | tail -1 | tr -d ' ')
 print_info "Available space: ${AVAILABLE_SPACE} KB"
 
-# Take safety backup of current state before replacing
-print_info "Taking safety backup of current state before replacement..."
-SAFETY_DIR="${BACKUP_ROOT}/safety_pre_restore_$(date +%Y%m%d_%H%M%S)"
-mkdir -p "${SAFETY_DIR}"
-if [ -d "/data/${ODOO_VERSION}/${INSTANCE}" ]; then
-    cp -r "/data/${ODOO_VERSION}/${INSTANCE}" "${SAFETY_DIR}/" 2>/dev/null || true
-    print_success "Current state backed up to: ${SAFETY_DIR}"
-fi
-
-# Stop Odoo service temporarily
-print_info "Stopping Odoo service temporarily..."
-ODOO_CONTAINER="${ODOO_VERSION}-${INSTANCE}"
-DB_CONTAINER="${ODOO_VERSION}-${INSTANCE}-db"
-
+# Stop Odoo and DB containers BEFORE safety backup (F06: consistent state)
+print_info "Stopping Odoo and DB containers before safety backup..."
 if docker ps --format '{{.Names}}' | grep -q "^${ODOO_CONTAINER}$"; then
-    docker stop "${ODOO_CONTAINER}" 2>/dev/null || true
+    docker stop "${ODOO_CONTAINER}" >/dev/null 2>&1 || {
+        print_error "Failed to stop Odoo container: ${ODOO_CONTAINER}"
+        exit 1
+    }
     print_success "Odoo container stopped: ${ODOO_CONTAINER}"
 fi
+if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
+    docker stop "${DB_CONTAINER}" >/dev/null 2>&1 || {
+        print_error "Failed to stop DB container: ${DB_CONTAINER}"
+        exit 1
+    }
+    print_success "DB container stopped: ${DB_CONTAINER}"
+fi
 
-# Restore PostgreSQL database
-print_info "Restoring PostgreSQL database..."
-if [ -f "${BACKUP_PATH}/database_*.sql" ] || [ -f "${BACKUP_PATH}/database.dump" ]; then
-    DB_FILE=$(ls "${BACKUP_PATH}"/database_*.sql "${BACKUP_PATH}"/database.dump 2>/dev/null | head -1 || true)
-    if [ -n "${DB_FILE}" ]; then
-        if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-            docker exec -i "${DB_CONTAINER}" psql -U postgres -d postgres < "${DB_FILE}" 2>/dev/null || true
-            print_success "PostgreSQL database restored from: ${DB_FILE}"
-        else
-            print_warning "DB container not running, skipping PostgreSQL restore"
-        fi
+# Take safety backup of current state AFTER stopping containers (F06)
+print_info "Taking safety backup of current state before replacement..."
+SAFETY_DIR="${BACKUP_ROOT}/safety_pre_restore_$(date +%Y%m%d_%H%M%S)"
+mkdir -p "${SAFETY_DIR}" || {
+    print_error "Failed to create safety backup directory: ${SAFETY_DIR}"
+    exit 1
+}
+if [ -d "/data/${ODOO_VERSION}/${INSTANCE}" ] || [ -d "${DATA_PATH}" ]; then
+    cp -r "/data/${ODOO_VERSION}/${INSTANCE}" "${SAFETY_DIR}/" 2>/dev/null || true
+    cp -r "${DATA_PATH}" "${SAFETY_DIR}/" 2>/dev/null || true
+    if [ ! -d "${SAFETY_DIR}/${INSTANCE}" ] && [ ! -d "${SAFETY_DIR}/$(basename "${DATA_PATH}")" ]; then
+        print_warning "No data directory found to safety-backup (may be first-time restore)"
+    else
+        print_success "Current state backed up to: ${SAFETY_DIR}"
     fi
+fi
+
+# Restore PostgreSQL database (F03: target correct DB, ON_ERROR_STOP, no || true)
+print_info "Restoring PostgreSQL database..."
+if [ -n "${BACKUP_DB_FILE}" ] && [ -f "${BACKUP_PATH}/${BACKUP_DB_FILE}" ]; then
+    DB_FILE="${BACKUP_PATH}/${BACKUP_DB_FILE}"
+elif [ -f "${BACKUP_PATH}/database_dump_*.sql" ]; then
+    # Fallback: discover dump file explicitly (F04)
+    DB_FILE=$(ls "${BACKUP_PATH}"/database_dump_*.sql 2>/dev/null | head -1 || true)
+elif [ -f "${BACKUP_PATH}/database.dump" ]; then
+    DB_FILE="${BACKUP_PATH}/database.dump"
+else
+    DB_FILE=""
+fi
+
+if [ -n "${DB_FILE}" ]; then
+    print_info "Found database dump: ${DB_FILE}"
+    if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
+        print_error "DB container ${DB_CONTAINER} is running; stop it before restore"
+        exit 1
+    fi
+    # Start DB container temporarily for restore
+    docker start "${DB_CONTAINER}" >/dev/null 2>&1 || {
+        print_error "Failed to start DB container: ${DB_CONTAINER}"
+        exit 1
+    }
+    # Wait for PostgreSQL to be ready
+    for i in $(seq 1 30); do
+        if docker exec "${DB_CONTAINER}" pg_isready -U postgres >/dev/null 2>&1; then
+            break
+        fi
+        sleep 1
+    done
+    # Restore into the database named in the manifest (F03)
+    TARGET_DB="${DB_NAME_FROM_MANIFEST:-odoo${ODOO_VERSION#odoo}_prod}"
+    docker exec -i "${DB_CONTAINER}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f "${DB_FILE}" >/dev/null 2>&1 || {
+        print_error "PostgreSQL restore failed from: ${DB_FILE}"
+        docker stop "${DB_CONTAINER}" >/dev/null 2>&1 || true
+        exit 1
+    }
+    print_success "PostgreSQL database restored from: ${DB_FILE}"
+    docker stop "${DB_CONTAINER}" >/dev/null 2>&1 || true
 else
     print_warning "Database backup file not found, skipping PostgreSQL restore"
 fi
 
-# Restore Filestore
+# Restore Filestore (F04: explicit file discovery)
 print_info "Restoring filestore..."
-if [ -f "${BACKUP_PATH}/filestore_*.tar.zst" ]; then
+FILestore_FILE=""
+if [ -n "${BACKUP_FILestore_FILE}" ] && [ -f "${BACKUP_PATH}/${BACKUP_FILestore_FILE}" ]; then
+    FILestore_FILE="${BACKUP_PATH}/${BACKUP_FILestore_FILE}"
+elif compgen -G "${BACKUP_PATH}/filestore_*.tar.zst" > /dev/null 2>&1; then
     FILestore_FILE=$(ls "${BACKUP_PATH}"/filestore_*.tar.zst 2>/dev/null | head -1 || true)
-    if [ -n "${FILestore_FILE}" ]; then
-        mkdir -p "${DATA_PATH}"
-        tar --zstd -xf "${FILestore_FILE}" -C "${DATA_PATH}/" 2>/dev/null || true
-        print_success "Filestore restored from: ${FILestore_FILE}"
-    fi
-elif [ -f "${BACKUP_PATH}/filestore_*.tar.gz" ]; then
+elif compgen -G "${BACKUP_PATH}/filestore_*.tar.gz" > /dev/null 2>&1; then
     FILestore_FILE=$(ls "${BACKUP_PATH}"/filestore_*.tar.gz 2>/dev/null | head -1 || true)
-    if [ -n "${FILestore_FILE}" ]; then
-        mkdir -p "${DATA_PATH}"
-        tar -xzf "${FILestore_FILE}" -C "${DATA_PATH}/" 2>/dev/null || true
-        print_success "Filestore restored from: ${FILestore_FILE}"
+fi
+
+if [ -n "${FILestore_FILE}" ]; then
+    mkdir -p "${DATA_PATH}"
+    if [[ "${FILestore_FILE}" == *.zst ]]; then
+        tar --zstd -xf "${FILestore_FILE}" -C "${DATA_PATH}/" || {
+            print_error "Failed to extract filestore: ${FILestore_FILE}"
+            exit 1
+        }
+    else
+        tar -xzf "${FILestore_FILE}" -C "${DATA_PATH}/" || {
+            print_error "Failed to extract filestore: ${FILestore_FILE}"
+            exit 1
+        }
     fi
+    print_success "Filestore restored from: ${FILestore_FILE}"
 else
     print_warning "Filestore file not found, skipping filestore restore"
 fi
 
-# Restore Custom Addons and config
+# Restore Custom Addons (F04)
 print_info "Restoring addons and config..."
-if [ -f "${BACKUP_PATH}/addons_*.tar.zst" ]; then
+ADDONS_FILE=""
+if [ -n "${BACKUP_ADDONS_FILE}" ] && [ -f "${BACKUP_PATH}/${BACKUP_ADDONS_FILE}" ]; then
+    ADDONS_FILE="${BACKUP_PATH}/${BACKUP_ADDONS_FILE}"
+elif compgen -G "${BACKUP_PATH}/addons_*.tar.zst" > /dev/null 2>&1; then
     ADDONS_FILE=$(ls "${BACKUP_PATH}"/addons_*.tar.zst 2>/dev/null | head -1 || true)
-    if [ -n "${ADDONS_FILE}" ]; then
-        mkdir -p "${CONFIG_PATH}"
-        tar --zstd -xf "${ADDONS_FILE}" -C "${CONFIG_PATH}/" 2>/dev/null || true
-        print_success "Custom addons restored from: ${ADDONS_FILE}"
-    fi
-elif [ -f "${BACKUP_PATH}/addons_*.tar.gz" ]; then
+elif compgen -G "${BACKUP_PATH}/addons_*.tar.gz" > /dev/null 2>&1; then
     ADDONS_FILE=$(ls "${BACKUP_PATH}"/addons_*.tar.gz 2>/dev/null | head -1 || true)
-    if [ -n "${ADDONS_FILE}" ]; then
-        mkdir -p "${CONFIG_PATH}"
-        tar -xzf "${ADDONS_FILE}" -C "${CONFIG_PATH}/" 2>/dev/null || true
-        print_success "Custom addons restored from: ${ADDONS_FILE}"
-    fi
 fi
 
-if [ -f "${BACKUP_PATH}/config_*.tar.zst" ]; then
+if [ -n "${ADDONS_FILE}" ]; then
+    mkdir -p "${CONFIG_PATH}"
+    if [[ "${ADDONS_FILE}" == *.zst ]]; then
+        tar --zstd -xf "${ADDONS_FILE}" -C "${CONFIG_PATH}/" || {
+            print_error "Failed to extract addons: ${ADDONS_FILE}"
+            exit 1
+        }
+    else
+        tar -xzf "${ADDONS_FILE}" -C "${CONFIG_PATH}/" || {
+            print_error "Failed to extract addons: ${ADDONS_FILE}"
+            exit 1
+        }
+    fi
+    print_success "Custom addons restored from: ${ADDONS_FILE}"
+fi
+
+CONFIG_FILE=""
+if [ -n "${BACKUP_CONFIG_FILE}" ] && [ -f "${BACKUP_PATH}/${BACKUP_CONFIG_FILE}" ]; then
+    CONFIG_FILE="${BACKUP_PATH}/${BACKUP_CONFIG_FILE}"
+elif compgen -G "${BACKUP_PATH}/config_*.tar.zst" > /dev/null 2>&1; then
     CONFIG_FILE=$(ls "${BACKUP_PATH}"/config_*.tar.zst 2>/dev/null | head -1 || true)
-    if [ -n "${CONFIG_FILE}" ]; then
-        mkdir -p "${CONFIG_PATH}"
-        tar --zstd -xf "${CONFIG_FILE}" -C "${CONFIG_PATH}/" 2>/dev/null || true
-        print_success "Odoo config restored from: ${CONFIG_FILE}"
-    fi
-elif [ -f "${BACKUP_PATH}/config_*.tar.gz" ]; then
+elif compgen -G "${BACKUP_PATH}/config_*.tar.gz" > /dev/null 2>&1; then
     CONFIG_FILE=$(ls "${BACKUP_PATH}"/config_*.tar.gz 2>/dev/null | head -1 || true)
-    if [ -n "${CONFIG_FILE}" ]; then
-        mkdir -p "${CONFIG_PATH}"
-        tar -xzf "${CONFIG_FILE}" -C "${CONFIG_PATH}/" 2>/dev/null || true
-        print_success "Odoo config restored from: ${CONFIG_FILE}"
+fi
+
+if [ -n "${CONFIG_FILE}" ]; then
+    mkdir -p "${CONFIG_PATH}"
+    if [[ "${CONFIG_FILE}" == *.zst ]]; then
+        tar --zstd -xf "${CONFIG_FILE}" -C "${CONFIG_PATH}/" || {
+            print_error "Failed to extract config: ${CONFIG_FILE}"
+            exit 1
+        }
+    else
+        tar -xzf "${CONFIG_FILE}" -C "${CONFIG_PATH}/" || {
+            print_error "Failed to extract config: ${CONFIG_FILE}"
+            exit 1
+        }
     fi
+    print_success "Odoo config restored from: ${CONFIG_FILE}"
 fi
 
 # Set permissions
@@ -178,18 +281,12 @@ chmod 755 "${CONFIG_PATH}/etc" 2>/dev/null || true
 chmod 755 "${CONFIG_PATH}/addons" 2>/dev/null || true
 print_success "Permissions set"
 
-# Restore as new instance (new-instance)
-if [ "${RESTORE_TYPE}" = "new-instance" ]; then
-    if [ -n "${NEW_INSTANCE_NAME}" ]; then
-        print_info "Creating new instance: ${NEW_INSTANCE_NAME}"
-    else
-        print_warning "Restore type new-instance but no new instance name specified"
-    fi
-fi
-
-# Restart Odoo
+# Restart Odoo container after restore
 print_info "Restarting Odoo service..."
-docker start "${ODOO_CONTAINER}" 2>/dev/null || true
+docker start "${ODOO_CONTAINER}" >/dev/null 2>&1 || {
+    print_error "Failed to start Odoo container: ${ODOO_CONTAINER}"
+    exit 1
+}
 print_success "Odoo container restarted: ${ODOO_CONTAINER}"
 
 # Verify service health after restore

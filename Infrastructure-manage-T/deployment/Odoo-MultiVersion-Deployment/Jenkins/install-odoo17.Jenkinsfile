@@ -127,8 +127,8 @@ pipeline {
                 sh '''
                     docker ps --filter "name=odoo17" --format "table {{.Names}}\t{{.Status}}"
                     echo "✓ Odoo 17 deployed successfully"
-                    echo "https://odoo1.devops-odoo.com"
-                    echo "https://odoo2.devops-odoo.com"
+                    echo "https://${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}"
+                    echo "https://${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
                 '''
             }
         }

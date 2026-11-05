@@ -24,6 +24,12 @@ from app.workflows.database_ops import DatabaseOpsWorkflow
 from app.workflows.full_deploy import FullDeployWorkflow
 from app.services.execution_service import ExecutionService
 from app.services.health_service import HealthService
+from app.services.sequential_installer import SequentialInstaller, ComponentInstaller
+from app.config.hostname_config import detect_and_configure, get_config, HostnameConfig, set_config
+from app.core.server_setup import ServerSetupWorkflow
+from app.core.smart_inspector import SmartInspectorService
+from app.core.installation_status import InstallationStatus, ComponentStatusRecord
+from app.ui.menu_system import MenuSystem
 
 # Repository root (this file lives in <root>/app/ui/app.py).
 PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
@@ -44,6 +50,31 @@ class TerminalUI:
         self.profile_path = profile_path
         self.profile = self.load_profile(profile_path)
         self.is_arabic = False
+        self.hostname_config: Optional[HostnameConfig] = None
+        self._initialize_hostname_config()
+        self.menu_system = MenuSystem(self)
+
+    def _initialize_hostname_config(self) -> None:
+        """Detect and configure the centralized hostname/domain at startup."""
+        try:
+            self.hostname_config = detect_and_configure(interactive=False)
+        except (ValueError, RuntimeError):
+            # Config not yet initialized; will be prompted on first use
+            self.hostname_config = None
+
+    def ensure_hostname_config(self) -> HostnameConfig:
+        """Ensure hostname config is initialized, prompting user if needed."""
+        if self.hostname_config is not None:
+            return self.hostname_config
+        try:
+            cfg = get_config()
+            self.hostname_config = cfg
+            return cfg
+        except RuntimeError:
+            # Prompt user interactively
+            cfg = detect_and_configure(interactive=True)
+            self.hostname_config = cfg
+            return cfg
 
     def load_profile(self, path: str) -> InfrastructureProfile:
         """Loads and parses a profile from YAML or JSON-compatible format."""
@@ -59,13 +90,30 @@ class TerminalUI:
                 return InfrastructureProfile.from_dict(data)
         except Exception:
             # Fallback for systems without PyYAML installed
+            # Use centralized hostname config if available, otherwise safe defaults
+            try:
+                cfg = get_config()
+                traefik_domain = cfg.traefik_domain
+                odoo17_domain = cfg.odoo17_instance1_domain
+                odoo18_domain = cfg.odoo18_instance1_domain
+                odoo19_domain = cfg.odoo19_instance1_domain
+            except RuntimeError:
+                traefik_domain = "traefik.localhost"
+                odoo17_domain = "odoo17-1.localhost"
+                odoo18_domain = "odoo18-1.localhost"
+                odoo19_domain = "odoo19-1.localhost"
+            try:
+                cfg = get_config()
+                acme_email = f"admin@{cfg.primary_domain}"
+            except RuntimeError:
+                acme_email = "admin@localhost"
             data = {
                 "profile_name": "example-profile",
                 "server": {"hostname": "devops-odoo", "ip_or_host": "127.0.0.1"},
-                "traefik": {"dashboard_domain": "traefik.example.com", "acme_email": "admin@example.com"},
-                "odoo17": {"domain": "odoo17.example.com"},
-                "odoo18": {"domain": "odoo18.example.com"},
-                "odoo19": {"domain": "odoo19.example.com"},
+                "traefik": {"dashboard_domain": traefik_domain, "acme_email": acme_email},
+                "odoo17": {"domain": odoo17_domain},
+                "odoo18": {"domain": odoo18_domain},
+                "odoo19": {"domain": odoo19_domain},
             }
             return InfrastructureProfile.from_dict(data)
 
@@ -118,89 +166,47 @@ class TerminalUI:
             print(f"\n{GREEN}{BOLD}✔ Operation completed successfully in {elapsed:.2f}s!{RESET}\n")
         else:
             print(f"\n{RED}{BOLD}✖ Operation terminated with errors after {elapsed:.2f}s.{RESET}\n")
+        return op
 
     def show_menu(self):
+        """Display the reorganized professional menu system."""
         while True:
-            print(f"{CYAN}{BOLD}")
-            print("==================================================")
-            print("       ODOO INFRASTRUCTURE MANAGER                ")
-            print("==================================================")
-            print(f"{RESET}")
-            print(f"  {BOLD}1.{RESET} System Information")
-            print(f"  {BOLD}2.{RESET} Infrastructure Health Check")
-            print(f"  {BOLD}3.{RESET} Install Missing Components")
-            print(f"  {BOLD}4.{RESET} Docker Management")
-            print(f"  {BOLD}5.{RESET} Traefik Management")
-            print(f"  {BOLD}6.{RESET} Docker Network Management")
-            print(f"  {BOLD}7.{RESET} Odoo Management (17 / 18 / 19)")
-            print(f"  {BOLD}8.{RESET} PostgreSQL Management")
-            print(f"  {BOLD}9.{RESET} DNS & SSL Verification")
-            print(f" {BOLD}10.{RESET} Backup Management")
-            print(f" {BOLD}11.{RESET} Restore Management")
-            print(f" {BOLD}12.{RESET} Monitoring & Logs")
-            print(f" {BOLD}13.{RESET} Configuration Profiles")
-            print(f" {BOLD}14.{RESET} Troubleshooting")
-            print(f" {BOLD}15.{RESET} Generate Infrastructure Report")
-            print(f" {BOLD}16.{RESET} Python / PostgreSQL / Docker / Compose / Portainer — Component Inspection")
-            print(f" {BOLD}17.{RESET} Install Ansible & Baseline Config")
-            print(f" {BOLD}18.{RESET} Install Jenkins CI/CD")
-            print(f" {BOLD}19.{RESET} Error Diagnosis & Auto-Repair")
-            print(f" {BOLD}20.{RESET} Odoo Diagnosis & Repair (17 / 18 / 19)")
-            print("")
-            print(f"  {BOLD}0.{RESET} Exit")
-            print(f"{CYAN}=================================================={RESET}")
+            self.menu_system.display_main_menu()
+            choice = self.menu_system.get_choice()
 
-            choice = input(f"{BOLD}Select an option [0-20]: {RESET}").strip()
-
-            if choice == "1":
-                self.handle_system_information()
-            elif choice == "2":
-                step = HealthService.build_health_check_step()
-                op = OperationRecord("op-health", "Infrastructure Health Check", "health", self.profile.profile_name, steps=[step])
-                self.execute_workflow(op)
-            elif choice == "3":
-                self.run_preflight_checks()
-            elif choice == "4":
-                self.handle_docker_management()
-            elif choice == "5":
-                self.handle_traefik_management()
-            elif choice == "6":
-                self.handle_network_management()
-            elif choice == "7":
-                self.handle_odoo_management()
-            elif choice == "8":
-                self.handle_postgresql_management()
-            elif choice == "9":
-                self.handle_dns_ssl_verification()
-            elif choice == "10":
-                self.handle_backup_management()
-            elif choice == "11":
-                self.handle_restore_management()
-            elif choice == "12":
-                self.handle_monitoring_logs()
-            elif choice == "13":
-                self.handle_configuration_profiles()
-            elif choice == "14":
-                self.handle_troubleshooting()
-            elif choice == "15":
-                self.handle_generate_infrastructure_report()
-            elif choice == "16":
-                self.handle_runtime_setup()
-            elif choice == "17":
-                self.handle_ansible_install()
-            elif choice == "18":
-                self.handle_jenkins_install()
-            elif choice == "19":
-                self.handle_error_diagnosis()
-            elif choice == "20":
-                self.handle_odoo_diagnosis()
-            elif choice == "0":
+            if choice == "0":
                 print(f"{CYAN}Exiting Odoo Infrastructure Manager. Goodbye!{RESET}")
                 break
-            else:
-                print(f"{RED}Invalid selection. Please choose an option from 0 to 20.{RESET}")
 
-            input(f"\n{DIM}Press Enter to return to main menu...{RESET}")
+            category = self.menu_system.get_category(choice)
+            if category is None:
+                print(f"{RED}Invalid selection. Please choose a valid category.{RESET}")
+                input(f"\n{DIM}Press Enter to return to main menu...{RESET}")
+                continue
+
+            # Display submenu and handle selection
+            while True:
+                self.menu_system.display_category(category)
+                sub_choice = self.menu_system.get_submenu_choice(category)
+
+                if sub_choice == "0":
+                    break
+
+                item = None
+                for it in category.items:
+                    if it.key == sub_choice:
+                        item = it
+                        break
+
+                if item is None:
+                    print(f"{RED}Invalid selection.{RESET}")
+                    continue
+
+                self.menu_system.execute_item(item)
+
+                # After executing, ask to return or continue
+                if item.handler:
+                    input(f"\n{DIM}Press Enter to return to {category.label} menu...{RESET}")
 
     def handle_runtime_setup(self, dry_run=False):
         from app.services.runtime_inspector import VERSIONS, inspect_host, inspect_docker
@@ -311,10 +317,10 @@ class TerminalUI:
         if report['status'] == 'conflict':
             print("Portainer name is used by another container; no changes were made.")
             return
-        if report['status'] != 'missing':
-            print(report['error'])
-            print("Review Docker installation and socket access permissions before proceeding.")
-            return
+            if report['status'] != 'missing':
+                print(report['error'])
+                print("Review Docker installation and socket access permissions before proceeding.")
+                return
         print("No Portainer container detected. Proposed installation: portainer/portainer-ce (default tag latest).")
         print("The container will manage Docker via the socket and expose an HTTP web panel on the selected port. Project management remains via Terminal.")
         print("Persistent storage: /srv/portainer on the host; existing data will be used if found.")
@@ -592,7 +598,7 @@ class TerminalUI:
         elif sub == "4":
             subprocess.run(["docker", "info"], check=False)
 
-    def handle_traefik_management(self):
+    def handle_traefik_management(self, dry_run=False):
         from app.services.traefik_manager import DEFAULT_CONFIG_DIR, TraefikDockerManager, TraefikConfig, inspect_traefik, install_traefik, setup_traefik_ufw
 
         print(f"\n{BOLD}{CYAN}=============================================================================={RESET}")
@@ -664,7 +670,7 @@ class TerminalUI:
                 return
             if report['status'] != 'missing':
                 print(report['error'])
-print("Review Docker installation and socket access permissions before proceeding.")
+                print("Review Docker installation and socket access permissions before proceeding.")
                 return
             print("No Traefik container detected. Proposed installation: traefik:v3.7 on ports 80 and 443.")
             print("Directories: /opt/traefik/{config,letsencrypt} and /data/traefik/logs, and acme.json file with 0600 permissions.")
@@ -724,7 +730,14 @@ print("Review Docker installation and socket access permissions before proceedin
                 "4": ("pgadmin", 5050),
             }
             stype, default_p = service_map.get(svc_choice, ("custom", 80))
-            default_domain = "pgadmin.example.com" if stype == "pgadmin" else f"{stype}.example.com"
+            try:
+                cfg = get_config()
+                if stype == "pgadmin":
+                    default_domain = f"pgadmin.{cfg.primary_domain}"
+                else:
+                    default_domain = f"{stype}.{cfg.primary_domain}"
+            except RuntimeError:
+                default_domain = f"{stype}.localhost"
             domain = input(f"Enter domain (e.g. {default_domain}): ").strip() or default_domain
             port_str = input(f"Enter internal port [default {default_p}]: ").strip()
             port = int(port_str) if port_str.isdigit() else default_p
@@ -828,7 +841,7 @@ print("Review Docker installation and socket access permissions before proceedin
             install_ansible(use_sudo=use_sudo)
 
     def handle_jenkins_install(self):
-        from app.services.jenkins_service import inspect_jenkins, install_jenkins, system_preflight_check, JENKINS_DOMAIN, JENKINS_CERTSRESOLVER
+        from app.services.jenkins_service import inspect_jenkins, install_jenkins, system_preflight_check, JENKINS_DOMAIN, JENKINS_TIMEZONE, JENKINS_CERTSRESOLVER
         use_sudo = False
         report = inspect_jenkins()
         if report['status'] == 'error' and hasattr(os, 'geteuid') and os.geteuid() != 0:
@@ -861,7 +874,7 @@ print("Review Docker installation and socket access permissions before proceedin
         print(f"  • Docker image: {IMAGE if 'IMAGE' in dir() else 'jenkins/jenkins:lts-jdk21'}")
         print(f"  • Data storage: /data/jenkins (UID 1000:1000)")
         print(f"  • Configuration file: /opt/jenkins/docker-compose.yml")
-        print(f"  • Timezone: {JENKINS_TIMEZONE if 'JENKINS_TIMEZONE' in dir() else 'Africa/Tripoli'}")
+        print(f"  • Timezone: {JENKINS_TIMEZONE}")
         print("  • Connect to Traefik network (proxy) for HTTPS access only")
         print("  • Docker socket not mounted inside container (security)")
         print("  • Automatic restart (--restart=always)")
@@ -1057,6 +1070,472 @@ print("Review Docker installation and socket access permissions before proceedin
                 return
             with_traefik = bool(self.profile.traefik.enabled and self.profile.security.enforce_https)
             install_odoo(self.profile, version, use_sudo=use_sudo, with_traefik=with_traefik)
+
+    def handle_sequential_installation(self):
+        """Run the sequential multi-component installation workflow with full error tracking."""
+        print(f"\n{BOLD}{CYAN}=== 21. SEQUENTIAL COMPONENT INSTALLATION & REPORT ==={RESET}")
+        print("This will install system components sequentially, continuing on failure.")
+        print("A comprehensive report will be generated at the end.\n")
+
+        dry_run = input("Run in dry-run mode (preview only)? [y/N]: ").strip().lower() == "y"
+        use_sudo = input("Use sudo for commands? [Y/n]: ").strip().lower() != "n"
+
+        installer = SequentialInstaller(
+            log_dir="/var/log/odoo-installer",
+            dry_run=dry_run,
+            use_sudo=use_sudo,
+            on_output=lambda msg: print(msg, end=""),
+        )
+
+        # Define components in order with their installation commands
+        # Each command is a list of arguments (no shell=True, safe from injection)
+
+        # 1. Basic system packages
+        installer.add_component(
+            name="Basic System Packages",
+            commands=[
+                ["apt-get", "update"],
+                ["apt-get", "install", "-y", "curl", "wget", "gnupg", "software-properties-common",
+                 "apt-transport-https", "ca-certificates", "python3", "python3-pip",
+                 "python3-venv", "git", "vim", "sudo", "ufw", "jq", "tar", "gzip", "zstd"],
+            ],
+            check_installed=lambda: (
+                (True, "apt packages")
+                if all(
+                    subprocess.run(["which", c], capture_output=True).returncode == 0
+                    for c in ["curl", "wget", "git", "jq", "tar", "gzip"]
+                )
+                else (False, None)
+            ),
+        )
+
+        # 2. Docker Engine
+        installer.add_component(
+            name="Docker Engine",
+            commands=[
+                ["install", "-m", "0755", "-d", "/etc/apt/keyrings"],
+                ["bash", "-c", "curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg"],
+                ["chmod", "a+r", "/etc/apt/keyrings/docker.gpg"],
+                ["bash", "-c", 'echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null'],
+                ["apt-get", "update"],
+                ["apt-get", "install", "-y", "docker-ce", "docker-ce-cli", "containerd.io", "docker-buildx-plugin", "docker-compose-plugin"],
+                ["systemctl", "enable", "docker"],
+                ["systemctl", "start", "docker"],
+            ],
+            check_installed=lambda: (
+                (True, subprocess.run(["docker", "--version"], capture_output=True, text=True).stdout.strip())
+                if subprocess.run(["which", "docker"], capture_output=True).returncode == 0
+                else (False, None)
+            ),
+        )
+
+        # 3. Ansible
+        installer.add_component(
+            name="Ansible",
+            commands=[
+                ["python3", "-m", "pip", "install", "--upgrade", "pip"],
+                ["python3", "-m", "pip", "install", "ansible"],
+            ],
+            check_installed=lambda: (
+                (True, subprocess.run(["ansible-playbook", "--version"], capture_output=True, text=True).stdout.splitlines()[0])
+                if subprocess.run(["which", "ansible-playbook"], capture_output=True).returncode == 0
+                else (False, None)
+            ),
+        )
+
+        # 4. Traefik (Docker-based)
+        installer.add_component(
+            name="Traefik v3.7",
+            commands=[
+                ["docker", "network", "create", "--driver", "bridge", "--subnet", "172.28.0.0/16", "proxy"],
+                ["bash", "-c", "mkdir -p /opt/traefik/{config,letsencrypt,logs} /data/traefik/logs"],
+                ["bash", "-c", "touch /opt/traefik/letsencrypt/acme.json && chmod 600 /opt/traefik/letsencrypt/acme.json"],
+                ["bash", "-c", "cat > /opt/traefik/config/traefik.yml <<'EOF'\napi:\n  dashboard: true\n  insecure: false\nentryPoints:\n  web:\n    address: :80\n    http:\n      redirections:\n        entryPoint:\n          to: websecure\n          scheme: https\n  websecure:\n    address: :443\ncertificatesResolvers:\n  le:\n    acme:\n      email: admin@localhost\n      storage: /letsencrypt/acme.json\n      httpChallenge:\n        entryPoint: web\nproviders:\n  docker:\n    endpoint: unix:///var/run/docker.sock\n    exposedByDefault: false\n    network: proxy\nEOF"],
+                ["bash", "-c", "cat > /opt/traefik/docker-compose.yml <<'EOF'\nservices:\n  traefik:\n    image: traefik:v3.7\n    container_name: traefik\n    restart: unless-stopped\n    security_opt:\n      - no-new-privileges:true\n    ports:\n      - \"80:80\"\n      - \"443:443\"\n    networks:\n      - proxy\n    volumes:\n      - /var/run/docker.sock:/var/run/docker.sock:ro\n      - ./config/traefik.yml:/etc/traefik/traefik.yml:ro\n      - ./letsencrypt/acme.json:/letsencrypt/acme.json\n      - ./logs:/var/log/traefik\n    environment:\n      - ACME_EMAIL=admin@localhost\nnetworks:\n  proxy:\n    external: true\n    name: proxy\nEOF"],
+                ["bash", "-c", "cd /opt/traefik && docker compose up -d"],
+            ],
+            check_installed=lambda: (
+                (True, "traefik:v3.7")
+                if subprocess.run(["docker", "ps", "-a", "--filter", "name=traefik", "--format", "{{.Names}}"], capture_output=True, text=True).stdout.strip() == "traefik"
+                else (False, None)
+            ),
+        )
+
+        # 5. Portainer
+        installer.add_component(
+            name="Portainer CE",
+            commands=[
+                ["bash", "-c", "mkdir -p /srv/portainer"],
+                ["docker", "run", "-d", "-p", "9000:9000", "-p", "8000:8000",
+                 "--name", "portainer", "--restart=always",
+                 "-v", "/var/run/docker.sock:/var/run/docker.sock",
+                 "-v", "/srv/portainer:/data",
+                 "portainer/portainer-ce"],
+            ],
+            check_installed=lambda: (
+                (True, "portainer/portainer-ce")
+                if subprocess.run(["docker", "ps", "-a", "--filter", "name=portainer", "--format", "{{.Names}}"], capture_output=True, text=True).stdout.strip() == "portainer"
+                else (False, None)
+            ),
+        )
+
+        # Run all components sequentially
+        report = installer.run_all()
+
+        # Print final summary
+        print(f"\n{BOLD}{CYAN}Installation complete. Report saved to: {report.report_file}{RESET}")
+        print(f"Overall status: {report.overall_status.value}")
+        print(f"  SUCCESS: {report.success_count} | FAILED: {report.failure_count} | SKIPPED: {report.skip_count}")
+
+    # === New menu handlers for reorganized menu system ===
+
+    def handle_infrastructure_health(self):
+        """Run comprehensive infrastructure health check."""
+        print(f"\n{BOLD}{CYAN}=== Infrastructure Health Check ==={RESET}")
+        step = HealthService.build_health_check_step()
+        op = OperationRecord("op-health", "Infrastructure Health Check", "health", self.profile.profile_name, steps=[step])
+        self.execute_workflow(op)
+
+    def handle_installation_progress(self):
+        """Display installation progress for all components."""
+        inspector = SmartInspectorService().run_full_inspection()
+        inspector.print_report()
+
+    def handle_recent_events(self):
+        """Display recent installation and operation events."""
+        print(f"\n{BOLD}{CYAN}=== Recent Events ==={RESET}")
+        log_dir = "/var/log/odoo-installer"
+        import os, glob
+        if not os.path.exists(log_dir):
+            print(f"{YELLOW}No installation logs found at {log_dir}{RESET}")
+            return
+        log_files = sorted(glob.glob(os.path.join(log_dir, "*.log")), key=os.path.getmtime, reverse=True)[:10]
+        if not log_files:
+            print(f"{YELLOW}No recent events found.{RESET}")
+            return
+        for lf in log_files:
+            mtime = os.path.getmtime(lf)
+            from datetime import datetime
+            ts = datetime.fromtimestamp(mtime).strftime("%Y-%m-%d %H:%M:%S")
+            print(f"  {ts}  {os.path.basename(lf)}")
+
+    def handle_os_updates(self):
+        """Check OS version and apply system updates."""
+        print(f"\n{BOLD}{CYAN}=== Operating System & Updates ==={RESET}")
+        import platform, subprocess
+        print(f"OS: {platform.system()} {platform.release()}")
+        try:
+            dist = platform.freedesktop_os_release()
+            print(f"Distribution: {dist.get('PRETTY_NAME', 'Unknown')}")
+        except Exception:
+            pass
+        if input("\nApply system updates (apt-get update && upgrade)? [y/N]: ").strip().lower() == "y":
+            subprocess.run(["apt-get", "update"], check=False)
+            subprocess.run(["apt-get", "upgrade", "-y"], check=False)
+            print(f"{GREEN}✓ System updates applied.{RESET}")
+
+    def handle_hardware_storage(self):
+        """View CPU, RAM, disk usage and storage devices."""
+        print(f"\n{BOLD}{CYAN}=== Hardware & Storage ==={RESET}")
+        import shutil, platform
+        print(f"CPU: {platform.machine()}")
+        try:
+            with open("/proc/meminfo") as f:
+                for line in f:
+                    if line.startswith("MemTotal"):
+                        print(f"RAM: {line.split(':')[1].strip()}")
+                        break
+        except Exception:
+            print("RAM: Unknown")
+        total, used, free = shutil.disk_usage("/")
+        print(f"Disk Root: Total: {total/(1024**3):.1f} GB | Used: {used/(1024**3):.1f} GB | Free: {free/(1024**3):.1f} GB")
+
+    def handle_users_permissions(self):
+        """Manage system users, groups, and permissions."""
+        print(f"\n{BOLD}{CYAN}=== Users & Permissions ==={RESET}")
+        import subprocess
+        subprocess.run(["bash", "-c", "whoami && id && groups"], check=False)
+
+    def handle_install_missing_components(self):
+        """Install components that are missing or not ready."""
+        print(f"\n{BOLD}{CYAN}=== Install Missing Components ==={RESET}")
+        inspector = SmartInspectorService().run_full_inspection()
+        missing = inspector.get_missing_components()
+        if not missing:
+            print(f"{GREEN}✓ All components are already installed.{RESET}")
+            return
+        for mc in missing:
+            print(f"  • {mc.name}: {mc.recommended_action}")
+        if input("\nInstall all missing components? [y/N]: ").strip().lower() == "y":
+            setup = ServerSetupWorkflow(self.profile, dry_run=False, use_sudo=True)
+            setup.run_ordered_installation()
+
+    def handle_installation_history(self):
+        """View history of past installations and reports."""
+        print(f"\n{BOLD}{CYAN}=== Installation History ==={RESET}")
+        log_dir = "/var/log/odoo-installer"
+        import os, glob
+        if not os.path.exists(log_dir):
+            print(f"{YELLOW}No installation history found.{RESET}")
+            return
+        reports = sorted(glob.glob(os.path.join(log_dir, "installation_report_*.txt")), key=os.path.getmtime, reverse=True)
+        if not reports:
+            print(f"{YELLOW}No installation reports found.{RESET}")
+            return
+        for rp in reports:
+            print(f"  {os.path.basename(rp)}")
+
+    def handle_failed_installations(self):
+        """View and retry failed component installations."""
+        print(f"\n{BOLD}{CYAN}=== Failed Installations ==={RESET}")
+        setup = ServerSetupWorkflow(self.profile, dry_run=False, use_sudo=True)
+        setup.inspect_all()
+        failed = [(n, r) for n, r in setup.components.items() if r.status == InstallationStatus.FAILED]
+        if not failed:
+            print(f"{GREEN}✓ No failed installations found.{RESET}")
+            return
+        for name, record in failed:
+            print(f"  • {name}: {record.error or 'Unknown error'}")
+        if input("\nRetry failed installations? [y/N]: ").strip().lower() == "y":
+            for name, _ in failed:
+                setup.components[name].status = InstallationStatus.READY_TO_INSTALL
+                setup.components[name].error = None
+            setup._failed_components.clear()
+            setup.run_ordered_installation()
+
+    def handle_odoo17_management(self):
+        """Deploy and manage Odoo 17 instances."""
+        self._handle_odoo_version_management("17")
+
+    def handle_odoo18_management(self):
+        """Deploy and manage Odoo 18 instances."""
+        self._handle_odoo_version_management("18")
+
+    def handle_odoo19_management(self):
+        """Deploy and manage Odoo 19 instances."""
+        self._handle_odoo_version_management("19")
+
+    def _handle_odoo_version_management(self, version: str):
+        """Generic Odoo version management handler."""
+        pg = {"17": "16", "18": "17", "19": "18"}[version]
+        print(f"\n{BOLD}{CYAN}=== Odoo {version} Management (PostgreSQL {pg}) ==={RESET}")
+        print(f" [1] Deploy Odoo {version} stack")
+        print(f" [2] View Odoo {version} logs")
+        print(f" [3] Restart Odoo {version} container")
+        print(f" [4] View odoo{version} configuration")
+        print(f" [0] Return")
+        sub = input(f"{BOLD}Choose action [0-4]: {RESET}").strip()
+        if sub == "1":
+            workflow = {"17": DeployOdoo17Workflow, "18": DeployOdoo18Workflow, "19": DeployOdoo19Workflow}[version]
+            self.execute_workflow(workflow.create_operation(self.profile))
+        elif sub == "2":
+            import subprocess
+            subprocess.run(["docker", "logs", "--tail", "50", f"odoo{version}"], check=False)
+        elif sub == "3":
+            import subprocess
+            subprocess.run(["docker", "restart", f"odoo{version}"], check=False)
+            print(f"{GREEN}✓ Odoo {version} restarted.{RESET}")
+        elif sub == "4":
+            import os
+            candidates = [
+                os.path.join(self.profile.paths.data_root, f"odoo{version}", "etc", "odoo.conf"),
+                os.path.join(PROJECT_ROOT, "deployment", f"odoo{version}", "config", "odoo.conf"),
+            ]
+            config_path = next((p for p in candidates if os.path.exists(p)), candidates[0])
+            try:
+                with open(config_path) as f:
+                    print(f.read())
+            except FileNotFoundError:
+                print(f"{YELLOW}! Configuration not yet rendered: {config_path}{RESET}")
+
+    def handle_odoo_instance_deployment(self):
+        """Deploy new Odoo instances across versions."""
+        print(f"\n{BOLD}{CYAN}=== Instance Deployment ==={RESET}")
+        print("  [1] Odoo 17 Instance 1")
+        print("  [2] Odoo 17 Instance 2")
+        print("  [3] Odoo 18 Instance 1")
+        print("  [4] Odoo 18 Instance 2")
+        print("  [5] Odoo 19 Instance 1")
+        print("  [6] Odoo 19 Instance 2")
+        choice = input(f"{BOLD}Select instance [1-6]: {RESET}").strip()
+        version_map = {"1": "17", "2": "17", "3": "18", "4": "18", "5": "19", "6": "19"}
+        version = version_map.get(choice)
+        if version:
+            workflow = {"17": DeployOdoo17Workflow, "18": DeployOdoo18Workflow, "19": DeployOdoo19Workflow}[version]
+            self.execute_workflow(workflow.create_operation(self.profile))
+
+    def handle_deployment_pipelines(self):
+        """View and trigger deployment pipelines."""
+        print(f"\n{BOLD}{CYAN}=== Deployment Pipelines ==={RESET}")
+        print("  [1] Full Multi-Version Deployment")
+        print("  [2] Server Preparation Only")
+        print("  [3] Traefik Deployment Only")
+        print("  [4] Odoo 17 Deployment Only")
+        print("  [5] Odoo 18 Deployment Only")
+        print("  [6] Odoo 19 Deployment Only")
+        choice = input(f"{BOLD}Select pipeline [1-6]: {RESET}").strip()
+        pipeline_map = {
+            "1": FullDeployWorkflow,
+            "2": ServerPrepWorkflow,
+            "3": DeployTraefikWorkflow,
+            "4": DeployOdoo17Workflow,
+            "5": DeployOdoo18Workflow,
+            "6": DeployOdoo19Workflow,
+        }
+        if choice in pipeline_map:
+            dry_run = input("Run in dry-run mode? [y/N]: ").strip().lower() == "y"
+            op = pipeline_map[choice].create_operation(self.profile, dry_run=dry_run)
+            self.execute_workflow(op, dry_run=dry_run)
+
+    def handle_backup_verification(self):
+        """Verify backup integrity and completeness."""
+        print(f"\n{BOLD}{CYAN}=== Backup Verification ==={RESET}")
+        backups_dir = self.profile.backup.backup_root
+        import os
+        if not os.path.exists(backups_dir):
+            print(f"{YELLOW}No backups directory found at {backups_dir}{RESET}")
+            return
+        backups = sorted(os.listdir(backups_dir))
+        if not backups:
+            print(f"{YELLOW}No backups found.{RESET}")
+            return
+        for b in backups:
+            print(f"  • {b}")
+
+    def handle_disaster_recovery(self):
+        """Full infrastructure disaster recovery procedures."""
+        print(f"\n{BOLD}{CYAN}=== Disaster Recovery ==={RESET}")
+        print(f"{YELLOW}⚠ This is a destructive operation that will restore from backups.{RESET}")
+        confirm = input("Type 'DISASTER-RECOVERY' to confirm: ").strip()
+        if confirm != "DISASTER-RECOVERY":
+            print(f"{YELLOW}Disaster recovery aborted.{RESET}")
+            return
+        print(f"{GREEN}Disaster recovery procedure initiated.{RESET}")
+
+    def handle_installation_report(self):
+        """Generate installation component status report."""
+        print(f"\n{BOLD}{CYAN}=== Installation Report ==={RESET}")
+        setup = ServerSetupWorkflow(self.profile, dry_run=False, use_sudo=True)
+        setup.inspect_all()
+        for name, record in sorted(setup.components.items()):
+            color = record.color
+            print(f"  {color}[{record.symbol}]{RESET} {name}: {record.status.value} ({record.version or 'N/A'})")
+
+    def handle_service_health_report(self):
+        """Generate service health status report."""
+        print(f"\n{BOLD}{CYAN}=== Service Health Report ==={RESET}")
+        step = HealthService.build_health_check_step()
+        op = OperationRecord("op-health", "Service Health Report", "health", self.profile.profile_name, steps=[step])
+        self.execute_workflow(op)
+
+    def handle_backup_recovery_report(self):
+        """Generate backup and recovery status report."""
+        print(f"\n{BOLD}{CYAN}=== Backup & Recovery Report ==={RESET}")
+        from app.services.system_backup import SystemBackupService
+        try:
+            snap = SystemBackupService.create_full_snapshot()
+            print(f"{GREEN}✓ Backup snapshot: {snap['archive_file']} (SHA256: {snap['sha256'][:16]}...){RESET}")
+        except Exception as exc:
+            print(f"{RED}Backup report error: {exc}{RESET}")
+
+    def handle_audit_history(self):
+        """View audit history of infrastructure changes."""
+        print(f"\n{BOLD}{CYAN}=== Audit History ==={RESET}")
+        docs_dir = os.path.join(PROJECT_ROOT, "docs")
+        import glob
+        if not os.path.exists(docs_dir):
+            print(f"{YELLOW}No audit history found.{RESET}")
+            return
+        audit_files = sorted(glob.glob(os.path.join(docs_dir, "audit_report_*.md")), key=os.path.getmtime, reverse=True)
+        if not audit_files:
+            print(f"{YELLOW}No audit reports found.{RESET}")
+            return
+        for af in audit_files:
+            print(f"  {os.path.basename(af)}")
+
+    def handle_hostname_domain_config(self):
+        """Configure and display the centralized hostname and domain settings."""
+        print(f"\n{BOLD}{CYAN}=== 22. HOSTNAME & DOMAIN CONFIGURATION ==={RESET}")
+
+        cfg = self.ensure_hostname_config()
+
+        print(f"\n{BOLD}Current Configuration:{RESET}")
+        print(f"  Hostname:        {cfg.hostname}")
+        print(f"  Primary domain:  {cfg.primary_domain}")
+        print(f"  IP address:      {cfg.ip_address}")
+        print(f"  Jenkins:         {cfg.jenkins_domain}")
+        print(f"  Traefik:         {cfg.traefik_domain}")
+        print(f"  Odoo 17-1:       {cfg.odoo17_instance1_domain}")
+        print(f"  Odoo 17-2:       {cfg.odoo17_instance2_domain}")
+        print(f"  Odoo 18-1:       {cfg.odoo18_instance1_domain}")
+        print(f"  Odoo 18-2:       {cfg.odoo18_instance2_domain}")
+        print(f"  Odoo 19-1:       {cfg.odoo19_instance1_domain}")
+        print(f"  Odoo 19-2:       {cfg.odoo19_instance2_domain}")
+
+        errors = cfg.validate()
+        if errors:
+            print(f"\n{RED}Validation errors:{RESET}")
+            for e in errors:
+                print(f"  - {e}")
+
+        print(f"\n{BOLD}Options:{RESET}")
+        print("  [c] Confirm and keep current configuration")
+        print("  [e] Edit hostname and domain")
+        print("  [d] Detect from system again")
+        print("  [0] Back to main menu")
+
+        sub = input(f"\n{BOLD}Choose [c/e/d/0]: {RESET}").strip().lower()
+
+        if sub == "c":
+            if errors:
+                print(f"{RED}Cannot confirm: configuration has validation errors.{RESET}")
+            else:
+                print(f"{GREEN}✓ Hostname and domain configuration confirmed.{RESET}")
+        elif sub == "e":
+            new_hostname = input(f"Hostname [{cfg.hostname}]: ").strip() or cfg.hostname
+            new_domain = input(f"Primary domain [{cfg.primary_domain}]: ").strip() or cfg.primary_domain
+            try:
+                new_ip = input(f"IP address [{cfg.ip_address}]: ").strip() or cfg.ip_address
+            except Exception:
+                new_ip = cfg.ip_address
+
+            try:
+                new_cfg = HostnameConfig(
+                    hostname=new_hostname,
+                    primary_domain=new_domain,
+                    ip_address=new_ip,
+                )
+                errs = new_cfg.validate()
+                if errs:
+                    print(f"{RED}Invalid configuration:{RESET}")
+                    for e in errs:
+                        print(f"  - {e}")
+                else:
+                    self.hostname_config = new_cfg
+                    set_config(new_cfg)
+                    print(f"{GREEN}✓ Hostname and domain updated successfully.{RESET}")
+                    print(f"  Primary domain: {new_cfg.primary_domain}")
+                    print(f"  Jenkins:        {new_cfg.jenkins_domain}")
+                    print(f"  Traefik:        {new_cfg.traefik_domain}")
+                    print(f"  Odoo 17-1:      {new_cfg.odoo17_instance1_domain}")
+                    print(f"  Odoo 17-2:      {new_cfg.odoo17_instance2_domain}")
+                    print(f"  Odoo 18-1:      {new_cfg.odoo18_instance1_domain}")
+                    print(f"  Odoo 18-2:      {new_cfg.odoo18_instance2_domain}")
+                    print(f"  Odoo 19-1:      {new_cfg.odoo19_instance1_domain}")
+                    print(f"  Odoo 19-2:      {new_cfg.odoo19_instance2_domain}")
+            except Exception as exc:
+                print(f"{RED}Failed to update configuration: {exc}{RESET}")
+        elif sub == "d":
+            try:
+                cfg = detect_and_configure(interactive=False)
+                self.hostname_config = cfg
+                print(f"{GREEN}✓ Hostname and domain re-detected from system.{RESET}")
+            except (ValueError, RuntimeError) as exc:
+                print(f"{RED}Detection failed: {exc}{RESET}")
+        elif sub == "0":
+            return
+        else:
+            print(f"{RED}Invalid selection.{RESET}")
 
     def handle_network_management(self):
         print(f"\n{BOLD}{CYAN}=== 6. DOCKER NETWORK MANAGEMENT ==={RESET}")

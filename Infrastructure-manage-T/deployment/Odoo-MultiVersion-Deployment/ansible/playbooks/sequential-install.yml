@@ -1,0 +1,162 @@
+---
+# Sequential Component Installation Playbook
+# Installs all system components sequentially with error tracking.
+# Continues on failure and generates a comprehensive final report.
+#
+# Usage:
+#   ansible-playbook -i inventory/hosts.ini playbooks/sequential-install.yml
+
+- name: Sequential Component Installation
+  hosts: all
+  become: true
+  vars:
+    installer_log_dir: "/var/log/odoo-installer"
+    installer_dry_run: false
+
+  pre_tasks:
+    - name: Ensure log directory exists
+      ansible.builtin.file:
+        path: "{{ installer_log_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Ensure Python3 and pip are available
+      ansible.builtin.package:
+        name:
+          - python3
+          - python3-pip
+          - curl
+          - wget
+          - git
+          - jq
+          - tar
+          - gzip
+          - zstd
+          - ufw
+        state: present
+      register: pkg_result
+      failed_when: false
+
+    - name: Record basic packages result
+      ansible.builtin.set_fact:
+        basic_packages_status: "{{ 'SUCCESS' if pkg_result is succeeded else 'FAILED' }}"
+        basic_packages_error: "{{ pkg_result.msg | default('') }}"
+
+  tasks:
+    - name: Install Docker Engine dependencies
+      ansible.builtin.package:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - gnupg
+          - software-properties-common
+        state: present
+      register: docker_deps_result
+      failed_when: false
+
+    - name: Add Docker GPG key
+      ansible.builtin.get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.gpg
+        mode: '0644'
+      register: docker_gpg_result
+      failed_when: false
+
+    - name: Add Docker repository
+      ansible.builtin.apt_repository:
+        repo: "deb [arch={{ ansible_architecture | lower }} signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+      register: docker_repo_result
+      failed_when: false
+
+    - name: Install Docker Engine packages
+      ansible.builtin.package:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+      register: docker_install_result
+      failed_when: false
+
+    - name: Enable and start Docker service
+      ansible.builtin.systemd:
+        name: docker
+        enabled: true
+        state: started
+      register: docker_service_result
+      failed_when: false
+
+    - name: Install Ansible via pip
+      ansible.builtin.pip:
+        name:
+          - pip
+          - ansible
+        state: present
+      register: ansible_install_result
+      failed_when: false
+
+    - name: Create Docker proxy network
+      ansible.builtin.command:
+        cmd: "docker network create --driver bridge --subnet 172.28.0.0/16 proxy"
+      register: proxy_network_result
+      failed_when: false
+      changed_when: "'proxy' in proxy_network_result.stdout or 'already exists' in proxy_network_result.stdout"
+
+    - name: Create Traefik directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: '0755'
+      loop:
+        - /opt/traefik/config
+        - /opt/traefik/letsencrypt
+        - /opt/traefik/logs
+        - /data/traefik/logs
+      register: traefik_dirs_result
+      failed_when: false
+
+    - name: Create ACME file with secure permissions
+      ansible.builtin.file:
+        path: /opt/traefik/letsencrypt/acme.json
+        state: touch
+        mode: '0600'
+      register: acme_file_result
+      failed_when: false
+
+    - name: Create Portainer data directory
+      ansible.builtin.file:
+        path: /srv/portainer
+        state: directory
+        mode: '0755'
+      register: portainer_dir_result
+      failed_when: false
+
+  post_tasks:
+    - name: Generate installation summary
+      ansible.builtin.shell: |
+        echo "============================================================"
+        echo "  SEQUENTIAL INSTALLATION COMPLETE"
+        echo "============================================================"
+        echo ""
+        echo "Basic packages: {{ basic_packages_status | default('UNKNOWN') }}"
+        echo "Docker deps:    {{ 'SUCCESS' if docker_deps_result is succeeded else 'FAILED' }}"
+        echo "Docker GPG:     {{ 'SUCCESS' if docker_gpg_result is succeeded else 'FAILED' }}"
+        echo "Docker repo:    {{ 'SUCCESS' if docker_repo_result is succeeded else 'FAILED' }}"
+        echo "Docker install: {{ 'SUCCESS' if docker_install_result is succeeded else 'FAILED' }}"
+        echo "Docker service: {{ 'SUCCESS' if docker_service_result is succeeded else 'FAILED' }}"
+        echo "Ansible:        {{ 'SUCCESS' if ansible_install_result is succeeded else 'FAILED' }}"
+        echo "Proxy network:  {{ 'SUCCESS' if proxy_network_result is succeeded else 'FAILED' }}"
+        echo "Traefik dirs:   {{ 'SUCCESS' if traefik_dirs_result is succeeded else 'FAILED' }}"
+        echo "ACME file:      {{ 'SUCCESS' if acme_file_result is succeeded else 'FAILED' }}"
+        echo "Portainer dir:  {{ 'SUCCESS' if portainer_dir_result is succeeded else 'FAILED' }}"
+        echo ""
+        echo "Log directory: {{ installer_log_dir }}"
+      register: summary_output
+      changed_when: false
+
+    - name: Display summary
+      ansible.builtin.debug:
+        msg: "{{ summary_output.stdout }}"

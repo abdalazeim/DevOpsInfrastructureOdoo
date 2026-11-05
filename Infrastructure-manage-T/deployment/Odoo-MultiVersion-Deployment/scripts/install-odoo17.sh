@@ -100,14 +100,14 @@ run_health_checks() {
 
 show_report() {
     print_header "Final report - Odoo 17 Multi-Instance"
-    echo "Instance 1: odoo1.devops-odoo.com | odoo17-instance1 | odoo17_db1 (PostgreSQL 16)"
-    echo "Instance 2: odoo2.devops-odoo.com | odoo17-instance2 | odoo17_db2 (PostgreSQL 16)"
+    echo "Instance 1: ${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost} | odoo17-instance1 | odoo17_db1 (PostgreSQL 16)"
+    echo "Instance 2: ${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost} | odoo17-instance2 | odoo17_db2 (PostgreSQL 16)"
     echo ""
     docker ps --filter "name=odoo17" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || true
     echo ""
     echo -e "${GREEN}✓ Odoo 17 two instances installed successfully${NC}"
-    echo "https://odoo1.devops-odoo.com"
-    echo "https://odoo2.devops-odoo.com"
+    echo "https://${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}"
+    echo "https://${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
 }
 
 main() {

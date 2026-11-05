@@ -1,0 +1,70 @@
+---
+# PostgreSQL Role - Deploy PostgreSQL for Odoo instances
+
+- name: Create PostgreSQL data directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /data/postgresql/odoo17
+    - /data/postgresql/odoo18
+    - /data/postgresql/odoo19
+
+- name: Deploy Odoo 17 PostgreSQL container
+  community.docker.docker_container:
+    name: odoo17-db
+    image: postgres:16-alpine
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    env:
+      POSTGRES_DB: odoo17_prod
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD_FILE: /run/secrets/odoo17_db_password
+    volumes:
+      - /data/postgresql/odoo17:/var/lib/postgresql/data
+  become: true
+
+- name: Deploy Odoo 18 PostgreSQL container
+  community.docker.docker_container:
+    name: odoo18-db
+    image: postgres:17-alpine
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    env:
+      POSTGRES_DB: odoo18_prod
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD_FILE: /run/secrets/odoo18_db_password
+    volumes:
+      - /data/postgresql/odoo18:/var/lib/postgresql/data
+  become: true
+
+- name: Deploy Odoo 19 PostgreSQL container
+  community.docker.docker_container:
+    name: odoo19-db
+    image: postgres:18-alpine
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    env:
+      POSTGRES_DB: odoo19_prod
+      POSTGRES_USER: odoo
+      POSTGRES_PASSWORD_FILE: /run/secrets/odoo19_db_password
+    volumes:
+      - /data/postgresql/odoo19:/var/lib/postgresql/data
+  become: true
+
+- name: Verify PostgreSQL containers are running
+  community.docker.docker_container_info:
+    name: "{{ item }}"
+  loop:
+    - odoo17-db
+    - odoo18-db
+    - odoo19-db
+  register: pg_containers

@@ -1,0 +1,69 @@
+---
+# Traefik Role - Deploy Traefik v3.7 reverse proxy
+
+- name: Create Traefik directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /opt/traefik/config
+    - /opt/traefik/letsencrypt
+    - /opt/traefik/logs
+    - /data/traefik/logs
+
+- name: Create acme.json with secure permissions
+  ansible.builtin.file:
+    path: /opt/traefik/letsencrypt/acme.json
+    state: touch
+    mode: '0600'
+  become: true
+
+- name: Deploy Traefik static configuration
+  ansible.builtin.template:
+    src: traefik.yml.j2
+    dest: /opt/traefik/config/traefik.yml
+    mode: '0644'
+  become: true
+
+- name: Deploy Traefik dynamic configuration
+  ansible.builtin.template:
+    src: traefik_dynamic.yml.j2
+    dest: /opt/traefik/config/traefik_dynamic.yml
+    mode: '0644'
+  become: true
+
+- name: Deploy Traefik Docker container
+  community.docker.docker_container:
+    name: traefik
+    image: traefik:v3.7
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - /opt/traefik/config:/etc/traefik:ro
+      - /opt/traefik/letsencrypt:/letsencrypt
+      - /data/traefik/logs:/var/log/traefik
+    command:
+      - --providers.docker
+      - --entrypoints.web.address=:80
+      - --entrypoints.websecure.address=:443
+      - --certificatesresolvers.letsencrypt.acme.httpchallenge.entrypoint=web
+      - --certificatesresolvers.letsencrypt.acme.storage=/letsencrypt/acme.json
+      - --api.dashboard=true
+  become: true
+
+- name: Verify Traefik is running
+  community.docker.docker_container_info:
+    name: traefik
+  register: traefik_container
+
+- name: Report Traefik status
+  ansible.builtin.debug:
+    msg: "Traefik status: {{ traefik_container.container.State.Status }}"

@@ -57,8 +57,8 @@ odoo18/
 
 | النسخة | النطاق |
 |--------|--------|
-| Odoo 18 - النسخة 1 | `odoo18-1.devops-odoo.com` |
-| Odoo 18 - النسخة 2 | `odoo18-2.devops-odoo.com` |
+| Odoo 18 - النسخة 1 | `${ODOO18_INSTANCE1_DOMAIN}` |
+| Odoo 18 - النسخة 2 | `${ODOO18_INSTANCE2_DOMAIN}` |
 
 ## مجلدات البيانات
 

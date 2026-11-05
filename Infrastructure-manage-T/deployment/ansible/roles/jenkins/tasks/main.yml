@@ -1,0 +1,37 @@
+---
+# Jenkins Role - Deploy Jenkins CI/CD
+
+- name: Create Jenkins directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /data/jenkins
+    - /opt/jenkins
+
+- name: Deploy Jenkins Docker container
+  community.docker.docker_container:
+    name: jenkins
+    image: jenkins/jenkins:lts-jdk21
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    ports:
+      - "8081:8080"
+      - "50000:50000"
+    volumes:
+      - /data/jenkins:/var/jenkins_home
+      - /opt/jenkins:/opt/jenkins
+  become: true
+
+- name: Verify Jenkins is running
+  community.docker.docker_container_info:
+    name: jenkins
+  register: jenkins_container
+
+- name: Report Jenkins status
+  ansible.builtin.debug:
+    msg: "Jenkins status: {{ jenkins_container.container.State.Status }}"

@@ -114,8 +114,8 @@ pipeline {
                 sh '''
                     docker ps --filter "name=odoo18" --format "table {{.Names}}\t{{.Status}}"
                     echo "✓ تم نشر Odoo 18 بنجاح"
-                    echo "https://odoo18-1.devops-odoo.com"
-                    echo "https://odoo18-2.devops-odoo.com"
+                    echo "https://${ODOO18_INSTANCE1_DOMAIN:-odoo18-1.localhost}"
+                    echo "https://${ODOO18_INSTANCE2_DOMAIN:-odoo18-2.localhost}"
                 '''
             }
         }

@@ -283,14 +283,14 @@ show_final_report() {
     print_header "التقرير النهائي لعملية التثبيت"
     
     echo -e "${BLUE}النسخة الأولى:${NC}"
-    echo "  النطاق: odoo1.devops-odoo.com"
+    echo "  النطاق: ${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}"
     echo "  الحاوية: odoo17-instance1"
     echo "  قاعدة البيانات: odoo17_db1 (PostgreSQL 16 مستقل)"
     echo "  البيانات: /data/odoo17/instance1"
     echo ""
     
     echo -e "${BLUE}النسخة الثانية:${NC}"
-    echo "  النطاق: odoo2.devops-odoo.com"
+    echo "  النطاق: ${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
     echo "  الحاوية: odoo17-instance2"
     echo "  قاعدة البيانات: odoo17_db2 (PostgreSQL 16 مستقل)"
     echo "  البيانات: /data/odoo17/instance2"
@@ -308,8 +308,8 @@ show_final_report() {
     echo ""
     echo "للوصول عبر Tr
 afik (HTTPS):"
-    echo "  https://odoo1.devops-odoo.com"
-    echo "  https://odoo2.devops-odoo.com"
+    echo "  https://${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}"
+    echo "  https://${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
     echo ""
     echo "للوصول المباشر (HTTP - إذا لم يكن Tr
 afik مضمناً):"

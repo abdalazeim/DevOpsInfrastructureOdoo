@@ -1,0 +1,48 @@
+---
+# Odoo 17 Role - Deploy Odoo 17 instance
+
+- name: Create Odoo 17 instance directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /data/odoo17/instance1
+    - /data/odoo17/instance2
+    - /opt/odoo17/instance1
+    - /opt/odoo17/instance2
+
+- name: Deploy Odoo 17 Instance 1 container
+  community.docker.docker_container:
+    name: odoo17-instance1
+    image: odoo:17.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo17/instance1:/var/lib/odoo
+      - /opt/odoo17/instance1:/etc/odoo
+  become: true
+
+- name: Deploy Odoo 17 Instance 2 container
+  community.docker.docker_container:
+    name: odoo17-instance2
+    image: odoo:17.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo17/instance2:/var/lib/odoo
+      - /opt/odoo17/instance2:/etc/odoo
+  become: true
+
+- name: Verify Odoo 17 containers are running
+  community.docker.docker_container_info:
+    name: "{{ item }}"
+  loop:
+    - odoo17-instance1
+    - odoo17-instance2
+  register: odoo17_containers

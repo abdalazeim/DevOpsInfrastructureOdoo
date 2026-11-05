@@ -10,7 +10,7 @@
 #   ./bootstrap-odoo-infra.sh                     # Python environment + .env only
 #   ./bootstrap-odoo-infra.sh --install-docker    # also install Docker Engine
 #   ./bootstrap-odoo-infra.sh --install-docker --docker-version 27.5.1
-#   ./bootstrap-odoo-infra.sh --install-docker --docker-mirror https://mirror.example.com
+#   ./bootstrap-odoo-infra.sh --install-docker --docker-mirror https://mirror.localhost
 #   ./bootstrap-odoo-infra.sh --with-ansible      # also install Ansible
 #   ./bootstrap-odoo-infra.sh --skip-docker --skip-ansible
 #   ./bootstrap-odoo-infra.sh --regenerate-env    # rotate all .env secrets

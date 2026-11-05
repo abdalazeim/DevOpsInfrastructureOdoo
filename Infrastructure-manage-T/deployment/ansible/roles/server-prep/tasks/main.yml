@@ -1,0 +1,74 @@
+---
+# Server Prep Role - Core system preparation
+# Installs essential packages, creates directories, configures basic settings
+
+- name: Gather system facts
+  ansible.builtin.setup:
+
+- name: Check Ubuntu version compatibility
+  ansible.builtin.assert:
+    that:
+      - ansible_distribution == "Ubuntu"
+      - ansible_distribution_version | version_compare('22.04', '>=')
+    fail_msg: "Ubuntu 22.04 or later is required"
+    success_msg: "Ubuntu version compatible"
+
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Install essential system packages
+  ansible.builtin.apt:
+    name:
+      - curl
+      - wget
+      - gnupg
+      - software-properties-common
+      - apt-transport-https
+      - ca-certificates
+      - python3
+      - python3-pip
+      - python3-venv
+      - git
+      - vim
+      - sudo
+      - ufw
+      - jq
+      - tar
+      - gzip
+      - zstd
+    state: present
+    update_cache: true
+  become: true
+
+- name: Create infrastructure directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /opt/odoo-infrastructure
+    - /opt/odoo-infrastructure/backups
+    - /data
+    - /var/log/odoo-installer
+
+- name: Create proxy Docker network
+  community.docker.docker_network:
+    name: proxy
+    driver: bridge
+    ipam_options:
+      driver: default
+    options:
+      subnet: "172.28.0.0/16"
+
+- name: Verify Docker socket access
+  ansible.builtin.stat:
+    path: /var/run/docker.sock
+  register: docker_socket
+
+- name: Report Docker socket status
+  ansible.builtin.debug:
+    msg: "Docker socket accessible: {{ docker_socket.stat.exists }}"

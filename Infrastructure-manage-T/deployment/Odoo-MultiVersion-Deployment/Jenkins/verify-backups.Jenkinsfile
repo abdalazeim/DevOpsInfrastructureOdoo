@@ -31,7 +31,7 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "بدء فحص النسخ الاحتياطية - Build #${env.BUILD_NUMBER}"
+                    echo "بدء فحص النسخ الاحتياطية - Build #$BUILD_NUMBER"
                     echo "الإصدار: ${ODOO_VERSION}"
                     echo "نوع الفحص: ${VERIFY_TYPE}"
                     docker --version
@@ -162,7 +162,7 @@ pipeline {
                     echo "نوع الفحص: ${VERIFY_TYPE}"
                     echo "إجمالي النسخ: $(find ${BACKUP_ROOT} -name "manifest.json" -type f | wc -l)"
                     echo "التاريخ: $(date)"
-                    echo "✓ تم إكمال فحص النسخ الاحتياطية بنجاح - بناء #${env.BUILD_NUMBER}"
+                    echo "✓ تم إكمال فحص النسخ الاحتياطية بنجاح - بناء #$BUILD_NUMBER"
                 '''
             }
         }

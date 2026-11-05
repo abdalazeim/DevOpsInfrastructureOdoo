@@ -6,6 +6,7 @@ import shutil
 import socket
 import subprocess
 
+from app.config.hostname_config import get_config
 from app.services.runtime_inspector import probe
 from app.services.docker_installer import run_step
 
@@ -17,9 +18,16 @@ JENKINS_CONTAINER = 'jenkins'
 JENKINS_HTTP_PORT = 8080
 JENKINS_AGENT_PORT = 50000
 JENKINS_NETWORK = 'proxy'
-JENKINS_DOMAIN = 'jenkins.devops-odoo.com'
 JENKINS_TIMEZONE = 'UTC'
 JENKINS_CERTSRESOLVER = 'letsencrypt'
+
+
+def get_jenkins_domain() -> str:
+    """Get Jenkins domain from centralized hostname config."""
+    try:
+        return get_config().jenkins_domain
+    except RuntimeError:
+        return 'jenkins.localhost'
 
 
 def docker_command(use_sudo=False):
@@ -82,7 +90,7 @@ def build_jenkins_plan(use_sudo=False, domain=None, certsresolver=None):
     """Build Jenkins setup and installation plan (mkdir, compose up).
     Does not bind the Docker socket automatically (avoid broad host permissions).
     """
-    domain = domain or JENKINS_DOMAIN
+    domain = domain or get_jenkins_domain()
     certsresolver = certsresolver or JENKINS_CERTSRESOLVER
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
@@ -127,10 +135,8 @@ def build_jenkins_plan(use_sudo=False, domain=None, certsresolver=None):
     ]
 
 
-def _write_file(path, content, use_sudo=False):
-    docker = docker_command(use_sudo)
-    prefix = docker[:-len(DOCKER)]
-    run_step(prefix + ['tee', path], content=content)
+def _write_file(command, content, use_sudo=False):
+    run_step(command, content=content)
 
 
 def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=None):
@@ -159,7 +165,7 @@ def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=No
             print(f'[DRY-RUN] Will write config file: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
             print(f'[DRY-RUN] Will verify network {JENKINS_NETWORK} and create if missing')
             print(f'[DRY-RUN] Will run docker compose up -d using image {IMAGE}')
-            print(f'[DRY-RUN] Domain: {domain or JENKINS_DOMAIN} | Certificate resolver: {certsresolver or JENKINS_CERTSRESOLVER}')
+            print(f'[DRY-RUN] Domain: {domain or get_jenkins_domain()} | Certificate resolver: {certsresolver or JENKINS_CERTSRESOLVER}')
             print(f'[DRY-RUN] Access via Traefik only (HTTPS), port 8080 will not be published publicly')
             return True
 
@@ -183,7 +189,7 @@ def install_jenkins(dry_run=False, use_sudo=False, domain=None, certsresolver=No
             print(f'Container created but status check did not confirm running: {state}. Check docker logs jenkins.')
             return False
         run_step(docker_command(use_sudo) + ['ps', '-a'])
-        print(f'Jenkins container is running. Access via Traefik: https://{domain or JENKINS_DOMAIN}')
+        print(f'Jenkins container is running. Access via Traefik: https://{domain or get_jenkins_domain()}')
         print(f'Jenkins data: {JENKINS_HOST_DATA_DIR}')
         print(f'Config file: {JENKINS_HOST_CONFIG_DIR}/docker-compose.yml')
         print('Initial admin password: sudo docker exec jenkins cat /var/jenkins_home/secrets/initialAdminPassword')
@@ -284,7 +290,8 @@ def jenkins_diagnose(use_sudo=False):
     if report['status'] == 'installed':
         for c in report['containers']:
             status = c.get('Status', '')
-            if 'Exited' in status or 'Created' in status:
+            # F24: Require 'running' status, not just 'not Exited/Created'.
+            if 'running' not in status.lower():
                 issues.append({
                     'id': JENKINS_ISSUE_CONTAINER_NOT_RUNNING,
                     'component': 'Jenkins',
@@ -292,7 +299,7 @@ def jenkins_diagnose(use_sudo=False):
                     'description': f'Container status: {status}',
                     'severity': 'high',
                     'auto_fix': True,
-                    'fix_command': ['start', 'jenkins'],
+                    'fix_command': ['docker', 'start', 'jenkins'],
                     'fix_description': 'Start the stopped Jenkins container.',
                 })
                 repairs.append(('Start Jenkins container', ['docker', 'start', 'jenkins']))
@@ -308,7 +315,7 @@ def jenkins_repair(issue, use_sudo=False):
         return False, 'No automatic repair command for this issue.'
     docker = docker_command(use_sudo)
     prefix = docker[:-len(DOCKER)]
-    full_cmd = prefix + fix_cmd if fix_cmd[0] != 'docker' else fix_cmd
+    full_cmd = prefix + fix_cmd
     try:
         run_step(full_cmd)
         return True, 'Executed successfully.'

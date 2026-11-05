@@ -1,18 +1,29 @@
 # Odoo Multi-Version Deployment - Role: backup
 # Backup Odoo instances with full safety measures
 
-- name: Create backup directories for all versions
+- name: Create backup root directories for all versions
   become: true
   ansible.builtin.file:
     path: "{{ item }}"
     state: directory
     mode: '0755'
   loop:
+    - "{{ backup_root }}"
     - "{{ backup_root }}/odoo17"
+    - "{{ backup_root }}/odoo18"
     - "{{ backup_root }}/odoo19"
     - "{{ backup_root }}/infrastructure"
     - "{{ backup_root }}/jenkins"
     - "{{ backup_root }}/reports"
+
+- name: Create instance backup directory (version/instance/timestamp)
+  become: true
+  ansible.builtin.file:
+    path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}"
+    state: directory
+    mode: '0755'
+  loop: "{{ odoo_instances }}"
+  when: backup_stop_odoo | default(true) and (instance_name is not defined or item.name == instance_name)
 
 - name: Check available disk space
   become: true
@@ -49,7 +60,7 @@
       become: true
       ansible.builtin.copy:
         content: "{{ item.stdout }}"
-        dest: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/database.dump"
+        dest: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name | default(item.item.name) }}/{{ ansible_date_time.date }}_{{ ansible_date_time.time | replace(':', '') }}/database.dump"
         mode: '0644'
       loop: "{{ db_backup_raw.results }}"
       loop_control:

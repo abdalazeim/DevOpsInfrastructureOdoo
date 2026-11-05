@@ -19,7 +19,7 @@ DESTINATION="/opt/odoo-infrastructure/${INSTANCE_NAME}"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
-SOURCE_DIR="${PROJECT_ROOT}/deployment/odoo17/odoo-17-private-repo"
+SOURCE_DIR="${PROJECT_ROOT}/odoo17"
 
 echo "============================================="
 echo " Installing Odoo 17 Private Repository"
@@ -38,7 +38,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 # إنشاء مجلد المثيل
-mkdir -p "${DESTINATION}/{addons,etc,postgresql}"
+mkdir -p "${DESTINATION}"/{addons,etc,postgresql}
 
 # نسخ ملفات القالب
 cp "${SOURCE_DIR}/docker-compose.yml" "${DESTINATION}/"
@@ -55,7 +55,7 @@ fi
 
 # إعداد الصلاحيات
 chmod +x "${DESTINATION}/entrypoint.sh"
-find "${DESTINATION}" -type f -exec chmod 644 {} \;
+find "${DESTINATION}" -type f ! -name entrypoint.sh -exec chmod 644 {} \;
 find "${DESTINATION}" -type d -exec chmod 755 {} \;
 chmod 700 "${DESTINATION}/postgresql"
 
@@ -90,5 +90,5 @@ echo "  3. Access: http://localhost:${HTTP_PORT}"
 echo ""
 
 if [ "${WITH_TRAEFIK}" = "--with-traefik" ]; then
-    echo " Traefik mode: Access via https://${ODOO_DOMAIN}"
+    echo " Traefik mode: Access via https://${ODOO_DOMAIN:-odoo17.localhost}"
 fi

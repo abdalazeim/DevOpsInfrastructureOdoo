@@ -16,8 +16,8 @@ log_err()  { echo -e "\033[0;31m[ERROR]\033[0m $*" >&2; }
 trap 'log_err "Backup failed at line ${LINENO}"' ERR
 
 VERSION="${1:-}"
-if [[ -z "${VERSION}" || ( "${VERSION}" != "17" && "${VERSION}" != "19" ) ]]; then
-  log_err "Invalid version. Usage: $0 <17|19> [database_name] [retention_count]"
+if [[ -z "${VERSION}" || ( "${VERSION}" != "17" && "${VERSION}" != "18" && "${VERSION}" != "19" ) ]]; then
+  log_err "Invalid version. Usage: $0 <17|18|19> [database_name] [retention_count]"
   exit 1
 fi
 
@@ -59,14 +59,31 @@ fi
 DUMP_SIZE=$(stat -c%s "${DUMP_FILE}" 2>/dev/null || stat -f%z "${DUMP_FILE}" 2>/dev/null || wc -c < "${DUMP_FILE}")
 log_ok "Database dump created: $(basename "${DUMP_FILE}") (Size: ${DUMP_SIZE} bytes)"
 
-# Backup filestore if directory exists
+# Backup filestore if directory exists (F13: explicit host mount + container fallback)
 ODOO_DATA_DIR="${DATA_ROOT}/odoo${VERSION}/data/filestore/${DB_NAME}"
+FILestore_FOUND=false
 if [[ -d "${ODOO_DATA_DIR}" ]]; then
-  log_info "Archiving Odoo filestore for '${DB_NAME}'..."
+  log_info "Archiving Odoo filestore for '${DB_NAME}' from host path..."
   tar -czf "${FILESTORE_FILE}" -C "${DATA_ROOT}/odoo${VERSION}/data/filestore" "${DB_NAME}"
   log_ok "Filestore archived: $(basename "${FILESTORE_FILE}")"
+  FILestore_FOUND=true
 else
-  log_warn "Filestore directory not found at ${ODOO_DATA_DIR}; skipping filestore archive."
+  # F13: Fallback - check container volume for filestore when host mount is unknown
+  log_info "Host filestore path not found: ${ODOO_DATA_DIR}; checking container volume..."
+  if docker exec "${DB_CONTAINER}" test -d /var/lib/odoo/filestore 2>/dev/null; then
+    log_info "Found filestore in container volume at /var/lib/odoo/filestore"
+    # Create a temporary archive from container
+    docker exec "${DB_CONTAINER}" tar -czf /tmp/filestore_backup.tar.gz -C /var/lib/odoo filestore 2>/dev/null || true
+    docker cp "${DB_CONTAINER}:/tmp/filestore_backup.tar.gz" "${FILESTORE_FILE}" 2>/dev/null || true
+    docker exec "${DB_CONTAINER}" rm -f /tmp/filestore_backup.tar.gz 2>/dev/null || true
+    if [[ -f "${FILESTORE_FILE}" ]]; then
+      log_ok "Filestore archived from container: $(basename "${FILESTORE_FILE}")"
+      FILestore_FOUND=true
+    fi
+  fi
+fi
+if [[ "${FILestore_FOUND}" == "false" ]]; then
+  log_warn "Filestore directory not found at ${ODOO_DATA_DIR} or container volume; skipping filestore archive."
 fi
 
 # Calculate SHA256 checksum for integrity check
@@ -90,10 +107,12 @@ log_info "Enforcing retention policy (keeping newest ${RETENTION} backups)..."
 find "${BACKUP_DIR}" -name "dump_${DB_NAME}_*.sql.gz" -type f | sort -r | tail -n +"$((RETENTION + 1))" | while read -r old_dump; do
   log_warn "Removing expired backup: ${old_dump}"
   rm -f "${old_dump}"
-  # Remove associated filestore and meta
-  old_base="${old_dump#*dump_}"
-  rm -f "${BACKUP_DIR}/filestore_${old_base}"
-  rm -f "${BACKUP_DIR}/meta_${old_base%.sql.gz}.json"
+  # Remove associated filestore and meta using correct extensions
+  old_basename="$(basename "${old_dump}")"
+  old_stem="${old_basename%.sql.gz}"
+  old_prefix="${old_stem#dump_}"
+  rm -f "${BACKUP_DIR}/filestore_${old_prefix}.tar.gz"
+  rm -f "${BACKUP_DIR}/meta_${old_prefix}.json"
 done
 
 log_ok "Backup completed successfully! SHA256: ${CHECKSUM:0:16}..."

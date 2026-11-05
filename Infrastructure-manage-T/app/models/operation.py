@@ -13,6 +13,7 @@ class OperationStatus(str, Enum):
     FAILED = "FAILED"
     SKIPPED = "SKIPPED"
     CANCELLED = "CANCELLED"
+    WARNING = "WARNING"
 
 @dataclass
 class WorkflowStep:

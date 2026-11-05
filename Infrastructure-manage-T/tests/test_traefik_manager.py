@@ -71,23 +71,23 @@ class TestTraefikDockerManager(unittest.TestCase):
         # Jenkins test
         jenkins_labels = TraefikDockerManager.generate_service_labels(
             service_type="jenkins",
-            domain="jenkins.example.com",
+            domain="jenkins.localhost",
             target_port=DEFAULT_JENKINS_PORT,
             entrypoints="web"
         )
         self.assertIn("traefik.enable=true", jenkins_labels)
-        self.assertIn("traefik.http.routers.jenkins.rule=Host(`jenkins.example.com`)", jenkins_labels)
+        self.assertIn("traefik.http.routers.jenkins.rule=Host(`jenkins.localhost`)", jenkins_labels)
         self.assertIn(f"traefik.http.services.jenkins.loadbalancer.server.port={DEFAULT_JENKINS_PORT}", jenkins_labels)
 
         # Odoo 19 test
         odoo19_labels = TraefikDockerManager.generate_service_labels(
             service_type="odoo19",
-            domain="odoo19.example.com",
+            domain="odoo19.localhost",
             target_port=DEFAULT_ODOO19_PORT,
             entrypoints="web"
         )
         self.assertIn("traefik.enable=true", odoo19_labels)
-        self.assertIn("traefik.http.routers.odoo19.rule=Host(`odoo19.example.com`)", odoo19_labels)
+        self.assertIn("traefik.http.routers.odoo19.rule=Host(`odoo19.localhost`)", odoo19_labels)
         self.assertIn(f"traefik.http.services.odoo19.loadbalancer.server.port={DEFAULT_ODOO19_PORT}", odoo19_labels)
         # Verify websocket livechat router
         self.assertTrue(any("traefik.http.routers.odoo19-chat" in label for label in odoo19_labels))

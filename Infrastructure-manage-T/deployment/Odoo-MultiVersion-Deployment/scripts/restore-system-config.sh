@@ -118,7 +118,8 @@ ls -la "$BACKUP_DIR/etc/netplan/" 2>/dev/null || true
 echo ""
 read -p "Restore Netplan settings? (yes/no): " CONFIRM_NETPLAN
 if [[ "$CONFIRM_NETPLAN" == "yes" ]]; then
-    cp -a "$BACKUP_DIR/etc/netplan/" /etc/netplan/
+    mkdir -p /etc/netplan
+    cp -a "$BACKUP_DIR/etc/netplan/." /etc/netplan/
     print_success "Netplan settings restored"
 else
     print_warning "Netplan settings skipped"
@@ -132,7 +133,8 @@ ls -la "$BACKUP_DIR/etc/ssh/" 2>/dev/null || true
 echo ""
 read -p "Restore SSH settings? (yes/no): " CONFIRM_SSH
 if [[ "$CONFIRM_SSH" == "yes" ]]; then
-    cp -a "$BACKUP_DIR/etc/ssh/" /etc/ssh/
+    mkdir -p /etc/ssh
+    cp -a "$BACKUP_DIR/etc/ssh/." /etc/ssh/
     chmod 600 /etc/ssh/ssh_host_*_key 2>/dev/null || true
     print_success "SSH settings restored"
 else
@@ -146,7 +148,8 @@ ls -la "$BACKUP_DIR/etc/docker/" 2>/dev/null || true
 echo ""
 read -p "Restore Docker Daemon settings? (yes/no): " CONFIRM_DOCKER
 if [[ "$CONFIRM_DOCKER" == "yes" ]]; then
-    cp -a "$BACKUP_DIR/etc/docker/" /etc/docker/
+    mkdir -p /etc/docker
+    cp -a "$BACKUP_DIR/etc/docker/." /etc/docker/
     print_success "Docker Daemon settings restored"
 else
     print_warning "Docker Daemon settings skipped"
@@ -159,7 +162,8 @@ ls -la "$BACKUP_DIR/opt/" 2>/dev/null || true
 echo ""
 read -p "Restore /opt directory? (yes/no): " CONFIRM_OPT
 if [[ "$CONFIRM_OPT" == "yes" ]]; then
-    cp -a "$BACKUP_DIR/opt/" /opt/
+    mkdir -p /opt
+    cp -a "$BACKUP_DIR/opt/." /opt/
     print_success "/opt directory restored"
 else
     print_warning "/opt directory skipped"
@@ -173,8 +177,9 @@ ls -la "$BACKUP_DIR/etc/cron.d/" 2>/dev/null || true
 echo ""
 read -p "Restore services and cron jobs? (yes/no): " CONFIRM_SERVICES
 if [[ "$CONFIRM_SERVICES" == "yes" ]]; then
-    cp -a "$BACKUP_DIR/etc/systemd/system/" /etc/systemd/system/ 2>/dev/null || true
-    cp -a "$BACKUP_DIR/etc/cron.d/" /etc/cron.d/ 2>/dev/null || true
+    mkdir -p /etc/systemd/system /etc/cron.d
+    cp -a "$BACKUP_DIR/etc/systemd/system/." /etc/systemd/system/ 2>/dev/null || true
+    cp -a "$BACKUP_DIR/etc/cron.d/." /etc/cron.d/ 2>/dev/null || true
     systemctl daemon-reload 2>/dev/null || true
     print_success "Services and cron jobs restored"
 else

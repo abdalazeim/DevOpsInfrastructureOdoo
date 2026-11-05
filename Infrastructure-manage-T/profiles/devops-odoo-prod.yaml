@@ -20,7 +20,7 @@ traefik:
   image: traefik:v3.7
   dashboard_enabled: true
   dashboard_domain: traefik.devops-odoo.internal
-  acme_email: devops@example.com
+  acme_email: devops@localhost
   acme_challenge: http
   http_port: 80
   https_port: 443

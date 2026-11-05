@@ -100,14 +100,14 @@ run_health_checks() {
 
 show_report() {
     print_header "التقرير النهائي - Odoo 18 Multi-Instance"
-    echo "النسخة 1: odoo18-1.devops-odoo.com | odoo18-instance1 | odoo18_db1 (PostgreSQL 17)"
-    echo "النسخة 2: odoo18-2.devops-odoo.com | odoo18-instance2 | odoo18_db2 (PostgreSQL 17)"
+    echo "النسخة 1: ${ODOO18_INSTANCE1_DOMAIN:-odoo18-1.localhost} | odoo18-instance1 | odoo18_db1 (PostgreSQL 17)"
+    echo "النسخة 2: ${ODOO18_INSTANCE2_DOMAIN:-odoo18-2.localhost} | odoo18-instance2 | odoo18_db2 (PostgreSQL 17)"
     echo ""
     docker ps --filter "name=odoo18" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || true
     echo ""
     echo -e "${GREEN}✓ تم تثبيت نسختي Odoo 18 بنجاح${NC}"
-    echo "https://odoo18-1.devops-odoo.com"
-    echo "https://odoo18-2.devops-odoo.com"
+    echo "https://${ODOO18_INSTANCE1_DOMAIN:-odoo18-1.localhost}"
+    echo "https://${ODOO18_INSTANCE2_DOMAIN:-odoo18-2.localhost}"
 }
 
 main() {

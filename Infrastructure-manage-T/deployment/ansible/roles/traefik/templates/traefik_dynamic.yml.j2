@@ -1,0 +1,18 @@
+# Traefik v3.7 dynamic configuration
+# Managed by Ansible - do not edit manually
+
+http:
+  routers:
+    traefik-dashboard:
+      rule: "Host(`{{ traefik_dashboard_domain | default('traefik.localhost') }}`)"
+      entryPoints:
+        - websecure
+      tls:
+        certResolver: letsencrypt
+      service: api@internal
+
+  services:
+    traefik-dashboard:
+      loadBalancer:
+        servers:
+          - url: "http://127.0.0.1:8080"

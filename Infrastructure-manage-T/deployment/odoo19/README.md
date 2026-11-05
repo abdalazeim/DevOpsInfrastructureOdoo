@@ -10,8 +10,8 @@ sudo ./scripts/install-odoo19.sh
 ```
 
 The script installs two independent Odoo 19 instances:
-- **Instance 1**: `https://odoo19-1.devops-odoo.com` — `odoo19-db1` (PostgreSQL 18)
-- **Instance 2**: `https://odoo19-2.devops-odoo.com` — `odoo19-db2` (PostgreSQL 18)
+- **Instance 1**: `https://${ODOO19_INSTANCE1_DOMAIN}` — `odoo19-db1` (PostgreSQL 18)
+- **Instance 2**: `https://${ODOO19_INSTANCE2_DOMAIN}` — `odoo19-db2` (PostgreSQL 18)
 
 No ports are published publicly; Traefik handles access via HTTPS.
 
@@ -34,7 +34,7 @@ cd /opt/odoo19/instance1
 docker-compose up -d
 ```
 
-Then open `https://odoo19-1.devops-odoo.com` to access Odoo 19 via Traefik HTTPS.
+Then open `https://${ODOO19_INSTANCE1_DOMAIN}` to access Odoo 19 via Traefik HTTPS.
 
 For the second instance:
 ```bash
@@ -42,7 +42,7 @@ cd /opt/odoo19/instance2
 docker-compose up -d
 ```
 
-Open `https://odoo19-2.devops-odoo.com` to access the second Odoo 19 instance.
+Open `https://${ODOO19_INSTANCE2_DOMAIN}` to access the second Odoo 19 instance.
 
 - **If you get any permission issues**, change the folder permission to make sure that the container is able to access the directory:
 
@@ -238,6 +238,6 @@ server {
 | المنفذ الداخلي Odoo | 8069 |
 | المنفذ الداخلي Live Chat | 8072 |
 | عدد النسخ | 2 |
-| النطاقات | `odoo19-1.devops-odoo.com` / `odoo19-2.devops-odoo.com` |
+| النطاقات | `${ODOO19_INSTANCE1_DOMAIN}` / `${ODOO19_INSTANCE2_DOMAIN}` |
 | مجلدات البيانات | `/data/odoo19/instance1` / `/data/odoo19/instance2` |
 | Traefik | مشترك (HTTPS) |

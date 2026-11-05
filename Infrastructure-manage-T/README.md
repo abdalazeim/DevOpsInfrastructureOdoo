@@ -51,9 +51,9 @@
 
 | الإصدار | صورة Odoo | PostgreSQL | PGDATA المسار | المنفذ الداخلي Odoo | المنفذ الداخلي Live Chat | عدد النسخ | النطاقات |
 |---------|------------|-------------|----------------|----------------------|--------------------------|-----------|----------|
-| **Odoo 17** | `odoo:17` | 16 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `odoo1.devops-odoo.com`、`odoo2.devops-odoo.com` |
-| **Odoo 18** | `odoo:18` | 17 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `odoo18-1.devops-odoo.com`、`odoo18-2.devops-odoo.com` |
-| **Odoo 19** | `odoo:19` | 18 | `/var/lib/postgresql/18/docker` | 8069 | 8072 | 2 | `odoo19-1.devops-odoo.com`、`odoo19-2.devops-odoo.com` |
+| **Odoo 17** | `odoo:17` | 16 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO17_INSTANCE1_DOMAIN}`、`${ODOO17_INSTANCE2_DOMAIN}` |
+| **Odoo 18** | `odoo:18` | 17 | `/var/lib/postgresql/data` | 8069 | 8072 | 2 | `${ODOO18_INSTANCE1_DOMAIN}`、`${ODOO18_INSTANCE2_DOMAIN}` |
+| **Odoo 19** | `odoo:19` | 18 | `/var/lib/postgresql/18/docker` | 8069 | 8072 | 2 | `${ODOO19_INSTANCE1_DOMAIN}`、`${ODOO19_INSTANCE2_DOMAIN}` |
 
 ### تفاصيل النشر
 
@@ -261,13 +261,13 @@ postgres_image: "postgres:18"
 
 odoo_instances:
   - name: instance1
-    domain: odoo19-1.devops-odoo.com
+    domain: ${ODOO19_INSTANCE1_DOMAIN}
     data_path: /data/odoo19/instance1
     db_name: odoo19_db1
     db_user: odoo19_instance1
     container_name: odoo19-instance1
   - name: instance2
-    domain: odoo19-2.devops-odoo.com
+    domain: ${ODOO19_INSTANCE2_DOMAIN}
     data_path: /data/odoo19/instance2
     db_name: odoo19_db2
     db_user: odoo19_instance2
@@ -568,26 +568,26 @@ sudo ./scripts/restore.sh --version 17 --instance instance1 --backup-id odoo17-i
 
 | الخدمة | النطاق |
 |-------|--------|
-| Odoo 17 - النسخة 1 | `odoo1.devops-odoo.com` |
-| Odoo 17 - النسخة 2 | `odoo2.devops-odoo.com` |
-| Odoo 18 - النسخة 1 | `odoo18-1.devops-odoo.com` |
-| Odoo 18 - النسخة 2 | `odoo18-2.devops-odoo.com` |
-| Odoo 19 - النسخة 1 | `odoo19-1.devops-odoo.com` |
-| Odoo 19 - النسخة 2 | `odoo19-2.devops-odoo.com` |
-| pgAdmin | `pgadmin.yourdomain.com` |
-| Traefik Dashboard | `traefik.yourdomain.com` |
+| Odoo 17 - النسخة 1 | `${ODOO17_INSTANCE1_DOMAIN}` |
+| Odoo 17 - النسخة 2 | `${ODOO17_INSTANCE2_DOMAIN}` |
+| Odoo 18 - النسخة 1 | `${ODOO18_INSTANCE1_DOMAIN}` |
+| Odoo 18 - النسخة 2 | `${ODOO18_INSTANCE2_DOMAIN}` |
+| Odoo 19 - النسخة 1 | `${ODOO19_INSTANCE1_DOMAIN}` |
+| Odoo 19 - النسخة 2 | `${ODOO19_INSTANCE2_DOMAIN}` |
+| pgAdmin | `${PGADMIN_DOMAIN}` |
+| Traefik Dashboard | `${TRAEFIK_DASHBOARD_DOMAIN}` |
 
 ### إعداد DNS
 
 ```text
-odoo1.devops-odoo.com    ➔  IP_ADDRESS
-odoo2.devops-odoo.com    ➔  IP_ADDRESS
-odoo18-1.devops-odoo.com ➔  IP_ADDRESS
-odoo18-2.devops-odoo.com ➔  IP_ADDRESS
-odoo19-1.devops-odoo.com ➔  IP_ADDRESS
-odoo19-2.devops-odoo.com ➔  IP_ADDRESS
-pgadmin.yourdomain.com   ➔  IP_ADDRESS
-traefik.yourdomain.com   ➔  IP_ADDRESS
+${ODOO17_INSTANCE1_DOMAIN}    ➔  IP_ADDRESS
+${ODOO17_INSTANCE2_DOMAIN}    ➔  IP_ADDRESS
+${ODOO18_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
+${ODOO18_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
+${ODOO19_INSTANCE1_DOMAIN} ➔  IP_ADDRESS
+${ODOO19_INSTANCE2_DOMAIN} ➔  IP_ADDRESS
+${PGADMIN_DOMAIN}   ➔  IP_ADDRESS
+${TRAEFIK_DASHBOARD_DOMAIN}   ➔  IP_ADDRESS
 ```
 
 ### متطلبات جدار الحماية

@@ -12,7 +12,7 @@ traefik_certresolver: "letsencrypt"
 odoo_instances:
   - name: instance1
     project: odoo17_instance1
-    domain: odoo1.devops-odoo.com
+    domain: ${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}
     data_path: /data/odoo17/instance1
     config_path: /opt/odoo17/instance1
     http_port: 8069
@@ -24,7 +24,7 @@ odoo_instances:
 
   - name: instance2
     project: odoo17_instance2
-    domain: odoo2.devops-odoo.com
+    domain: ${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}
     data_path: /data/odoo17/instance2
     config_path: /opt/odoo17/instance2
     http_port: 8069

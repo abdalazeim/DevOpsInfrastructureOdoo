@@ -1,9 +1,58 @@
 """
 Profile configuration dataclass models for Odoo Infrastructure Manager.
+Domain defaults are populated from the centralized HostnameConfig at runtime.
 """
 from dataclasses import dataclass, field
 from typing import Optional, Dict, Any
 import re
+
+from app.config.hostname_config import get_config, HostnameConfig
+
+
+def _default_domain() -> str:
+    """Get primary domain from centralized config, or empty string if not configured."""
+    try:
+        return get_config().primary_domain
+    except RuntimeError:
+        return ""
+
+
+def _default_acme_email() -> str:
+    """Get ACME email from centralized config domain."""
+    try:
+        return f"admin@{get_config().primary_domain}"
+    except RuntimeError:
+        return "admin@localhost"
+
+
+def _default_traefik_domain() -> str:
+    """Get traefik subdomain from centralized config."""
+    try:
+        return get_config().traefik_domain
+    except RuntimeError:
+        return "traefik.localhost"
+
+
+def _default_odoo_domain(version: str, instance: str) -> str:
+    """Get Odoo instance subdomain from centralized config."""
+    try:
+        cfg = get_config()
+        if version == "17" and instance == "1":
+            return cfg.odoo17_instance1_domain
+        if version == "17" and instance == "2":
+            return cfg.odoo17_instance2_domain
+        if version == "18" and instance == "1":
+            return cfg.odoo18_instance1_domain
+        if version == "18" and instance == "2":
+            return cfg.odoo18_instance2_domain
+        if version == "19" and instance == "1":
+            return cfg.odoo19_instance1_domain
+        if version == "19" and instance == "2":
+            return cfg.odoo19_instance2_domain
+    except RuntimeError:
+        pass
+    return f"{version}-{instance}.localhost"
+
 
 @dataclass
 class ServerConfig:
@@ -30,8 +79,8 @@ class TraefikConfig:
     enabled: bool = True
     image: str = "traefik:v3.7"
     dashboard_enabled: bool = True
-    dashboard_domain: str = "traefik.example.com"
-    acme_email: str = "admin@example.com"
+    dashboard_domain: str = field(default_factory=_default_traefik_domain)
+    acme_email: str = field(default_factory=_default_acme_email)
     acme_challenge: str = "http"
     http_port: int = 80
     https_port: int = 443
@@ -50,7 +99,7 @@ class DatabaseConfig:
 class OdooInstanceConfig:
     enabled: bool = True
     version: str = "17"
-    domain: str = "odoo17.example.com"
+    domain: str = field(default_factory=_default_domain)
     image: str = "odoo:17.0"
     workers: int = 3
     memory_limit_soft: str = "2147483648"
@@ -84,19 +133,19 @@ class InfrastructureProfile:
     traefik: TraefikConfig = field(default_factory=TraefikConfig)
     odoo17: OdooInstanceConfig = field(default_factory=lambda: OdooInstanceConfig(
         version="17",
-        domain="odoo17.example.com",
+        domain=_default_odoo_domain("17", "1"),
         image="odoo:17.0",
         database=DatabaseConfig(engine="postgres:16-alpine", name="odoo17_prod", password_env_var="ODOO17_DB_PASSWORD")
     ))
     odoo18: OdooInstanceConfig = field(default_factory=lambda: OdooInstanceConfig(
         version="18",
-        domain="odoo18.example.com",
+        domain=_default_odoo_domain("18", "1"),
         image="odoo:18.0",
         database=DatabaseConfig(engine="postgres:17-alpine", name="odoo18_prod", password_env_var="ODOO18_DB_PASSWORD")
     ))
     odoo19: OdooInstanceConfig = field(default_factory=lambda: OdooInstanceConfig(
         version="19",
-        domain="odoo19.example.com",
+        domain=_default_odoo_domain("19", "1"),
         image="odoo:19.0",
         database=DatabaseConfig(engine="postgres:18-alpine", name="odoo19_prod", password_env_var="ODOO19_DB_PASSWORD")
     ))
@@ -133,8 +182,8 @@ class InfrastructureProfile:
             enabled=bool(tr_data.get("enabled", True)),
             image=tr_data.get("image", "traefik:v3.7"),
             dashboard_enabled=bool(tr_data.get("dashboard_enabled", True)),
-            dashboard_domain=tr_data.get("dashboard_domain", "traefik.example.com"),
-            acme_email=tr_data.get("acme_email", "admin@example.com"),
+            dashboard_domain=tr_data.get("dashboard_domain", _default_traefik_domain()),
+            acme_email=tr_data.get("acme_email", _default_acme_email()),
             acme_challenge=tr_data.get("acme_challenge", "http"),
             http_port=int(tr_data.get("http_port", 80)),
             https_port=int(tr_data.get("https_port", 443)),
@@ -145,7 +194,7 @@ class InfrastructureProfile:
         odoo17 = OdooInstanceConfig(
             enabled=bool(o17_data.get("enabled", True)),
             version="17",
-            domain=o17_data.get("domain", "odoo17.example.com"),
+            domain=o17_data.get("domain", _default_odoo_domain("17", "1")),
             image=o17_data.get("image", "odoo:17.0"),
             workers=int(o17_data.get("workers", 3)),
             memory_limit_soft=str(o17_data.get("memory_limit_soft", "2147483648")),
@@ -166,7 +215,7 @@ class InfrastructureProfile:
         odoo18 = OdooInstanceConfig(
             enabled=bool(o18_data.get("enabled", True)),
             version="18",
-            domain=o18_data.get("domain", "odoo18.example.com"),
+            domain=o18_data.get("domain", _default_odoo_domain("18", "1")),
             image=o18_data.get("image", "odoo:18.0"),
             workers=int(o18_data.get("workers", 3)),
             memory_limit_soft=str(o18_data.get("memory_limit_soft", "2147483648")),
@@ -187,7 +236,7 @@ class InfrastructureProfile:
         odoo19 = OdooInstanceConfig(
             enabled=bool(o19_data.get("enabled", True)),
             version="19",
-            domain=o19_data.get("domain", "odoo19.example.com"),
+            domain=o19_data.get("domain", _default_odoo_domain("19", "1")),
             image=o19_data.get("image", "odoo:19.0"),
             workers=int(o19_data.get("workers", 3)),
             memory_limit_soft=str(o19_data.get("memory_limit_soft", "2684354560")),

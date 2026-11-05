@@ -16,7 +16,7 @@
     content: |
       #!/bin/bash
       set -e
-      exec "$@"
+      exec odoo "$@"
     mode: '0755'
   loop: "{{ odoo_instances }}"
 
@@ -25,5 +25,4 @@
   community.docker.docker_compose_v2:
     project_src: "{{ item.config_path }}"
     state: present
-    restart_policy: always
   loop: "{{ odoo_instances }}"

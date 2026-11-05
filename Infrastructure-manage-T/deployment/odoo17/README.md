@@ -90,7 +90,7 @@ Odoo17-MultiInstance-Deployment/
 
 | العنصر | النسخة الأولى (Instance 1) | النسخة الثانية (Instance 2) |
 |--------|---------------------------|---------------------------|
-| النطاق | `odoo1.devops-odoo.com` | `odoo2.devops-odoo.com` |
+| النطاق | `${ODOO17_INSTANCE1_DOMAIN}` | `${ODOO17_INSTANCE2_DOMAIN}` |
 | إصدار Odoo | 17 | 17 |
 | إصدار PostgreSQL | 16 (مستقل) | 16 (مستقل) |
 | اسم الحاوية | `odoo17-instance1` | `odoo17-instance2` |
@@ -138,7 +138,7 @@ traefik_certresolver: "letsencrypt"
 odoo_instances:
   - name: instance1
     project: odoo17_instance1
-    domain: odoo1.devops-odoo.com
+    domain: ${ODOO17_INSTANCE1_DOMAIN}
     data_path: /data/odoo17/instance1
     config_path: /opt/odoo17/instance1
     db_name: odoo17_db1
@@ -148,7 +148,7 @@ odoo_instances:
 
   - name: instance2
     project: odoo17_instance2
-    domain: odoo2.devops-odoo.com
+    domain: ${ODOO17_INSTANCE2_DOMAIN}
     data_path: /data/odoo17/instance2
     config_path: /opt/odoo17/instance2
     db_name: odoo17_db2

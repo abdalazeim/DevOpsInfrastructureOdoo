@@ -100,14 +100,14 @@ run_health_checks() {
 
 show_report() {
     print_header "Final report - Odoo 19 Multi-Instance"
-    echo "Instance 1: odoo19-1.devops-odoo.com | odoo19-instance1 | odoo19_db1 (PostgreSQL 18)"
-    echo "Instance 2: odoo19-2.devops-odoo.com | odoo19-instance2 | odoo19_db2 (PostgreSQL 18)"
+    echo "Instance 1: ${ODOO19_INSTANCE1_DOMAIN:-odoo19-1.localhost} | odoo19-instance1 | odoo19_db1 (PostgreSQL 18)"
+    echo "Instance 2: ${ODOO19_INSTANCE2_DOMAIN:-odoo19-2.localhost} | odoo19-instance2 | odoo19_db2 (PostgreSQL 18)"
     echo ""
     docker ps --filter "name=odoo19" --format "table {{.Names}}\t{{.Status}}" 2>/dev/null || true
     echo ""
     echo -e "${GREEN}✓ Odoo 19 two instances installed successfully${NC}"
-    echo "https://odoo19-1.devops-odoo.com"
-    echo "https://odoo19-2.devops-odoo.com"
+    echo "https://${ODOO19_INSTANCE1_DOMAIN:-odoo19-1.localhost}"
+    echo "https://${ODOO19_INSTANCE2_DOMAIN:-odoo19-2.localhost}"
 }
 
 main() {

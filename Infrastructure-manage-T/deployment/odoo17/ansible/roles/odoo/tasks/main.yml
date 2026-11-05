@@ -1,0 +1,7 @@
+---
+# Odoo 17 Multi-Instance - Odoo Role Tasks Entry Point
+# ينشر نسخ Odoo 17 متعددة عبر تضمين deploy_instance لكل نسخة
+
+- name: Deploy Odoo 17 instances
+  ansible.builtin.include_tasks: deploy_instance.yml
+  loop: "{{ odoo_instances }}"

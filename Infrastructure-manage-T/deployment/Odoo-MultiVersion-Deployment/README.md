@@ -341,15 +341,15 @@ The project deploys **two independent instances per Odoo version**, each with it
 
 | Instance | Domain | Container (Odoo) | Container (DB) | Database | DB User | Data Path | Config Path | PostgreSQL |
 |----------|--------|------------------|----------------|----------|---------|-----------|-------------|------------|
-| Instance 1 | `odoo1.devops-odoo.com` | `odoo17-instance1` | `odoo17-instance1-db` | `odoo17_db1` | `odoo17_instance1` | `/data/odoo17/instance1` | `/opt/odoo17/instance1` | PostgreSQL 16 |
-| Instance 2 | `odoo2.devops-odoo.com` | `odoo17-instance2` | `odoo17-instance2-db` | `odoo17_db2` | `odoo17_instance2` | `/data/odoo17/instance2` | `/opt/odoo17/instance2` | PostgreSQL 16 |
+| Instance 1 | `${ODOO17_INSTANCE1_DOMAIN}` | `odoo17-instance1` | `odoo17-instance1-db` | `odoo17_db1` | `odoo17_instance1` | `/data/odoo17/instance1` | `/opt/odoo17/instance1` | PostgreSQL 16 |
+| Instance 2 | `${ODOO17_INSTANCE2_DOMAIN}` | `odoo17-instance2` | `odoo17-instance2-db` | `odoo17_db2` | `odoo17_instance2` | `/data/odoo17/instance2` | `/opt/odoo17/instance2` | PostgreSQL 16 |
 
 ### Odoo 19 Configuration
 
 | Instance | Domain | Container (Odoo) | Container (DB) | Database | DB User | Data Path | Config Path | PostgreSQL |
 |----------|--------|------------------|----------------|----------|---------|-----------|-------------|------------|
-| Instance 1 | `odoo19-1.devops-odoo.com` | `odoo19-instance1` | `odoo19-instance1-db` | `odoo19_db1` | `odoo19_instance1` | `/data/odoo19/instance1` | `/opt/odoo19/instance1` | PostgreSQL 18 |
-| Instance 2 | `odoo19-2.devops-odoo.com` | `odoo19-instance2` | `odoo19-instance2-db` | `odoo19_db2` | `odoo19_instance2` | `/data/odoo19/instance2` | `/opt/odoo19/instance2` | PostgreSQL 18 |
+| Instance 1 | `${ODOO19_INSTANCE1_DOMAIN}` | `odoo19-instance1` | `odoo19-instance1-db` | `odoo19_db1` | `odoo19_instance1` | `/data/odoo19/instance1` | `/opt/odoo19/instance1` | PostgreSQL 18 |
+| Instance 2 | `${ODOO19_INSTANCE2_DOMAIN}` | `odoo19-instance2` | `odoo19-instance2-db` | `odoo19_db2` | `odoo19_instance2` | `/data/odoo19/instance2` | `/opt/odoo19/instance2` | PostgreSQL 18 |
 
 ### Shared Settings
 
@@ -371,10 +371,10 @@ The project deploys **two independent instances per Odoo version**, each with it
 | Service | Instance | Port | Protocol | Domain |
 |---------|----------|------|----------|--------|
 | Traefik Dashboard | Shared | 8080 | HTTP | — |
-| Odoo HTTP | odoo17-instance1 | 8069 | HTTPS via Traefik | `odoo1.devops-odoo.com` |
-| Odoo HTTP | odoo17-instance2 | 8069 | HTTPS via Traefik | `odoo2.devops-odoo.com` |
-| Odoo HTTP | odoo19-instance1 | 8069 | HTTPS via Traefik | `odoo19-1.devops-odoo.com` |
-| Odoo HTTP | odoo19-instance2 | 8069 | HTTPS via Traefik | `odoo19-2.devops-odoo.com` |
+| Odoo HTTP | odoo17-instance1 | 8069 | HTTPS via Traefik | `${ODOO17_INSTANCE1_DOMAIN}` |
+| Odoo HTTP | odoo17-instance2 | 8069 | HTTPS via Traefik | `${ODOO17_INSTANCE2_DOMAIN}` |
+| Odoo HTTP | odoo19-instance1 | 8069 | HTTPS via Traefik | `${ODOO19_INSTANCE1_DOMAIN}` |
+| Odoo HTTP | odoo19-instance2 | 8069 | HTTPS via Traefik | `${ODOO19_INSTANCE2_DOMAIN}` |
 | Live Chat | All instances | 8072 | HTTPS via Traefik | Same as Odoo domain |
 | PostgreSQL | All instances | 5432 | Internal (Docker network) | Not exposed externally |
 
@@ -771,10 +771,10 @@ A system user `odoo` is created and added to the `docker` group for container ma
 
 | Instance | URL |
 |----------|-----|
-| Odoo 17 Instance 1 | `https://odoo1.devops-odoo.com` |
-| Odoo 17 Instance 2 | `https://odoo2.devops-odoo.com` |
-| Odoo 19 Instance 1 | `https://odoo19-1.devops-odoo.com` |
-| Odoo 19 Instance 2 | `https://odoo19-2.devops-odoo.com` |
+| Odoo 17 Instance 1 | `https://${ODOO17_INSTANCE1_DOMAIN}` |
+| Odoo 17 Instance 2 | `https://${ODOO17_INSTANCE2_DOMAIN}` |
+| Odoo 19 Instance 1 | `https://${ODOO19_INSTANCE1_DOMAIN}` |
+| Odoo 19 Instance 2 | `https://${ODOO19_INSTANCE2_DOMAIN}` |
 
 ### WebSocket Support
 

@@ -22,9 +22,12 @@
   roles:
     - role: system
     - role: docker
-    - role: postgresql
-    - role: odoo
-    - role: traefik
+
+  tasks:
+    - name: Deploy Odoo 19 instances
+      ansible.builtin.include_role:
+        name: odoo
+      loop: "{{ odoo_instances }}"
 
   post_tasks:
     - name: Deployment completed successfully

@@ -19,14 +19,14 @@ traefik:
   enabled: true
   image: traefik:v3.7
   dashboard_enabled: true
-  dashboard_domain: traefik.devops-odoo.example.com
-  acme_email: admin@example.com
+  dashboard_domain: traefik.localhost
+  acme_email: admin@localhost
   acme_challenge: http
   http_port: 80
   https_port: 443
 odoo17:
   enabled: true
-  domain: odoo17.devops-odoo.example.com
+  domain: odoo17-1.localhost
   image: odoo:17.0
   workers: 3
   memory_limit_soft: '2147483648'
@@ -41,7 +41,7 @@ odoo17:
     expose_public_port: false
 odoo18:
   enabled: true
-  domain: odoo18.devops-odoo.example.com
+  domain: odoo18-1.localhost
   image: odoo:18.0
   workers: 3
   memory_limit_soft: '2147483648'
@@ -56,7 +56,7 @@ odoo18:
     expose_public_port: false
 odoo19:
   enabled: true
-  domain: odoo19.devops-odoo.example.com
+  domain: odoo19-1.localhost
   image: odoo:19.0
   workers: 3
   memory_limit_soft: '2684354560'

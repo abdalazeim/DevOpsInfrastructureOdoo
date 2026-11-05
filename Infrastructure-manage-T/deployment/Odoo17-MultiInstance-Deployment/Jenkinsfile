@@ -182,8 +182,8 @@ pipeline {
                     docker network ls --filter "name=odoo17\|proxy" --format "table {{.Name}}\t{{.Driver}}"
                     echo ""
                     echo "✓ تم نشر جميع نسخ Odoo 17 بنجاح"
-                    echo "النسخة 1: https://odoo1.devops-odoo.com"
-                    echo "النسخة 2: https://odoo2.devops-odoo.com"
+                    echo "النسخة 1: https://${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}"
+                    echo "النسخة 2: https://${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
                 '''
             }
         }
@@ -194,7 +194,7 @@ pipeline {
             echo "✓ عملية النشر اكتملت بنجاح عبر Jenkins"
             mail to: 'admin@yourdomain.com',
                  subject: "نجاح نشر Odoo 17 - بناء ${env.BUILD_NUMBER}",
-                 body: "تم نشر نسختي Odoo 17 بنجاح عبر Jenkins Pipeline.\n\nالروابط:\nhttps://odoo1.devops-odoo.com\nhttps://odoo2.devops-odoo.com"
+                 body: "تم نشر نسختي Odoo 17 بنجاح عبر Jenkins Pipeline.\n\nالروابط:\nhttps://${ODOO17_INSTANCE1_DOMAIN:-odoo17-1.localhost}\nhttps://${ODOO17_INSTANCE2_DOMAIN:-odoo17-2.localhost}"
         }
         failure {
             echo "✗ عملية النشر فشلت عبر Jenkins"

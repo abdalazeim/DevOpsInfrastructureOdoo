@@ -33,7 +33,7 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "Starting Ubuntu system configuration backup - Build #${env.BUILD_NUMBER}"
+                    echo "Starting Ubuntu system configuration backup - Build #$BUILD_NUMBER"
                     whoami
                     df -h / /data /opt
                     free -h
@@ -111,7 +111,7 @@ pipeline {
                     echo "======================================"
                     echo "Ubuntu System Configuration Backup Report"
                     echo "======================================"
-                    echo "Build Number: ${env.BUILD_NUMBER}"
+                    echo "Build Number: $BUILD_NUMBER"
                     echo "Date: $(date)"
                     echo "Encryption: ${ENCRYPT_BACKUP}"
                     echo ""

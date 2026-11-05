@@ -1,0 +1,48 @@
+---
+# Odoo 18 Role - Deploy Odoo 18 instance
+
+- name: Create Odoo 18 instance directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /data/odoo18/instance1
+    - /data/odoo18/instance2
+    - /opt/odoo18/instance1
+    - /opt/odoo18/instance2
+
+- name: Deploy Odoo 18 Instance 1 container
+  community.docker.docker_container:
+    name: odoo18-instance1
+    image: odoo:18.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo18/instance1:/var/lib/odoo
+      - /opt/odoo18/instance1:/etc/odoo
+  become: true
+
+- name: Deploy Odoo 18 Instance 2 container
+  community.docker.docker_container:
+    name: odoo18-instance2
+    image: odoo:18.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo18/instance2:/var/lib/odoo
+      - /opt/odoo18/instance2:/etc/odoo
+  become: true
+
+- name: Verify Odoo 18 containers are running
+  community.docker.docker_container_info:
+    name: "{{ item }}"
+  loop:
+    - odoo18-instance1
+    - odoo18-instance2
+  register: odoo18_containers

@@ -15,21 +15,21 @@
   ansible.builtin.stat:
     path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}"
   register: backup_stat
-  failed_when: not backup_stat.exists
+  failed_when: not backup_stat.stat.exists
 
 - name: Verify backup manifest exists
   become: true
   ansible.builtin.stat:
     path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/manifest.json"
   register: manifest_stat
-  failed_when: not manifest_stat.exists
+  failed_when: not manifest_stat.stat.exists
 
 - name: Verify backup checksums exist
   become: true
   ansible.builtin.stat:
     path: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/checksums.sha256"
   register: checksums_stat
-  failed_when: not checksums_stat.exists
+  failed_when: not checksums_stat.stat.exists
 
 - name: Verify backup integrity via SHA256
   become: true
@@ -56,23 +56,27 @@
   loop: "{{ odoo_instances }}"
   when: item.name == instance_name and ansible_facts['mounts'] | selectattr('mount', 'equalto', '/data') | list | length > 0
 
+- name: Discover database dump file in backup
+  become: true
+  ansible.builtin.command: ls "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/database_dump_*.sql" "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/database.dump" 2>/dev/null | head -1
+  register: db_dump_file
+  changed_when: false
+  loop: "{{ odoo_instances }}"
+  when: item.name == instance_name
+
+- name: Copy database dump to container for restore
+  become: true
+  ansible.builtin.command: docker cp "{{ db_dump_file.stdout | first }}" "{{ item.container_name }}-db:/tmp/restore_database.sql"
+  loop: "{{ odoo_instances }}"
+  when: item.name == instance_name and db_dump_file.stdout | first | length > 0
+
 - name: Restore PostgreSQL database
   become: true
   community.docker.docker_container_exec:
     container: "{{ item.container_name }}-db"
-    command: psql -U postgres -d postgres -f /tmp/restore_database.sql
+    command: psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f /tmp/restore_database.sql
   loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
-  vars:
-    _db_file: "{{ backup_root }}/{{ odoo_version }}/{{ instance_name }}/{{ backup_id }}/database_*.sql"
-
-- name: Copy database dump to container for restore
-  become: true
-  community.docker.docker_container_exec:
-    container: "{{ item.container_name }}-db"
-    command: cp "{{ _db_file }}" /tmp/restore_database.sql
-  loop: "{{ odoo_instances }}"
-  when: item.name == instance_name
+  when: item.name == instance_name and db_dump_file.stdout | first | length > 0
 
 - name: Restore Filestore
   become: true

@@ -35,7 +35,7 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "Starting backup process - Build #${env.BUILD_NUMBER}"
+                    echo "Starting backup process - Build #$BUILD_NUMBER"
                     echo "Version: ${ODOO_VERSION}"
                     echo "Instance: ${INSTANCE}"
                     echo "Backup type: ${BACKUP_TYPE}"
@@ -101,7 +101,7 @@ pipeline {
             steps {
                 sh '''
                     echo "=== Backup Report ==="
-                    echo "Build Number: ${env.BUILD_NUMBER}"
+                    echo "Build Number: $BUILD_NUMBER"
                     echo "Version: ${ODOO_VERSION}"
                     echo "Instance: ${INSTANCE}"
                     echo "Backup type: ${BACKUP_TYPE}"
@@ -110,7 +110,7 @@ pipeline {
                     find ${BACKUP_ROOT} -type d -name "*_*" 2>/dev/null | sort -r | head -20
                     du -sh ${BACKUP_ROOT} 2>/dev/null || true
                     echo ""
-                    echo "✓ Backup completed successfully - Build #${env.BUILD_NUMBER}"
+                    echo "✓ Backup completed successfully - Build #$BUILD_NUMBER"
                 '''
             }
         }

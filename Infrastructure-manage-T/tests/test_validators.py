@@ -15,9 +15,9 @@ class TestConfigValidator(unittest.TestCase):
             profile_name="test-profile",
             server=ServerConfig(hostname="devops-odoo", ip_or_host="192.168.1.100"),
             paths=PathsConfig(data_root="/opt/odoo-data", backup_root="/opt/odoo-backups"),
-            traefik=TraefikConfig(dashboard_domain="traefik.example.com", acme_email="admin@example.com"),
-            odoo17=OdooInstanceConfig(domain="odoo17.example.com"),
-            odoo19=OdooInstanceConfig(domain="odoo19.example.com"),
+            traefik=TraefikConfig(dashboard_domain="traefik.localhost", acme_email="admin@localhost"),
+            odoo17=OdooInstanceConfig(domain="odoo17-1.localhost"),
+            odoo19=OdooInstanceConfig(domain="odoo19-1.localhost"),
         )
 
     def test_valid_profile_passes(self):

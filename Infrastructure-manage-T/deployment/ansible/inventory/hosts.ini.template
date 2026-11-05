@@ -1,0 +1,10 @@
+# Ansible Inventory - Infrastructure Managed Hosts
+# Copy this file to inventory/hosts.ini and update with your target hosts
+
+[odoo_infrastructure]
+localhost ansible_connection=local
+
+[odoo_infrastructure:vars]
+ansible_python_interpreter=/usr/bin/python3
+acme_email=admin@localhost
+traefik_dashboard_domain=traefik.localhost

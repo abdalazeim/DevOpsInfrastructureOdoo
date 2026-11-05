@@ -16,7 +16,9 @@ import platform
 from dataclasses import dataclass, field, asdict
 from typing import Dict, List, Optional, Any
 
+from app.config.hostname_config import get_config
 from app.services.archive_utils import safe_extractall
+from app.services.runtime_inspector import probe
 from app.services.docker_installer import run_step
 
 DEFAULT_CONFIG_DIR = "/opt/odoo-infrastructure/traefik"
@@ -30,7 +32,25 @@ DEFAULT_DASHBOARD_INTERNAL_PORT = 8080
 DEFAULT_DASHBOARD_EXTERNAL_PORT = 10090
 DEFAULT_ODOO19_PORT = 8069
 DEFAULT_JENKINS_PORT = 8081
-DEFAULT_DASHBOARD_URL = "https://traefik.local/dashboard/"
+
+
+def get_default_dashboard_url() -> str:
+    """Get Traefik dashboard URL from centralized hostname config."""
+    try:
+        return f"https://{get_config().traefik_domain}/dashboard/"
+    except RuntimeError:
+        return "https://traefik.localhost/dashboard/"
+
+
+def get_default_dashboard_domain() -> str:
+    """Get Traefik dashboard domain from centralized hostname config."""
+    try:
+        return get_config().traefik_domain
+    except RuntimeError:
+        return "traefik.localhost"
+
+
+DEFAULT_DASHBOARD_URL = get_default_dashboard_url()
 
 
 @dataclass
@@ -46,8 +66,8 @@ class TraefikConfig:
     # Deprecated: dashboards are always exposed through the secure router now.
     # Kept so old callers do not break; it no longer enables api.insecure.
     insecure_dashboard: bool = False
-    dashboard_domain: str = "traefik.local"
-    acme_email: str = "admin@example.com"
+    dashboard_domain: str = field(default_factory=get_default_dashboard_domain)
+    acme_email: str = field(default_factory=lambda: f"admin@{get_default_dashboard_domain()}")
     enable_letsencrypt: bool = False
     basic_auth_credentials: str = "admin:$$apr1$$xyz$$randomhash"
     docker_socket_ro: bool = True
@@ -313,7 +333,7 @@ class TraefikDockerManager:
         except Exception:
             pass
 
-        dashboard_domain = os.environ.get("TRAEFIK_DASHBOARD_DOMAIN", "traefik.local")
+        dashboard_domain = os.environ.get("TRAEFIK_DASHBOARD_DOMAIN", get_default_dashboard_domain())
         dashboard_url = f"https://{dashboard_domain}/dashboard/"
 
         warnings = []
@@ -685,6 +705,18 @@ def docker_traefik_command(use_sudo=False):
     return (['sudo', '-n'] if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0) else []) + DOCKER
 
 
+def _write_file_sudo(path: str, content: str, use_sudo: bool = False):
+    """Write content to a file, using sudo tee when not root and use_sudo is set."""
+    if use_sudo and not (hasattr(os, 'geteuid') and os.geteuid() == 0):
+        import subprocess as _sp
+        _sp.run(['sudo', 'tee', path], input=content, text=True, check=True)
+        _sp.run(['sudo', 'chmod', '644', path], check=False)
+    else:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(path, "w", encoding="utf-8") as f:
+            f.write(content)
+
+
 def inspect_traefik(use_sudo=False):
     """Check Traefik status on the local engine (installed / missing / conflict / error)."""
     if not shutil.which('docker'):
@@ -723,8 +755,8 @@ def build_traefik_plan(use_sudo=False):
 def _traefik_env_content():
     return (
         "TRAEFIK_IMAGE=traefik:v3.7\n"
-        "ACME_EMAIL=${ACME_EMAIL:-admin@example.com}\n"
-        "TRAEFIK_DASHBOARD_DOMAIN=traefik.local\n"
+        f"ACME_EMAIL=${{ACME_EMAIL:-admin@{get_config().primary_domain}}}\n"
+        f"TRAEFIK_DASHBOARD_DOMAIN={get_config().traefik_domain}\n"
         "TRAEFIK_BASIC_AUTH=admin:$$apr1$$xyz$$randomhash\n"
         "DOCKER_PROXY_NETWORK=proxy\n"
         f"ODOO_DATA_ROOT={TRAEFIK_DIR}\n"
@@ -812,24 +844,28 @@ def install_traefik(dry_run=False, use_sudo=False):
             with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as sock:
                 sock.bind(('0.0.0.0', candidate))
 
-        commands = build_traefik_plan(use_sudo=use_sudo)
         if dry_run:
-            for command in commands:
+            for command in build_traefik_plan(use_sudo=use_sudo):
                 run_step(command, dry_run=True)
             run_step(docker_traefik_command(use_sudo) + ['network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy'], dry_run=True)
             run_step(docker_traefik_command(use_sudo) + ['compose', '-f', TRAEFIK_COMPOSE_FILE, 'up', '-d'], dry_run=True)
             return True
 
+        commands = build_traefik_plan(use_sudo=use_sudo)
         for command in commands:
             run_step(command)
-        run_step(docker_traefik_command(use_sudo) + ['network', 'create', '--driver', 'bridge', '--subnet', '172.28.0.0/16', 'proxy'])
-        with open(TRAEFIK_ENV_FILE, 'w') as f:
-            f.write(_traefik_env_content())
-        os.chmod(TRAEFIK_ENV_FILE, 0o600)
-        with open(TRAEFIK_STATIC_CONFIG, 'w') as f:
-            f.write(_traefik_static_config())
-        with open(TRAEFIK_COMPOSE_FILE, 'w') as f:
-            f.write(_traefik_compose_content())
+
+        # F27: Idempotent network creation — ensure_network checks existence first.
+        TraefikDockerManager.ensure_proxy_network(JENKINS_NETWORK if False else DEFAULT_NETWORK_NAME)
+
+        # Write config files with consistent sudo permissions (F27).
+        _write_file_sudo(TRAEFIK_ENV_FILE, _traefik_env_content(), use_sudo=use_sudo)
+        _write_file_sudo(TRAEFIK_STATIC_CONFIG, _traefik_static_config(), use_sudo=use_sudo)
+        # F28: Use generated compose with dashboard router + auth middleware.
+        config = TraefikConfig()
+        compose_content = TraefikDockerManager.generate_compose_yaml(config)
+        _write_file_sudo(TRAEFIK_COMPOSE_FILE, compose_content, use_sudo=use_sudo)
+
         run_step(docker_traefik_command(use_sudo) + ['compose', '-f', TRAEFIK_COMPOSE_FILE, 'up', '-d'])
         code, state = probe(docker_traefik_command(use_sudo) + ['inspect', '--format', '{{.State.Status}}', 'traefik'])
         if code or state != 'running':

@@ -1,0 +1,48 @@
+---
+# Odoo 19 Role - Deploy Odoo 19 instance
+
+- name: Create Odoo 19 instance directories
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: directory
+    mode: '0755'
+  become: true
+  loop:
+    - /data/odoo19/instance1
+    - /data/odoo19/instance2
+    - /opt/odoo19/instance1
+    - /opt/odoo19/instance2
+
+- name: Deploy Odoo 19 Instance 1 container
+  community.docker.docker_container:
+    name: odoo19-instance1
+    image: odoo:19.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo19/instance1:/var/lib/odoo
+      - /opt/odoo19/instance1:/etc/odoo
+  become: true
+
+- name: Deploy Odoo 19 Instance 2 container
+  community.docker.docker_container:
+    name: odoo19-instance2
+    image: odoo:19.0
+    state: started
+    restart_policy: always
+    networks:
+      - name: proxy
+    volumes:
+      - /data/odoo19/instance2:/var/lib/odoo
+      - /opt/odoo19/instance2:/etc/odoo
+  become: true
+
+- name: Verify Odoo 19 containers are running
+  community.docker.docker_container_info:
+    name: "{{ item }}"
+  loop:
+    - odoo19-instance1
+    - odoo19-instance2
+  register: odoo19_containers
