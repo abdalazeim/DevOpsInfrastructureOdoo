@@ -153,7 +153,7 @@ fi
 print_info "Restoring PostgreSQL database..."
 if [ -n "${BACKUP_DB_FILE}" ] && [ -f "${BACKUP_PATH}/${BACKUP_DB_FILE}" ]; then
     DB_FILE="${BACKUP_PATH}/${BACKUP_DB_FILE}"
-elif [ -f "${BACKUP_PATH}/database_dump_*.sql" ]; then
+elif compgen -G "${BACKUP_PATH}/database_dump_*.sql" > /dev/null 2>&1; then
     # Fallback: discover dump file explicitly (F04)
     DB_FILE=$(ls "${BACKUP_PATH}"/database_dump_*.sql 2>/dev/null | head -1 || true)
 elif [ -f "${BACKUP_PATH}/database.dump" ]; then
@@ -164,6 +164,14 @@ fi
 
 if [ -n "${DB_FILE}" ]; then
     print_info "Found database dump: ${DB_FILE}"
+    # Determine DB user from manifest or environment (F03/F08: not hardcoded postgres)
+    DB_USER="${POSTGRES_USER:-odoo}"
+    if [ -z "${DB_USER}" ] || [ "${DB_USER}" = "odoo" ]; then
+        MANIFEST_DB_USER=$(python3 -c "import json; print(json.load(open('manifest.json')).get('db_user',''))" 2>/dev/null || echo "")
+        if [ -n "${MANIFEST_DB_USER}" ]; then
+            DB_USER="${MANIFEST_DB_USER}"
+        fi
+    fi
     if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
         print_error "DB container ${DB_CONTAINER} is running; stop it before restore"
         exit 1
@@ -175,20 +183,21 @@ if [ -n "${DB_FILE}" ]; then
     }
     # Wait for PostgreSQL to be ready
     for i in $(seq 1 30); do
-        if docker exec "${DB_CONTAINER}" pg_isready -U postgres >/dev/null 2>&1; then
+        if docker exec "${DB_CONTAINER}" pg_isready -U "${DB_USER}" >/dev/null 2>&1; then
             break
         fi
         sleep 1
     done
     # Restore into the database named in the manifest (F03)
     TARGET_DB="${DB_NAME_FROM_MANIFEST:-odoo${ODOO_VERSION#odoo}_prod}"
-    docker exec -i "${DB_CONTAINER}" psql -U postgres -d postgres -v ON_ERROR_STOP=1 -f "${DB_FILE}" >/dev/null 2>&1 || {
+    docker exec -i "${DB_CONTAINER}" psql -U "${DB_USER}" -d "${TARGET_DB}" -v ON_ERROR_STOP=1 -f "${DB_FILE}" >/dev/null 2>&1 || {
         print_error "PostgreSQL restore failed from: ${DB_FILE}"
+        # N06/N03: ensure DB container is stopped on failure to protect data
         docker stop "${DB_CONTAINER}" >/dev/null 2>&1 || true
         exit 1
     }
-    print_success "PostgreSQL database restored from: ${DB_FILE}"
-    docker stop "${DB_CONTAINER}" >/dev/null 2>&1 || true
+    print_success "PostgreSQL database restored into: ${TARGET_DB}"
+    # Keep DB container running for verification; Odoo will be started at the end
 else
     print_warning "Database backup file not found, skipping PostgreSQL restore"
 fi
@@ -292,10 +301,17 @@ print_success "Odoo container restarted: ${ODOO_CONTAINER}"
 # Verify service health after restore
 print_info "Verifying service health after restore..."
 sleep 10
-if docker exec "${DB_CONTAINER}" pg_isready -U postgres -h localhost >/dev/null 2>&1; then
+DB_USER="${POSTGRES_USER:-odoo}"
+if docker exec "${DB_CONTAINER}" pg_isready -U "${DB_USER}" >/dev/null 2>&1; then
     print_success "PostgreSQL responds after restore"
 else
     print_warning "PostgreSQL not responding after restore (may still be starting)"
+fi
+# Verify Odoo container is running
+if docker ps --format '{{.Names}}' | grep -q "^${ODOO_CONTAINER}$"; then
+    print_success "Odoo container is running after restore"
+else
+    print_warning "Odoo container not running after restore"
 fi
 
 echo ""

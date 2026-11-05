@@ -47,7 +47,7 @@ pipeline {
             steps {
                 sh '''
                     set -e
-                    echo "بدء عملية الاستعادة - Build #${BUILD_NUMBER}"
+                    echo "بدء عملية الاستعادة - Build #$BUILD_NUMBER"
                     echo "الإصدار: ${ODOO_VERSION}"
                     echo "النسخة: ${INSTANCE}"
                     echo "معرف النسخة الاحتياطية: ${BACKUP_ID}"
@@ -154,7 +154,7 @@ pipeline {
                     echo "معرف النسخة الاحتياطية: ${BACKUP_ID}"
                     echo "نوع الاستعادة: ${RESTORE_TYPE}"
                     echo "التاريخ: $(date)"
-                    echo "✓ تم إكمال عملية الاستعادة بنجاح - بناء #${BUILD_NUMBER}"
+                    echo "✓ تم إكمال عملية الاستعادة بنجاح - بناء #$BUILD_NUMBER"
                 '''
             }
         }

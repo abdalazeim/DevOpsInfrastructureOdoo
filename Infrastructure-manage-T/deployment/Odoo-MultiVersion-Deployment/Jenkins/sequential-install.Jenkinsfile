@@ -106,7 +106,7 @@ pipeline {
                     echo "  SEQUENTIAL INSTALLATION - JENKINS REPORT"
                     echo "============================================================"
                     echo ""
-                    echo "Build: ${BUILD_NUMBER}"
+                    echo "Build: $BUILD_NUMBER"
                     echo "Job:   ${JOB_NAME}"
                     echo "Date:  $(date -u '+%Y-%m-%d %H:%M:%S UTC')"
                     echo ""

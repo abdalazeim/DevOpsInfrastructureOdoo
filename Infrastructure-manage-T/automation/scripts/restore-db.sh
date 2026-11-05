@@ -36,7 +36,13 @@ if [[ ! -f "${DUMP_FILE}" ]]; then
 fi
 
 # F12: Verify checksum before any destructive operation
-META_FILE="${DUMP_FILE%.sql.gz}.meta.json"
+# Derive meta/filestore filenames from dump filename by pattern replacement:
+# dump_<DB>_<TS>.sql.gz  ->  meta_<DB>_<TS>.json  /  filestore_<DB>_<TS>.tar.gz
+BASENAME=$(basename "${DUMP_FILE}")
+META_FILE="${DIRNAME}/meta_${BASENAME#dump_}"
+META_FILE="${META_FILE%.sql.gz}.json"
+FILESTORE_FILE="${DIRNAME}/filestore_${BASENAME#dump_}"
+FILESTORE_FILE="${FILESTORE_FILE%.sql.gz}.tar.gz"
 if [[ -f "${META_FILE}" ]]; then
   log_info "Verifying SHA256 checksum from metadata..."
   EXPECTED_SHA=$(python3 -c "import json; print(json.load(open('${META_FILE}'))['sha256'])" 2>/dev/null || echo "")
@@ -105,34 +111,34 @@ else
 fi
 log_ok "Database SQL schema and data restored successfully."
 
-# Step 5: Restore companion filestore linked to target DB name (F12: not source name)
+# Step 5: Restore companion filestore linked to target DB name (F12/N04: not source name, no nesting)
 DIRNAME=$(dirname "${DUMP_FILE}")
-FILENAME=$(basename "${DUMP_FILE}")
-# Derive source DB name from dump filename: dump_<DB>_<ts>.sql.gz
-SOURCE_DB_CANDIDATE="${FILENAME#dump_}"
-SOURCE_DB_CANDIDATE="${SOURCE_DB_CANDIDATE%%_*}"
+FILESTORE_FILE="${DIRNAME}/filestore_${BASENAME#dump_}"
+FILESTORE_FILE="${FILESTORE_FILE%.sql.gz}.tar.gz"
 
-FILESTORE_CANDIDATE="${DIRNAME}/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz"
-FILESTORE_CANDIDATE_GZ="${DIRNAME}/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz"
-
-# Find matching filestore archive
-FILESTORE_FILE=""
-shopt -s nullglob
-for cand in "${DIRNAME}"/filestore_${SOURCE_DB_CANDIDATE}_*.tar.gz; do
-  FILESTORE_FILE="${cand}"
-  break
-done
-shopt -u nullglob
-
-if [[ -n "${FILESTORE_FILE}" ]]; then
+if [[ -f "${FILESTORE_FILE}" ]]; then
   log_info "Companion filestore archive detected: $(basename "${FILESTORE_FILE}")"
   # F12: Restore filestore under the TARGET database name, not the source name
-  TARGET_FILESTORE="${DATA_ROOT}/odoo${VERSION}/data/filestore/${TARGET_DB}"
-  mkdir -p "${TARGET_FILESTORE}"
-  tar -xzf "${FILESTORE_FILE}" -C "${TARGET_FILESTORE}"
-  log_ok "Filestore restored to target name: ${TARGET_DB}"
+  # Extract contents directly so archive's internal DB_NAME dir becomes TARGET_DB contents
+  TARGET_FILESTORE_ROOT="${DATA_ROOT}/odoo${VERSION}/data/filestore"
+  TARGET_FILESTORE="${TARGET_FILESTORE_ROOT}/${TARGET_DB}"
+  mkdir -p "${TARGET_FILESTORE_ROOT}"
+  # Extract archive (contains source DB dir) into target filestore root, then rename
+  TMP_EXTRACT_DIR="${TARGET_FILESTORE_ROOT}/._extract_${TARGET_DB}_$$"
+  mkdir -p "${TMP_EXTRACT_DIR}"
+  tar -xzf "${FILESTORE_FILE}" -C "${TMP_EXTRACT_DIR}"
+  # The archive contains one top-level dir (source DB name); move its contents to TARGET_DB
+  EXTRACTED_DIR=$(ls -1 "${TMP_EXTRACT_DIR}" | head -1)
+  if [[ -n "${EXTRACTED_DIR}" && -d "${TMP_EXTRACT_DIR}/${EXTRACTED_DIR}" ]]; then
+    cp -a "${TMP_EXTRACT_DIR}/${EXTRACTED_DIR}/." "${TARGET_FILESTORE}/"
+    rm -rf "${TMP_EXTRACT_DIR}"
+    log_ok "Filestore restored to target name: ${TARGET_DB}"
+  else
+    rm -rf "${TMP_EXTRACT_DIR}"
+    log_warn "Filestore archive structure unexpected; skipping filestore restore."
+  fi
 else
-  log_warn "No filestore archive found for source DB '${SOURCE_DB_CANDIDATE}'; skipping filestore restore."
+  log_warn "No filestore archive found at ${FILESTORE_FILE}; skipping filestore restore."
 fi
 
 # Step 6: Verify restored tables count

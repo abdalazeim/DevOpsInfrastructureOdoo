@@ -69,15 +69,16 @@ if [[ -d "${ODOO_DATA_DIR}" ]]; then
   FILestore_FOUND=true
 else
   # F13: Fallback - check container volume for filestore when host mount is unknown
-  log_info "Host filestore path not found: ${ODOO_DATA_DIR}; checking container volume..."
-  if docker exec "${DB_CONTAINER}" test -d /var/lib/odoo/filestore 2>/dev/null; then
-    log_info "Found filestore in container volume at /var/lib/odoo/filestore"
-    # Create a temporary archive from container
-    docker exec "${DB_CONTAINER}" tar -czf /tmp/filestore_backup.tar.gz -C /var/lib/odoo filestore 2>/dev/null || true
-    docker cp "${DB_CONTAINER}:/tmp/filestore_backup.tar.gz" "${FILESTORE_FILE}" 2>/dev/null || true
-    docker exec "${DB_CONTAINER}" rm -f /tmp/filestore_backup.tar.gz 2>/dev/null || true
+  # Odoo filestore lives in the Odoo application container, not the DB container (N05)
+  log_info "Host filestore path not found: ${ODOO_DATA_DIR}; checking Odoo container volume..."
+  if docker exec "${ODOO_CONTAINER}" test -d /var/lib/odoo/filestore 2>/dev/null; then
+    log_info "Found filestore in Odoo container volume at /var/lib/odoo/filestore"
+    # Create a temporary archive from the Odoo container
+    docker exec "${ODOO_CONTAINER}" tar -czf /tmp/filestore_backup.tar.gz -C /var/lib/odoo filestore 2>/dev/null || true
+    docker cp "${ODOO_CONTAINER}:/tmp/filestore_backup.tar.gz" "${FILESTORE_FILE}" 2>/dev/null || true
+    docker exec "${ODOO_CONTAINER}" rm -f /tmp/filestore_backup.tar.gz 2>/dev/null || true
     if [[ -f "${FILESTORE_FILE}" ]]; then
-      log_ok "Filestore archived from container: $(basename "${FILESTORE_FILE}")"
+      log_ok "Filestore archived from Odoo container: $(basename "${FILESTORE_FILE}")"
       FILestore_FOUND=true
     fi
   fi

@@ -290,8 +290,8 @@ def jenkins_diagnose(use_sudo=False):
     if report['status'] == 'installed':
         for c in report['containers']:
             status = c.get('Status', '')
-            # F24: Require 'running' status, not just 'not Exited/Created'.
-            if 'running' not in status.lower():
+            # N02: docker ps Status is "Up X hours", not "running"
+            if not status.lower().startswith("up"):
                 issues.append({
                     'id': JENKINS_ISSUE_CONTAINER_NOT_RUNNING,
                     'component': 'Jenkins',

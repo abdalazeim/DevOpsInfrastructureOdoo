@@ -162,9 +162,12 @@ class ServerSetupWorkflow:
             install_cmds=[
                 ["bash", "-c", "apt-get install -y postgresql postgresql-contrib || true"],
                 ["bash", "-c",
+                 "mkdir -p /run/secrets && echo \"${ODOO17_DB_PASSWORD:-changeme}\" > /run/secrets/odoo17_db_password && chmod 600 /run/secrets/odoo17_db_password"],
+                ["bash", "-c",
                  "docker run -d --name odoo17-db --network proxy --restart=always "
                  "-e POSTGRES_DB=odoo17_prod -e POSTGRES_USER=odoo "
                  "-e POSTGRES_PASSWORD_FILE=/run/secrets/odoo17_db_password "
+                 "-v /run/secrets/odoo17_db_password:/run/secrets/odoo17_db_password:ro "
                  "postgres:16-alpine"],
             ],
             depends_on=["docker-network"],
@@ -213,6 +216,17 @@ class ServerSetupWorkflow:
                 ["bash", "-c", "mkdir -p /data/odoo17/instance1 /opt/odoo17/instance1"],
                 ["docker", "run", "-d", "--name", "odoo17-instance1",
                  "--network", "proxy", "--restart=always",
+                 "-p", "10017:8069",
+                 "-e", "DB_HOST=odoo17-db",
+                 "-e", "DB_PORT=5432",
+                 "-e", "DB_USER=odoo",
+                 "-e", "DB_PASSWORD=odoo17",
+                 "-e", "DB_NAME=odoo17_prod",
+                 "-e", "ODOO_DOMAIN=odoo17.localhost",
+                 "-l", "traefik.enable=true",
+                 "-l", "traefik.http.routers.odoo17.rule=Host(`odoo17.localhost`)",
+                 "-l", "traefik.http.routers.odoo17.entrypoints=web",
+                 "-l", "traefik.http.services.odoo17.loadbalancer.server.port=8069",
                  "-v", "/data/odoo17/instance1:/var/lib/odoo",
                  "-v", "/opt/odoo17/instance1:/etc/odoo",
                  "odoo:17.0"],
@@ -231,6 +245,17 @@ class ServerSetupWorkflow:
                 ["bash", "-c", "mkdir -p /data/odoo18/instance1 /opt/odoo18/instance1"],
                 ["docker", "run", "-d", "--name", "odoo18-instance1",
                  "--network", "proxy", "--restart=always",
+                 "-p", "10018:8069",
+                 "-e", "DB_HOST=odoo17-db",
+                 "-e", "DB_PORT=5432",
+                 "-e", "DB_USER=odoo",
+                 "-e", "DB_PASSWORD=odoo18",
+                 "-e", "DB_NAME=odoo18_prod",
+                 "-e", "ODOO_DOMAIN=odoo18.localhost",
+                 "-l", "traefik.enable=true",
+                 "-l", "traefik.http.routers.odoo18.rule=Host(`odoo18.localhost`)",
+                 "-l", "traefik.http.routers.odoo18.entrypoints=web",
+                 "-l", "traefik.http.services.odoo18.loadbalancer.server.port=8069",
                  "-v", "/data/odoo18/instance1:/var/lib/odoo",
                  "-v", "/opt/odoo18/instance1:/etc/odoo",
                  "odoo:18.0"],
@@ -249,6 +274,17 @@ class ServerSetupWorkflow:
                 ["bash", "-c", "mkdir -p /data/odoo19/instance1 /opt/odoo19/instance1"],
                 ["docker", "run", "-d", "--name", "odoo19-instance1",
                  "--network", "proxy", "--restart=always",
+                 "-p", "10019:8069",
+                 "-e", "DB_HOST=odoo17-db",
+                 "-e", "DB_PORT=5432",
+                 "-e", "DB_USER=odoo",
+                 "-e", "DB_PASSWORD=odoo19",
+                 "-e", "DB_NAME=odoo19_prod",
+                 "-e", "ODOO_DOMAIN=odoo19.localhost",
+                 "-l", "traefik.enable=true",
+                 "-l", "traefik.http.routers.odoo19.rule=Host(`odoo19.localhost`)",
+                 "-l", "traefik.http.routers.odoo19.entrypoints=web",
+                 "-l", "traefik.http.services.odoo19.loadbalancer.server.port=8069",
                  "-v", "/data/odoo19/instance1:/var/lib/odoo",
                  "-v", "/opt/odoo19/instance1:/etc/odoo",
                  "odoo:19.0"],
@@ -341,6 +377,9 @@ class ServerSetupWorkflow:
         self.components: dict[str, ComponentStatusRecord] = {}
         self._install_order: List[str] = []
         self._failed_components: set[str] = set()
+        self._blocked_components: set[str] = set()
+        # N12: Filter Odoo components based on profile.enabled
+        self._filter_components_by_profile()
         self._initialize_components()
 
     def _log(self, message: str) -> None:
@@ -433,14 +472,16 @@ class ServerSetupWorkflow:
             self._log(f"  [?] {comp_def.name}: NOT CHECKED ({exc})")
 
     def can_install(self, comp_name: str) -> bool:
-        """Check if a component can be installed (dependencies not failed)."""
+        """Check if a component can be installed (dependencies not failed or blocked)."""
         record = self.components.get(comp_name)
         if record is None:
             return False
         if record.status == InstallationStatus.FAILED:
             return False
+        if comp_name in self._blocked_components:
+            return False
         for dep in record.depends_on:
-            if dep in self._failed_components:
+            if dep in self._failed_components or dep in self._blocked_components:
                 return False
         return True
 
@@ -561,6 +602,11 @@ class ServerSetupWorkflow:
         # Then install in dependency order
         for comp_name in self._install_order:
             if not self.can_install(comp_name):
+                record = self.components[comp_name]
+                record.status = InstallationStatus.SKIPPED
+                record.skip_reason = "Dependency failed or blocked"
+                self._blocked_components.add(comp_name)
+                self._log(f"  [SKIP] {comp_name}: Blocked - dependency failed or blocked.\n")
                 continue
             self.install_component(comp_name)
 
@@ -631,7 +677,7 @@ class ServerSetupWorkflow:
             if r.status == InstallationStatus.NOT_CHECKED
         ]
 
-        overall_success = len(failed) == 0 and len(skipped) == 0
+        overall_success = len(failed) == 0 and len(warnings) == 0
 
         return {
             "components": self.components,
@@ -655,6 +701,19 @@ class ServerSetupWorkflow:
             return os.geteuid() == 0
         except AttributeError:
             return False
+
+    def _filter_components_by_profile(self) -> None:
+        """N12: Remove Odoo component definitions not enabled in the profile."""
+        enabled_versions = set()
+        for ver_attr in ("odoo17", "odoo18", "odoo19"):
+            odoo_conf = getattr(self.profile, ver_attr, None)
+            if odoo_conf is not None and getattr(odoo_conf, "enabled", False):
+                enabled_versions.add(odoo_conf.version)
+
+        self.COMPONENT_DEFINITIONS = [
+            c for c in self.COMPONENT_DEFINITIONS
+            if not (c.name.startswith("odoo") and c.name.replace("odoo", "") not in enabled_versions)
+        ]
 
     def create_operation_record(self) -> OperationRecord:
         """Create an OperationRecord for workflow integration."""

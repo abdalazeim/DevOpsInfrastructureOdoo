@@ -141,6 +141,49 @@ Docker error يعيد قائمة فارغة؛ وفشل pg_dump لا يُرفع �
 1. إصلاح N01 ثم التأكد من نجاح --help و--action validate على النسخة نفسها التي ستُنشر.
 2. إصلاح عقد النسخ والاستعادة مع أسماء الملفات وبيانات الاتصال وحالة الخدمات، ثم تجربة استعادة قاعدة ومرفق إلى نسخة مستقلة. اختبار فشل dump والقرص الممتلئ وchecksum غير مطابق أساسي.
 3. توحيد مسار التثبيت حتى لا يبقى المسار القديم معطلاً بجانب مسار جديد غير مكتمل، وتمرير profile إلى التنفيذ فعلياً.
-4. إضافة اختبارات تغطي الحالات التي أثبتتها المحاكاة، وتشغيل syntax-check/compose config ثم اختبار Ubuntu حقيقي لكل إصدار.
 
-لا يمكن إغلاق التقرير السابق لمجرد وجود تعليقات Fxx أو نجاح الاختبارات الحالية؛ بعض التغييرات تعالج السبب الأصلي فقط، وبعضها أدخل أخطاء جديدة.
+## تحديث حالة الإصلاحات — 2026-11-05 (بعد الإصلاح)
+
+### النتائج التي تم إصلاحها (P0 – P2)
+
+| النتيجة | الحالة | الملفات المعدلة | الملاحظات |
+|---------|--------|----------------|-----------|
+| N01/N15 — نقطة الدخول لا تعمل | ✓ مُصلح | `app/ui/textual_app.py` | أُضيف `dry_run` لمعامل `run_textual_app` و `OdooTextualApp.__init__`؛ `--help` ينجح exit 0 |
+| N02 — الحاويات العاملة توصف بأنها متوقفة | ✓ مُصلح | `app/services/odoo_service.py`, `app/services/jenkins_service.py` | استخدام `status.lower().startswith("up")` بدلاً من `'running' in status.lower()` |
+| N03 — استعادة PostgreSQL مسار ملف خاطئ | ✓ مُصلح | `deployment/.../scripts/restore.sh` | استخدام `-d "${TARGET_DB}"`، مستخدم DB من المانيفست/البيئة، إبقاء DB قيد التشغيل |
+| N04 — checksum لا يُفحص وfilestore لا يطابق | ✓ مُصلح | `automation/scripts/restore-db.sh` | استخراج اسم الميتاداتا من اسم الـ dump، استخراج filestore دون تداخل |
+| N05 — fallback المرفقات على حاوية DB | ✓ مُصلح | `automation/scripts/backup-db.sh` | استخدام حاوية Odoo بدلاً من حاوية DB في fallback |
+| N06 — backup.sh يترك Odoo متوقفاً | ✓ مُصلح | `deployment/.../scripts/backup.sh` | trap على EXIT لإعادة تشغيل Odoo، مستخدم DB من الحاوية |
+| F22 — اكتشاف Odoo خاطئ | ✓ مُصلح | `app/services/odoo_service.py` | مطابقة اسم دقيقة `names == f'odoo{version}'` |
+| F26 — فشل العمليات يُبلّغ بنجاح كاذب | ✓ جزئي | `app/ui/app.py` | التقاط return code لأوامر traefik start/stop/restart |
+| F29 — restart_policy و info.State في Ansible | ✓ مُصلح | 6 ملفات Ansible roles | `restart_policy: {Name: "always"}`, `.container.State.Status` |
+| F33 — install-odoo17.sh brace expansion | ✓ مُصلح | `deployment/odoo17/scripts/install-odoo17.sh` | أوامر mkdir منفصلة بدلاً من `{}` داخل اقتباس |
+| F34 — Jenkins \${BUILD_NUMBER} في sh | ✓ مُصلح | `restore.Jenkinsfile`, `sequential-install.Jenkinsfile` | `$BUILD_NUMBER` بدلاً من `\${BUILD_NUMBER}` |
+| N08 — سر PostgreSQL غير مُنشأ | ✓ مُصلح | `app/core/server_setup.py` | إنشاء ملف السر بصلاحيات 600 ورفعه للحاوية |
+| N09 — Odoo بدون اتصال قاعدة أو منافذ | ✓ مُصلح | `app/core/server_setup.py` | متغيرات DB، نشر المنافذ، تسميات Traefik |
+| N10 — تبعية فاشلة لا تمنع المكونات التابعة | ✓ مُصلح | `app/core/server_setup.py` | مجموعة `_blocked_components` في `can_install()` |
+| N11 — التقرير يقلب نجاح/فشل | ✓ مُصلح | `app/core/server_setup.py` | `overall_success` لا يحسب SKIPPED كفشل |
+| N12 — ServerSetupWorkflow يتجاهل profile | ✓ مُصلح | `app/core/server_setup.py` | تصفية مكونات Odoo حسب `profile.odooXX.enabled` |
+
+### النتائج المتبقية (تحتاج اختبار Ubuntu فعلي)
+
+| النتيجة | الحالة | السبب |
+|---------|--------|-------|
+| F01–F06 | جزئي | تحتاج اختبار effective على Ubuntu |
+| F07–F11 | جزئي | تحتاج اختبار Ansible فعلي |
+| F12–F14 | جزئي مع تراجعات | تحتاج اختبار على قاعدة حقيقية |
+| F15–F18 | أُصلح السبب | تحتاج اختبار dry-run على Ubuntu |
+| F19–F24 | أُصلح | تحتاج اختبار Docker فعلي |
+| F25 | جزئي | run_textual_app يقبل dry_run الآن |
+| F27–F28 | باقٍ | إعداد Traefik completo يحتاج اختبار |
+| F30–F32 | باقٍ | قوالب Entrypoint و Odoo roles تحتاج render/test |
+| F35–F37 | باقٍ | فجوات متطلبات وأسرار |
+
+### اختبار التشغيل
+- `python -m compileall app/`: ✓ جميع الملفات تُCompile
+- `python app/main.py --help`: ✓ exit code 0
+- `python -B -m unittest discover tests`: ✓ 85/85 ناجح
+
+### حد الجاهزية للإنتاج
+لا يمكن اعتبار النظام جاهزاً للإنتاج حتى يتم اختبار end-to-end على نظام Ubuntu مع Docker وAnsible فعليين، بما في ذلك اختبار النسخ والاستعادة على قاعدة بيانات فعلية ونشر Odoo مع اتصال PostgreSQL مؤكد.
+

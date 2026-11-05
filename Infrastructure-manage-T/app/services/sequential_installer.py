@@ -245,7 +245,10 @@ class ComponentInstaller:
             self._log(f"  [{self.name}] SKIPPED: Already installed (version: {version or 'unknown'})\n")
             return record
 
-        os.makedirs(self.log_dir, exist_ok=True)
+        os.makedirs(self.log_dir, exist_ok=True) if not (self.use_sudo and not self._is_root()) else None
+        if self.use_sudo and not self._is_root():
+            import subprocess as _sp
+            _sp.run(["sudo", "mkdir", "-p", self.log_dir], check=False)
         log_file = self._prepare_log_file()
         record.log_file = log_file
 

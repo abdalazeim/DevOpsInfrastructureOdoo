@@ -42,8 +42,9 @@ def inspect_odoo(version: str, use_sudo=False):
             item = json.loads(line)
             names = item.get('Names', '')
             image = item.get('Image', '')
-            is_odoo = f'odoo{version}' in names or image.startswith(ODOO_IMAGES[version])
-            is_db = f'odoo{version}-db' in names or image.startswith(PG_IMAGES[version])
+            # N02/F22: Exact name match only — 'odoo17' must not match 'odoo17-db' as substring.
+            is_odoo = names == f'odoo{version}' or image.startswith(ODOO_IMAGES[version])
+            is_db = names == f'odoo{version}-db' or image.startswith(PG_IMAGES[version])
             # F22: Detect name conflict — a container with the expected name but wrong image.
             if names == f'odoo{version}' or names == f'odoo{version}-db':
                 if is_odoo or is_db:
@@ -145,8 +146,8 @@ def odoo_diagnose(version: str, use_sudo=False):
     for c in report['containers']:
         names = c.get('Names', '')
         status = c.get('Status', '')
-        # F24: Require 'running' status, not just 'not Exited/Created'.
-        is_running = 'running' in status.lower()
+        # N02: docker ps Status is "Up X hours", "Exited (0)...", "Restarting..." — not "running"
+        is_running = status.lower().startswith("up")
         if f'odoo{version}-db' in names:
             if not is_running:
                 issues.append({

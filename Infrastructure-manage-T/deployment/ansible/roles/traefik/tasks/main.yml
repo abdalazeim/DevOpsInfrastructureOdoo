@@ -39,7 +39,7 @@
     name: traefik
     image: traefik:v3.7
     state: started
-    restart_policy: always
+    restart_policy: {Name: "always"}
     networks:
       - name: proxy
     ports:

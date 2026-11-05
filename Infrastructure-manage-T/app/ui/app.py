@@ -687,14 +687,23 @@ class TerminalUI:
             print(" [3] Restart container")
             lc = input("Choose action [1-3]: ").strip()
             if lc == "1":
-                subprocess.run(["docker", "start", "traefik"], check=False)
-                print(f"{GREEN}✓ Traefik container started.{RESET}")
+                result = subprocess.run(["docker", "start", "traefik"], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f"{GREEN}✓ Traefik container started.{RESET}")
+                else:
+                    print(f"{RED}✗ Failed to start Traefik: {result.stderr.strip()}{RESET}")
             elif lc == "2":
-                subprocess.run(["docker", "stop", "traefik"], check=False)
-                print(f"{GREEN}✓ Traefik container stopped safely.{RESET}")
+                result = subprocess.run(["docker", "stop", "traefik"], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f"{GREEN}✓ Traefik container stopped safely.{RESET}")
+                else:
+                    print(f"{RED}✗ Failed to stop Traefik: {result.stderr.strip()}{RESET}")
             elif lc == "3":
-                subprocess.run(["docker", "restart", "traefik"], check=False)
-                print(f"{GREEN}✓ Traefik container restarted.{RESET}")
+                result = subprocess.run(["docker", "restart", "traefik"], capture_output=True, text=True)
+                if result.returncode == 0:
+                    print(f"{GREEN}✓ Traefik container restarted.{RESET}")
+                else:
+                    print(f"{RED}✗ Failed to restart Traefik: {result.stderr.strip()}{RESET}")
 
         elif sub == "4":
             print(f"\n{BOLD}Proxy Network Management:{RESET}")
@@ -707,8 +716,11 @@ class TerminalUI:
             elif nc == "2":
                 cname = input("Enter container name to connect: ").strip()
                 if cname:
-                    subprocess.run(["docker", "network", "connect", "proxy", cname], check=False)
-                    print(f"{GREEN}✓ Container '{cname}' connected to proxy network.{RESET}")
+                    result = subprocess.run(["docker", "network", "connect", "proxy", cname], capture_output=True, text=True)
+                    if result.returncode == 0:
+                        print(f"{GREEN}✓ Container '{cname}' connected to proxy network.{RESET}")
+                    else:
+                        print(f"{RED}✗ Failed to connect '{cname}' to proxy network: {result.stderr.strip()}{RESET}")
             elif nc == "3":
                 cname = input("Enter container name to disconnect: ").strip()
                 if cname:

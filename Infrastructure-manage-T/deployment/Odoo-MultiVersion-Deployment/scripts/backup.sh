@@ -58,6 +58,16 @@ DB_CONTAINER="${VERSION}-${INSTANCE}-db"
 DATA_PATH="/data/${VERSION}/${INSTANCE}"
 CONFIG_PATH="/opt/${VERSION}/${INSTANCE}"
 
+# Track whether we stopped Odoo so we can restart it on any exit (N06: never leave Odoo stopped)
+ODOO_WAS_STOPPED_BY_US=false
+cleanup() {
+    if [ "${ODOO_WAS_STOPPED_BY_US}" = true ]; then
+        print_info "Restarting Odoo container (cleanup after ${1:-exit})..."
+        docker start "${ODOO_CONTAINER}" >/dev/null 2>&1 || print_warning "Failed to restart Odoo container: ${ODOO_CONTAINER}"
+    fi
+}
+trap 'cleanup $?' EXIT
+
 print_info "Version selected: ${VERSION}"
 print_info "Odoo container: ${ODOO_CONTAINER}"
 print_info "DB container: ${DB_CONTAINER}"
@@ -78,18 +88,21 @@ if docker ps --format '{{.Names}}' | grep -q "^${ODOO_CONTAINER}$"; then
         print_error "Failed to stop Odoo container: ${ODOO_CONTAINER}"
         exit 1
     }
+    ODOO_WAS_STOPPED_BY_US=true
     print_success "Odoo container stopped: ${ODOO_CONTAINER}"
 fi
 
 # Backup PostgreSQL database (F02: use docker exec -i, not -T)
 print_info "Creating PostgreSQL database backup..."
 if docker ps --format '{{.Names}}' | grep -q "^${DB_CONTAINER}$"; then
-    DB_NAME=$(docker exec "${DB_CONTAINER}" psql -U postgres -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'odoo%';" 2>/dev/null | head -1 | xargs || echo "")
+    # Determine DB user from container environment (N06: not hardcoded postgres)
+    DB_USER=$(docker exec "${DB_CONTAINER}" env 2>/dev/null | grep POSTGRES_USER | cut -d= -f2 | head -1 || echo "postgres")
+    DB_NAME=$(docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -tAc "SELECT datname FROM pg_database WHERE datname LIKE 'odoo%';" 2>/dev/null | head -1 | xargs || echo "")
     if [ -z "${DB_NAME}" ]; then
         DB_NAME=$(docker exec "${DB_CONTAINER}" env 2>/dev/null | grep POSTGRES_DB | cut -d= -f2 | head -1 || echo "")
     fi
     if [ -n "${DB_NAME}" ]; then
-        docker exec -i "${DB_CONTAINER}" pg_dump -U postgres "${DB_NAME}" > "${BACKUP_PATH}/database_dump_${TIMESTAMP}.sql"
+        docker exec -i "${DB_CONTAINER}" pg_dump -U "${DB_USER}" "${DB_NAME}" > "${BACKUP_PATH}/database_dump_${TIMESTAMP}.sql"
         print_success "Database backed up: ${DB_NAME} -> database_dump_${TIMESTAMP}.sql"
     else
         print_error "Could not find database name in container: ${DB_CONTAINER}"
@@ -139,12 +152,13 @@ else
     print_warning "Config directory not found: ${CONFIG_PATH}/etc"
 fi
 
-# Restart Odoo container after backup (F06: ensure restart even on failure path)
+# Restart Odoo container after backup (F06: trap ensures restart even on failure)
 print_info "Restarting Odoo container after backup..."
 docker start "${ODOO_CONTAINER}" >/dev/null 2>&1 || {
     print_error "Failed to restart Odoo container: ${ODOO_CONTAINER}"
     exit 1
 }
+ODOO_WAS_STOPPED_BY_US=false
 print_success "Odoo container restarted: ${ODOO_CONTAINER}"
 
 # Create SHA256 checksums for all backup files (F01/F07: integrity verification)

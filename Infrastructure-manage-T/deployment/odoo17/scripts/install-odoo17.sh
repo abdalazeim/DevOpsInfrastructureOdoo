@@ -38,7 +38,7 @@ if ! command -v docker >/dev/null 2>&1; then
 fi
 
 # إنشاء مجلد المثيل
-mkdir -p "${DESTINATION}"/{addons,etc,postgresql}
+mkdir -p "${DESTINATION}/addons" "${DESTINATION}/etc" "${DESTINATION}/postgresql"
 
 # نسخ ملفات القالب
 cp "${SOURCE_DIR}/docker-compose.yml" "${DESTINATION}/"

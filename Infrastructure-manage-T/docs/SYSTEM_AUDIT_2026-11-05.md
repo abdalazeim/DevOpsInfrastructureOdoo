@@ -225,3 +225,45 @@ PROJECT_ROOT يصل إلى deployment ثم SOURCE_DIR يضيف deployment مرة
 4. استكمال Portainer/pgAdmin وتأمين الأسرار، ثم اختبار مستخدم عادي مع sudo وDocker daemon متوقف واسم حاوية محجوز ومنفذ مستخدم.
 
 نجاح الاختبارات الحالية مفيد لكنه لا يثبت نجاح هذه المسارات الجديدة. لا بد من اختبار end-to-end على Ubuntu قبل وصف النظام بأنه جاهز للإنتاج.
+
+## تحديث حالة الإصلاح — 2026-11-05
+
+### النتائج التي تم إصلاحها (P0 – P2)
+
+| النتيجة | الحالة | الجذر | الإصلاح |
+|---------|--------|-------|--------|
+| N01/N15 — نقطة الدخول لا تعمل | ✓ مُصلح | `run_textual_app` لا يقبل `dry_run` | أُضيف معامل `dry_run` إلى `OdooTextualApp.__init__` و `run_textual_app` |
+| N02 — الحاويات العاملة توصف بأنها متوقفة | ✓ مُصلح | `'running' in status.lower()` يفشل مع "Up X hours" | استخدام `status.lower().startswith("up")` |
+| N03 — استعادة PostgreSQL مسار ملف خاطئ | ✓ مُصلح | `psql -d postgres` بدلاً من TARGET_DB | استخدام `-d "${TARGET_DB}"`، مستخدم DB من المانيفست |
+| N04 — checksum لا يُفحص وfilestore لا يطابق | ✓ مُصلح | اسم ملف الميتاداتا خاطئ | استخراج الاسم من اسم الـ dump بالاستبدال النصي |
+| N05 — fallback المرفقات على حاوية DB | ✓ مُصلح | البحث في حاوية PostgreSQL بدلاً من Odoo | استخدام حاوية Odoo في fallback |
+| N06 — backup.sh يترك Odoo متوقفاً | ✓ مُصلح | لا يوجد trap لإعادة التشغيل | trap على EXIT يعيد تشغيل Odoo |
+| F22 — اكتشاف Odoo خاطئ | ✓ مُصلح | `in` يطابق substring | مطابقة اسم دقيقة `names == f'odoo{version}'` |
+| F26 — فشل العمليات يُبلّغ بنجاح | ✓ جزئي | `check=False` مع طباعة نجاح | التقاط return code للتقرير الدقيق |
+| F29 — restart_policy و info.State | ✓ مُصلح | معامل غير صحيح، حقل نتيجة خاطئ | `restart_policy: {Name: "always"}`, `.container.State.Status` |
+| F33 — install-odoo17.sh brace expansion | ✓ مُصلح | أقواس داخل اقتباس مزدوج | أوامر mkdir منفصلة |
+| F34 — Jenkins \${BUILD_NUMBER} في sh | ✓ مُصلح | نص غير مضمن في shell | `$BUILD_NUMBER` بدلاً من `\${BUILD_NUMBER}` |
+| N08 — سر PostgreSQL غير مُنشأ | ✓ مُصلح | ملف السر غير موجود | إنشاء ملف السر بصلاحيات 600 ورفعه للحاوية |
+| N09 — Odoo بدون اتصال قاعدة أو منافذ | ✓ مُصلح | نقص متغيرات بيئة ومنافذ Traefik | إضافة متغيرات DB، نشر المنافذ، تسميات Traefik |
+| N10 — تبعية فاشلة لا تمنع التابعة | ✓ مُصلح | `_failed_components` لا يُحدّث للمتجاوز | إضافة `_blocked_components` في `can_install()` |
+| N11 — التقرير يقلب نجاح/فشل | ✓ مُصلح | SKIPPED يُحسب كفشل | `overall_success` لا يحسب SKIPPED |
+| N12 — ServerSetupWorkflow يتجاهل profile | ✓ مُصلح | تعريفات مكونات ثابتة | تصفية مكونات Odoo حسب `profile.odooXX.enabled` |
+
+### نتائج الاختبار (الحالية)
+
+| الاختبار | الحالة | النتيجة |
+|---------|--------|--------|
+| Python syntax check (`compileall app/`) | ✓ ناجح | جميع الملفات تُCompile |
+| Import core modules | ✓ ناجح | جميع الاستيرادات تعمل |
+| `python app/main.py --help` | ✓ ناجح | exit code 0 |
+| 85 unit tests | ✓ ناجح | 85/85 ناجح |
+| Docker/Ansible integration | ⏸ متأخر | يحتاج Ubuntu + Docker + Ansible |
+
+### حد الجاهزية للإنتاج (غير متحقق)
+
+لا يمكن اعتبار النظام جاهزاً للإنتاج حتى تتوفر:
+- [ ] اختبار end-to-end على نظام Ubuntu نظيف
+- [ ] اختبار النسخ والاستعادة على قاعدة بيانات فعلية
+- [ ] اختبار نشر Odoo مع اتصال PostgreSQL مؤكد
+- [ ] اختبار Traefik مع TLS وشهادات فعلية
+

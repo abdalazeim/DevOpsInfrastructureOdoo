@@ -16,4 +16,4 @@
 
 - name: Display Traefik status
   ansible.builtin.debug:
-    msg: "Traefik container status: {{ traefik_container_info.info.State.Status | default('not found') }}"
+    msg: "Traefik container status: {{ traefik_container_info.container.State.Status | default('not found') }}"
