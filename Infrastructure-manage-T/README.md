@@ -6,6 +6,8 @@ Terminal-only Python CLI/TUI for inspecting and managing Ubuntu infrastructure, 
 
 ## Start from the repository root
 
+> **Governance:** [docs/DOCUMENTATION_INDEX.md](docs/DOCUMENTATION_INDEX.md) · Mandatory: [docs/AI_DEVELOPMENT_RULES.md](docs/AI_DEVELOPMENT_RULES.md), [docs/DEVELOPMENT_METHODOLOGY.md](docs/DEVELOPMENT_METHODOLOGY.md) · Central reference: [docs/MASTER_SYSTEM_DOCUMENTATION.md](docs/MASTER_SYSTEM_DOCUMENTATION.md)
+
 ```bash
 python -m pip install -e .
 python -B app/main.py --help

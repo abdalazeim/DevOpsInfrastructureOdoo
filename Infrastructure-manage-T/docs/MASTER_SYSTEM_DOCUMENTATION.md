@@ -2,6 +2,9 @@
 
 Updated: 2026-11-07 | Version 1.1.0 Beta | **NOT READY**
 
+> **Governance:** [AI_DEVELOPMENT_RULES.md](AI_DEVELOPMENT_RULES.md) and [DEVELOPMENT_METHODOLOGY.md](DEVELOPMENT_METHODOLOGY.md) are mandatory for changes. Use [DOCUMENTATION_INDEX.md](DOCUMENTATION_INDEX.md) to locate current vs. historical references. Evidence-based status only: `SUCCESS` / `FAILED` / `PARTIAL SUCCESS` / `SKIPPED` / `NOT VERIFIED`.
+
+
 ## Scope and entry points
 
 Run commands from the repository root. `app/main.py` is the CLI entry point; `app/ui/app.py` and `app/ui/textual_app.py` provide terminal interfaces. No React frontend or manager API server is needed. Managed services such as Odoo still expose their own HTTP endpoints.

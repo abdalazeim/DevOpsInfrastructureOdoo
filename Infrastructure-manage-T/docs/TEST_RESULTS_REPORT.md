@@ -1,23 +1,36 @@
-# Test results report
+# Test Results Report
 
-Updated: 2026-11-07 | Python 3.14.4 / Windows 11
+> **Last updated:** 2026-11-07  
+> **Governance:** [DEVELOPMENT_METHODOLOGY.md](DEVELOPMENT_METHODOLOGY.md) · Evidence-based status only.
 
-Actual unittest result: **168/168 passed (100% of executed tests)**. Local audit checks: **51/51 passed**; this includes the unittest command and must not be added to its test count. YAML: **110/110 parsed**, duplicate-key detection enabled.
+## 1. Summary
 
-Reproduce from the repository root:
+| Check | Result | Status | Notes |
+|---|---|---|---|
+| `python -m compileall -q app` (2026-11-07, local) | Exit 0 | **SUCCESS** | Syntax/bytecode compile check |
+| `python -m pytest -q` (2026-11-07, local) | `168 passed in 3.73s` | **SUCCESS** | Local unit/regression tests; mock-heavy where applicable |
+| Prior audit evidence bundle | Recorded | **PARTIAL** | [evidence/2026-11-07/summary.json](evidence/2026-11-07/summary.json), logs, YAML/document checks as stored |
+| Ubuntu/Docker/Compose/Odoo/PostgreSQL/Traefik/Ansible/Jenkins E2E | Not executed | **NOT VERIFIED** | No isolated live target |
+| Backup restore drill (isolated) | Not executed | **NOT VERIFIED** | Safety constraint |
+| TUI interactive full flow | Not fully executed | **NOT VERIFIED** | Menu construction/tests do not prove all interactive behavior |
+| Python 3.10/3.11/3.12 matrix | Not executed in this pass | **NOT VERIFIED** | Local rerun used available Python environment |
+
+## 2. Reproduce (Safe, Local)
 
 ```bash
-python -B tools/audit_local.py --output docs/evidence/local-rerun
+python -m compileall -q app
+python -m pytest -q
 ```
 
-Use a new output directory to preserve prior evidence. The tool runs tests and non-mutating CLI plans plus AST/Bash syntax checks. It does not install software or run infrastructure. The runner also parses tracked YAML with duplicate-key detection. [Raw summary](evidence/2026-11-07/summary.json), [test log](evidence/2026-11-07/unittest.log), [YAML results](evidence/2026-11-07/yaml-check.json).
+Optional (non-mutating, preserves prior evidence by using a new output dir): `python -B tools/audit_local.py --output docs/evidence/local-rerun`
 
-CLI plan exit 0 means planning succeeded, not a healthy deployment. Missing version and invalid port correctly return 2. Menu construction does not prove interactive behavior. Mock-based tests do not prove external services.
+## 3. Interpretation Rules
 
-Not executed: Ubuntu package installation; Docker/Compose deployments and networking; Odoo17/18/19 initialization/authentication; PostgreSQL15/16/17/18 live matrix; pgvector; DNS/SSL; Ansible runtime; Jenkins CI/CD jobs; live pgAdmin/Portainer; actual backup/restore and attachment integrity; complete interactive TUI; Python3.10/3.11/3.12 runtime matrix; security vulnerability scan. User confirmed no isolated test environment.
+- CLI/dry-run/plan exit codes can indicate planning/validation behavior, **not** deployment or integration success.
+- Mock-based tests **do not** prove external service connectivity.
+- Do not report `SUCCESS` for integration/deployment without target runtime evidence.
 
-Status remains **NOT READY**; see [remaining defects](FINAL_PRODUCTION_READINESS_REPORT.md).
+## 4. Historical Notes (Preserved)
 
-The new offline restoration test initially failed on Windows because pwd was imported before its Linux-only ownership branch. The import was moved into that branch and the complete suite was rerun successfully. The earlier failure is preserved in `evidence/2026-11-07/unittest-before-portable-import-fix.log`.
+The 2026-11-07 evidence directory records prior local checks (including a Windows-portable import fix rerun; see `evidence/2026-11-07/unittest-before-portable-import-fix.log` if present). Active document/archive validation counts in prior evidence remain historical artifacts; use current index/governance docs for authoritative process.
 
-Active document links: 141 checked; archive integrity: 36 original document hashes checked. See [document validation](evidence/2026-11-07/document-validation.json).
