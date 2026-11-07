@@ -137,21 +137,28 @@ class InstallationPipeline:
                                     depends_on=c.depends_on, critical=c.critical,
                                     install_cmds=c.install_cmds, verify_cmds=[c.check_cmd], check_cmd=c.check_cmd)
                                 for c in setup.COMPONENT_DEFINITIONS]
+        for component in self._component_defs:
+            binary = {'docker-engine': 'docker', 'ansible': 'ansible-playbook'}.get(component['name'])
+            if binary:
+                component['presence_cmd'] = ['bash', '-c', 'command -v ' + binary]
 
     def _compute_install_order(self) -> List[str]:
         """Topological sort respecting dependencies."""
         order: List[str] = []
         visited: Set[str] = set()
         temp: Set[str] = set()
+        names = [c['name'] for c in self._component_defs]
+        if len(names) != len(set(names)):
+            raise ValueError('Duplicate component names in dependency graph')
 
         def visit(name: str) -> None:
             if name in visited:
                 return
             if name in temp:
-                return  # circular guard
+                raise ValueError('Dependency cycle at ' + name)
             comp = next((c for c in self._component_defs if c["name"] == name), None)
             if comp is None:
-                return
+                raise ValueError('Unknown dependency: ' + name)
             temp.add(name)
             for dep in comp.get("depends_on", []):
                 visit(dep)
@@ -217,7 +224,7 @@ class InstallationPipeline:
                 verification_detail="[DRY-RUN] Verification skipped",
             )
 
-        prefix = ["sudo"] if self.use_sudo and not self._is_root() else []
+        prefix = ["sudo", "-n"] if self.use_sudo and not self._is_root() else []
         full_cmd = prefix + command
 
         try:
@@ -225,7 +232,7 @@ class InstallationPipeline:
                 full_cmd,
                 capture_output=True,
                 text=True,
-                timeout=300,
+                timeout=1800 if any('managed_stack.py' in str(arg) for arg in command) else 300,
             )
             exit_code = result.returncode
             stdout = result.stdout
@@ -233,9 +240,9 @@ class InstallationPipeline:
         except subprocess.TimeoutExpired:
             exit_code = 124
             stdout = ""
-            stderr = "Command timed out after 300 seconds."
+            stderr = "Command exceeded its bounded execution timeout."
         except Exception as exc:
-            exit_code = 1
+            exit_code = 127
             stdout = ""
             stderr = str(exc)
 
@@ -278,10 +285,21 @@ class InstallationPipeline:
 
         if not self.dry_run and comp_def.get('check_cmd'):
             check = self._run_step('Inspect existing component', comp_def['check_cmd'])
+            record.steps.append(check)
             if check.success:
-                record.steps.append(check)
                 record.status = InstallationStatus.ALREADY_INSTALLED
+                record.end_time = _now_iso()
+                record.duration_seconds = (datetime.fromisoformat(record.end_time) - datetime.fromisoformat(record.start_time)).total_seconds()
                 return record
+            if comp_def.get('presence_cmd'):
+                presence = self._run_step('Detect installed executable', comp_def['presence_cmd'])
+                record.steps.append(presence)
+                if presence.exit_code != 1:
+                    record.status = InstallationStatus.FAILED
+                    record.error = 'NEEDS_CONFIGURATION: existing or uninspectable component failed health checks; installation not attempted'
+                    record.end_time = _now_iso()
+                    self._failed_components.add(name)
+                    return record
         all_success = True
 
         # Install steps
@@ -296,6 +314,9 @@ class InstallationPipeline:
 
         # Verify steps (only if install succeeded)
         if all_success:
+            if not comp_def.get('verify_cmds'):
+                all_success = False
+                record.error = 'No runtime verification defined'
             for idx, cmd in enumerate(comp_def.get("verify_cmds", []), 1):
                 step = self._run_step(f"Verify step {idx}", cmd)
                 record.steps.append(step)
@@ -385,7 +406,7 @@ class InstallationPipeline:
         skipped = [r for r in self.components.values() if r.status == InstallationStatus.SKIPPED]
         pending = [r for r in self.components.values() if r.status == InstallationStatus.NOT_CHECKED]
 
-        overall_success = not failed and not pending and not self._blocked_components
+        overall_success = bool(self.components) and not failed and not pending and not self._blocked_components
         if not self.dry_run:
             overall_success = overall_success and not skipped
 

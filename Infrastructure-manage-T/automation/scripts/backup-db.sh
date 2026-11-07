@@ -89,6 +89,10 @@ fi
 
 # Calculate SHA256 checksum for integrity check
 CHECKSUM=$(sha256sum "${DUMP_FILE}" | awk '{print $1}')
+FILESTORE_CHECKSUM=""
+if [[ -f "${FILESTORE_FILE}" ]]; then
+  FILESTORE_CHECKSUM=$(sha256sum "${FILESTORE_FILE}" | awk '{print $1}')
+fi
 
 # Write metadata
 cat <<EOF > "${META_FILE}"
@@ -99,12 +103,15 @@ cat <<EOF > "${META_FILE}"
   "dump_file": "$(basename "${DUMP_FILE}")",
   "dump_size_bytes": ${DUMP_SIZE},
   "sha256": "${CHECKSUM}",
+  "filestore_sha256": "${FILESTORE_CHECKSUM}",
   "status": "success"
 }
 EOF
 
 # Retention enforcement: Keep only newest $RETENTION dumps
-log_info "Enforcing retention policy (keeping newest ${RETENTION} backups)..."
+if [[ "${CONFIRM_BACKUP_PRUNE:-no}" == "yes" ]]; then
+[[ "${RETENTION}" =~ ^[1-9][0-9]*$ ]] || { log_err "Retention must be a positive integer"; exit 1; }
+log_info "Enforcing explicitly requested retention policy (keeping newest ${RETENTION} backups)..."
 find "${BACKUP_DIR}" -name "dump_${DB_NAME}_*.sql.gz" -type f | sort -r | tail -n +"$((RETENTION + 1))" | while read -r old_dump; do
   log_warn "Removing expired backup: ${old_dump}"
   rm -f "${old_dump}"
@@ -115,5 +122,8 @@ find "${BACKUP_DIR}" -name "dump_${DB_NAME}_*.sql.gz" -type f | sort -r | tail -
   rm -f "${BACKUP_DIR}/filestore_${old_prefix}.tar.gz"
   rm -f "${BACKUP_DIR}/meta_${old_prefix}.json"
 done
+else
+  log_info "All existing backups preserved; pruning requires CONFIRM_BACKUP_PRUNE=yes."
+fi
 
 log_ok "Backup completed successfully! SHA256: ${CHECKSUM:0:16}..."

@@ -1,0 +1,647 @@
+{
+  "generated_at": "2026-11-07T07:53:58.469991+00:00",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "python": "3.14.4 (tags/v3.14.4:23116f9, Apr  7 2026, 14:10:54) [MSC v.1944 64 bit (AMD64)]",
+  "unit_tests": 168,
+  "checks": [
+    {
+      "name": "unittest",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "-m",
+        "unittest",
+        "discover",
+        "tests",
+        "-v"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 10.841
+    },
+    {
+      "name": "cli-help",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.253
+    },
+    {
+      "name": "cli-validate",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--action",
+        "validate",
+        "--dry-run"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.298
+    },
+    {
+      "name": "cli-preflight-plan",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--action",
+        "preflight",
+        "--dry-run"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.425
+    },
+    {
+      "name": "cli-final-plan",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--action",
+        "final-workflow",
+        "--odoo-version",
+        "17",
+        "--mode",
+        "local",
+        "--dry-run"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.5
+    },
+    {
+      "name": "cli-selection-required",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--action",
+        "final-workflow",
+        "--dry-run"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "passed": true,
+      "seconds": 0.499
+    },
+    {
+      "name": "cli-invalid-port",
+      "command": [
+        "C:\\Python314\\python.exe",
+        "-B",
+        "app/main.py",
+        "--action",
+        "final-workflow",
+        "--odoo-version",
+        "17",
+        "--http-port",
+        "0",
+        "--dry-run"
+      ],
+      "exit_code": 2,
+      "expected_exit_code": 2,
+      "passed": true,
+      "seconds": 0.699
+    },
+    {
+      "name": "python-ast",
+      "passed": true,
+      "files": 76,
+      "errors": []
+    },
+    {
+      "name": "shell-00",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/backup-db.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.146
+    },
+    {
+      "name": "shell-01",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/deploy-odoo.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.142
+    },
+    {
+      "name": "shell-02",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.142
+    },
+    {
+      "name": "shell-03",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/init-server.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.228
+    },
+    {
+      "name": "shell-04",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/install-odoo.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.172
+    },
+    {
+      "name": "shell-05",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/manage-traefik.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.166
+    },
+    {
+      "name": "shell-06",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/restore-db.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.287
+    },
+    {
+      "name": "shell-07",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "automation/scripts/setup-traefik.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.171
+    },
+    {
+      "name": "shell-08",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "bootstrap-odoo-infra.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.149
+    },
+    {
+      "name": "shell-09",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/backup-system-config.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.217
+    },
+    {
+      "name": "shell-10",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/backup.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.161
+    },
+    {
+      "name": "shell-11",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/bootstrap-odoo-infra.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.164
+    },
+    {
+      "name": "shell-12",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.267
+    },
+    {
+      "name": "shell-13",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/install-odoo17.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.398
+    },
+    {
+      "name": "shell-14",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/install-odoo19.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.169
+    },
+    {
+      "name": "shell-15",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/launch-odoo-infra.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.235
+    },
+    {
+      "name": "shell-16",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/list-backups.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.291
+    },
+    {
+      "name": "shell-17",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/restore-system-config.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.294
+    },
+    {
+      "name": "shell-18",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/restore.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.266
+    },
+    {
+      "name": "shell-19",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/sequential-install.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.603
+    },
+    {
+      "name": "shell-20",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo-MultiVersion-Deployment/scripts/verify-backups.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.32
+    },
+    {
+      "name": "shell-21",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo17-MultiInstance-Deployment/ansible/templates/entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.198
+    },
+    {
+      "name": "shell-22",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo17-MultiInstance-Deployment/scripts/backup.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.325
+    },
+    {
+      "name": "shell-23",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo17-MultiInstance-Deployment/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.357
+    },
+    {
+      "name": "shell-24",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/Odoo17-MultiInstance-Deployment/scripts/install-odoo17.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.32
+    },
+    {
+      "name": "shell-25",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo17/docker/entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.179
+    },
+    {
+      "name": "shell-26",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo17/entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.237
+    },
+    {
+      "name": "shell-27",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo17/scripts/backup.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.197
+    },
+    {
+      "name": "shell-28",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo17/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.261
+    },
+    {
+      "name": "shell-29",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo17/scripts/install-odoo17.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.307
+    },
+    {
+      "name": "shell-30",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo18/entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.167
+    },
+    {
+      "name": "shell-31",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo18/run.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.155
+    },
+    {
+      "name": "shell-32",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo18/scripts/backup.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.222
+    },
+    {
+      "name": "shell-33",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo18/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.226
+    },
+    {
+      "name": "shell-34",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo18/scripts/install-odoo18.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.309
+    },
+    {
+      "name": "shell-35",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo19/entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.27
+    },
+    {
+      "name": "shell-36",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo19/run.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.166
+    },
+    {
+      "name": "shell-37",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo19/scripts/backup.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.153
+    },
+    {
+      "name": "shell-38",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo19/scripts/health-check.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.177
+    },
+    {
+      "name": "shell-39",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "deployment/odoo19/scripts/install-odoo19.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.201
+    },
+    {
+      "name": "shell-40",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "launch-odoo-infra.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.216
+    },
+    {
+      "name": "shell-41",
+      "command": [
+        "C:/Program Files/Git/bin/bash.exe",
+        "-n",
+        "templates/odoo-entrypoint.sh"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "seconds": 0.196
+    },
+    {
+      "name": "yaml-parse",
+      "files": 110,
+      "passed": true
+    }
+  ],
+  "passed": 51,
+  "total": 51,
+  "not_executed": [
+    "Ubuntu installation",
+    "Docker/Compose live deployment",
+    "PostgreSQL/Odoo authentication and initialization",
+    "Traefik DNS/TLS",
+    "Ansible runtime",
+    "Jenkins authenticated pipeline",
+    "Real backup/restore drill",
+    "Python 3.10/3.11/3.12 runtime matrix"
+  ]
+}

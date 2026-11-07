@@ -1,0 +1,23 @@
+usage: main.py [-h] [--profile PROFILE] [--dry-run]
+               [--action {tui,textual,preflight,prep,traefik,traefik-audit,traefik-backup,odoo17,odoo18,odoo19,full,health,validate,runtimes,sequential-install,server-setup,inspect,install-report,final-workflow}]
+               [--odoo-version {17,18,19}] [--mode {local,domain}]
+               [--http-port HTTP_PORT] [--apply] [--resume]
+               [--report-dir REPORT_DIR]
+
+Odoo Infrastructure Manager - Multi-Version Ubuntu/Docker Orchestrator
+
+options:
+  -h, --help            show this help message and exit
+  --profile, -p PROFILE
+                        Path to profile YAML file
+  --dry-run, -d         Simulate execution without modifying system
+  --action, -a {tui,textual,preflight,prep,traefik,traefik-audit,traefik-backup,odoo17,odoo18,odoo19,full,health,validate,runtimes,sequential-install,server-setup,inspect,install-report,final-workflow}
+                        Action to execute directly or launch interactive TUI
+  --odoo-version {17,18,19}
+  --mode {local,domain}
+  --http-port HTTP_PORT
+  --apply               Apply installation in final-workflow; default is read-
+                        only verification
+  --resume
+  --report-dir REPORT_DIR
+

@@ -1,0 +1,117 @@
+
+======================================================================
+ SEQUENTIAL INSTALLATION PIPELINE STARTED
+======================================================================
+
+Dry-run: True
+
+
+[1m[INSTALLING][0m system-packages
+
+  [CMD] apt-get update
+
+  [CMD] apt-get install -y curl wget gnupg software-properties-common apt-transport-https ca-certificates python3 python3-pip python3-venv git vim sudo ufw jq tar gzip zstd
+
+  [CMD] bash -c which curl wget git jq tar gzip python3 pip3
+
+  [PLANNED] system-packages not executed
+
+
+[1m[INSTALLING][0m docker-engine
+
+  [CMD] install -m 0755 -d /etc/apt/keyrings
+
+  [CMD] bash -c curl -fsSL https://download.docker.com/linux/ubuntu/gpg | gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+
+  [CMD] chmod a+r /etc/apt/keyrings/docker.gpg
+
+  [CMD] bash -c echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | tee /etc/apt/sources.list.d/docker.list >/dev/null
+
+  [CMD] apt-get update
+
+  [CMD] apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+
+  [CMD] systemctl enable docker
+
+  [CMD] systemctl start docker
+
+  [CMD] bash -c docker info >/dev/null && docker compose version
+
+  [PLANNED] docker-engine not executed
+
+
+[1m[INSTALLING][0m docker-compose
+
+  [CMD] apt-get install -y docker-compose-plugin
+
+  [CMD] docker compose version
+
+  [PLANNED] docker-compose not executed
+
+
+[1m[INSTALLING][0m docker-network
+
+  [CMD] docker network create --driver bridge --subnet 172.28.0.0/16 proxy
+
+  [CMD] docker network inspect proxy
+
+  [PLANNED] docker-network not executed
+
+
+[1m[INSTALLING][0m python-runtime
+
+  [CMD] apt-get install -y python3 python3-pip python3-venv
+
+  [CMD] C:\Python314\python.exe -c import ssl, venv, pip; print("Python verified")
+
+  [PLANNED] python-runtime not executed
+
+
+[1m[INSTALLING][0m odoo17
+
+  [CMD] C:\Python314\python.exe D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\app\services\managed_stack.py --profile-json {"profile_name": "example-profile", "deployment_mode": "local", "jenkins_enabled": false, "description": "Standard production configuration template for Odoo 17, 18 & 19", "version": "1.0.0", "server": {"hostname": "devops-odoo", "ip_or_host": "198.51.100.10", "timezone": "UTC", "ssh_user": "devops", "ssh_port": 22}, "paths": {"project_root": "/opt/odoo-infrastructure-manager", "data_root": "/opt/odoo-infrastructure", "backup_root": "/opt/odoo-infrastructure/backups"}, "network": {"proxy_network_name": "proxy", "proxy_subnet": "172.28.0.0/16", "enable_ipv6": false}, "traefik": {"enabled": true, "image": "traefik:v3.7", "dashboard_enabled": true, "dashboard_domain": "traefik.localhost", "acme_email": "admin@localhost", "acme_challenge": "http", "http_port": 80, "https_port": 443}, "odoo17": {"enabled": true, "version": "17", "domain": "odoo17-1.localhost", "image": "odoo:17.0", "workers": 3, "http_port": 10017, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:16-alpine", "name": "odoo17_prod", "user": "odoo", "password_env_var": "ODOO17_DB_PASSWORD", "admin_password_env_var": "ODOO17_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo18": {"enabled": false, "version": "18", "domain": "odoo18-1.localhost", "image": "odoo:18.0", "workers": 3, "http_port": 10018, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:17-alpine", "name": "odoo18_prod", "user": "odoo", "password_env_var": "ODOO18_DB_PASSWORD", "admin_password_env_var": "ODOO18_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo19": {"enabled": false, "version": "19", "domain": "odoo19-1.localhost", "image": "odoo:19.0", "workers": 3, "http_port": 10019, "memory_limit_soft": "2684354560", "memory_limit_hard": "3221225472", "database": {"engine": "postgres:18-alpine", "name": "odoo19_prod", "user": "odoo", "password_env_var": "ODOO19_DB_PASSWORD", "admin_password_env_var": "ODOO19_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "backup": {"enabled": true, "cron_schedule": "0 2 * * *", "retention_count": 7, "include_filestore": true, "compression": "gzip", "verify_checksum": true}, "security": {"strict_file_permissions": true, "acme_mode_600": true, "isolate_postgres_network": true, "enforce_https": true}} --version 17
+
+  [CMD] C:\Python314\python.exe D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\app\services\managed_stack.py --profile-json {"profile_name": "example-profile", "deployment_mode": "local", "jenkins_enabled": false, "description": "Standard production configuration template for Odoo 17, 18 & 19", "version": "1.0.0", "server": {"hostname": "devops-odoo", "ip_or_host": "198.51.100.10", "timezone": "UTC", "ssh_user": "devops", "ssh_port": 22}, "paths": {"project_root": "/opt/odoo-infrastructure-manager", "data_root": "/opt/odoo-infrastructure", "backup_root": "/opt/odoo-infrastructure/backups"}, "network": {"proxy_network_name": "proxy", "proxy_subnet": "172.28.0.0/16", "enable_ipv6": false}, "traefik": {"enabled": true, "image": "traefik:v3.7", "dashboard_enabled": true, "dashboard_domain": "traefik.localhost", "acme_email": "admin@localhost", "acme_challenge": "http", "http_port": 80, "https_port": 443}, "odoo17": {"enabled": true, "version": "17", "domain": "odoo17-1.localhost", "image": "odoo:17.0", "workers": 3, "http_port": 10017, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:16-alpine", "name": "odoo17_prod", "user": "odoo", "password_env_var": "ODOO17_DB_PASSWORD", "admin_password_env_var": "ODOO17_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo18": {"enabled": false, "version": "18", "domain": "odoo18-1.localhost", "image": "odoo:18.0", "workers": 3, "http_port": 10018, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:17-alpine", "name": "odoo18_prod", "user": "odoo", "password_env_var": "ODOO18_DB_PASSWORD", "admin_password_env_var": "ODOO18_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo19": {"enabled": false, "version": "19", "domain": "odoo19-1.localhost", "image": "odoo:19.0", "workers": 3, "http_port": 10019, "memory_limit_soft": "2684354560", "memory_limit_hard": "3221225472", "database": {"engine": "postgres:18-alpine", "name": "odoo19_prod", "user": "odoo", "password_env_var": "ODOO19_DB_PASSWORD", "admin_password_env_var": "ODOO19_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "backup": {"enabled": true, "cron_schedule": "0 2 * * *", "retention_count": 7, "include_filestore": true, "compression": "gzip", "verify_checksum": true}, "security": {"strict_file_permissions": true, "acme_mode_600": true, "isolate_postgres_network": true, "enforce_https": true}} --version 17 --verify
+
+  [PLANNED] odoo17 not executed
+
+
+[1m[INSTALLING][0m traefik
+
+  [CMD] C:\Python314\python.exe D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\app\services\managed_stack.py --profile-json {"profile_name": "example-profile", "deployment_mode": "local", "jenkins_enabled": false, "description": "Standard production configuration template for Odoo 17, 18 & 19", "version": "1.0.0", "server": {"hostname": "devops-odoo", "ip_or_host": "198.51.100.10", "timezone": "UTC", "ssh_user": "devops", "ssh_port": 22}, "paths": {"project_root": "/opt/odoo-infrastructure-manager", "data_root": "/opt/odoo-infrastructure", "backup_root": "/opt/odoo-infrastructure/backups"}, "network": {"proxy_network_name": "proxy", "proxy_subnet": "172.28.0.0/16", "enable_ipv6": false}, "traefik": {"enabled": true, "image": "traefik:v3.7", "dashboard_enabled": true, "dashboard_domain": "traefik.localhost", "acme_email": "admin@localhost", "acme_challenge": "http", "http_port": 80, "https_port": 443}, "odoo17": {"enabled": true, "version": "17", "domain": "odoo17-1.localhost", "image": "odoo:17.0", "workers": 3, "http_port": 10017, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:16-alpine", "name": "odoo17_prod", "user": "odoo", "password_env_var": "ODOO17_DB_PASSWORD", "admin_password_env_var": "ODOO17_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo18": {"enabled": false, "version": "18", "domain": "odoo18-1.localhost", "image": "odoo:18.0", "workers": 3, "http_port": 10018, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:17-alpine", "name": "odoo18_prod", "user": "odoo", "password_env_var": "ODOO18_DB_PASSWORD", "admin_password_env_var": "ODOO18_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo19": {"enabled": false, "version": "19", "domain": "odoo19-1.localhost", "image": "odoo:19.0", "workers": 3, "http_port": 10019, "memory_limit_soft": "2684354560", "memory_limit_hard": "3221225472", "database": {"engine": "postgres:18-alpine", "name": "odoo19_prod", "user": "odoo", "password_env_var": "ODOO19_DB_PASSWORD", "admin_password_env_var": "ODOO19_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "backup": {"enabled": true, "cron_schedule": "0 2 * * *", "retention_count": 7, "include_filestore": true, "compression": "gzip", "verify_checksum": true}, "security": {"strict_file_permissions": true, "acme_mode_600": true, "isolate_postgres_network": true, "enforce_https": true}} --component traefik
+
+  [CMD] C:\Python314\python.exe D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\app\services\managed_stack.py --profile-json {"profile_name": "example-profile", "deployment_mode": "local", "jenkins_enabled": false, "description": "Standard production configuration template for Odoo 17, 18 & 19", "version": "1.0.0", "server": {"hostname": "devops-odoo", "ip_or_host": "198.51.100.10", "timezone": "UTC", "ssh_user": "devops", "ssh_port": 22}, "paths": {"project_root": "/opt/odoo-infrastructure-manager", "data_root": "/opt/odoo-infrastructure", "backup_root": "/opt/odoo-infrastructure/backups"}, "network": {"proxy_network_name": "proxy", "proxy_subnet": "172.28.0.0/16", "enable_ipv6": false}, "traefik": {"enabled": true, "image": "traefik:v3.7", "dashboard_enabled": true, "dashboard_domain": "traefik.localhost", "acme_email": "admin@localhost", "acme_challenge": "http", "http_port": 80, "https_port": 443}, "odoo17": {"enabled": true, "version": "17", "domain": "odoo17-1.localhost", "image": "odoo:17.0", "workers": 3, "http_port": 10017, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:16-alpine", "name": "odoo17_prod", "user": "odoo", "password_env_var": "ODOO17_DB_PASSWORD", "admin_password_env_var": "ODOO17_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo18": {"enabled": false, "version": "18", "domain": "odoo18-1.localhost", "image": "odoo:18.0", "workers": 3, "http_port": 10018, "memory_limit_soft": "2147483648", "memory_limit_hard": "2684354560", "database": {"engine": "postgres:17-alpine", "name": "odoo18_prod", "user": "odoo", "password_env_var": "ODOO18_DB_PASSWORD", "admin_password_env_var": "ODOO18_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "odoo19": {"enabled": false, "version": "19", "domain": "odoo19-1.localhost", "image": "odoo:19.0", "workers": 3, "http_port": 10019, "memory_limit_soft": "2684354560", "memory_limit_hard": "3221225472", "database": {"engine": "postgres:18-alpine", "name": "odoo19_prod", "user": "odoo", "password_env_var": "ODOO19_DB_PASSWORD", "admin_password_env_var": "ODOO19_ADMIN_PASSWORD", "internal_port": 5432, "expose_public_port": false}}, "backup": {"enabled": true, "cron_schedule": "0 2 * * *", "retention_count": 7, "include_filestore": true, "compression": "gzip", "verify_checksum": true}, "security": {"strict_file_permissions": true, "acme_mode_600": true, "isolate_postgres_network": true, "enforce_https": true}} --component traefik --verify
+
+  [PLANNED] traefik not executed
+
+
+[1m[INSTALLING][0m ansible
+
+  [CMD] apt-get update
+
+  [CMD] apt-get install -y ansible
+
+  [CMD] ansible-galaxy collection install community.docker community.general ansible.posix
+
+  [CMD] bash -c ansible-playbook --version
+
+  [PLANNED] ansible not executed
+
+
+[1m[INSTALLING][0m git
+
+  [CMD] apt-get install -y git
+
+  [CMD] git --version
+
+  [PLANNED] git not executed
+
+System Preparation: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Sequential Installation: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Operation Verification: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Integration & Connectivity: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Integration Success Report: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Final Deployment Report: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+Documentation Synchronization: NOT_VERIFIED Dry-run: planned only; no changes or live verification
+NOT READY
+

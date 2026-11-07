@@ -1,0 +1,247 @@
+Restore verified: odoo17-instance1
+
+**********************************************************************
+  [1;31mWARNING: DESTRUCTIVE OPERATION[0m
+  This will permanently delete project files, containers, images,
+  networks, and configuration. BACKUPS WILL BE PRESERVED.
+**********************************************************************
+[1;33m  Confirmation mismatch. Uninstall aborted.[0m
+
+**********************************************************************
+  [1;31mWARNING: DESTRUCTIVE OPERATION[0m
+  This will permanently delete project files, containers, images,
+  networks, and configuration. BACKUPS WILL BE PRESERVED.
+**********************************************************************
+
+test_absolute_path_is_rejected (test_archive_utils.TestSafeExtractall.test_absolute_path_is_rejected) ... ok
+test_device_file_is_rejected (test_archive_utils.TestSafeExtractall.test_device_file_is_rejected) ... ok
+test_hardlink_is_rejected (test_archive_utils.TestSafeExtractall.test_hardlink_is_rejected) ... ok
+test_parent_traversal_is_rejected (test_archive_utils.TestSafeExtractall.test_parent_traversal_is_rejected) ... ok
+test_safe_member_is_extracted (test_archive_utils.TestSafeExtractall.test_safe_member_is_extracted) ... ok
+test_symlink_is_rejected (test_archive_utils.TestSafeExtractall.test_symlink_is_rejected) ... ok
+test_all_menu_handlers_exist (test_audit_regressions.AuditRegressions.test_all_menu_handlers_exist) ... ok
+test_dry_run_is_not_verified_and_calls_nothing (test_audit_regressions.AuditRegressions.test_dry_run_is_not_verified_and_calls_nothing) ... ok
+test_dump_access_failure_is_fatal (test_audit_regressions.AuditRegressions.test_dump_access_failure_is_fatal) ... ok
+test_existing_stack_never_recreated (test_audit_regressions.AuditRegressions.test_existing_stack_never_recreated) ... ok
+test_full_workflow_dry_run_has_no_writes (test_audit_regressions.AuditRegressions.test_full_workflow_dry_run_has_no_writes) ... ok
+test_healthy_wrong_image_cannot_be_adopted (test_audit_regressions.AuditRegressions.test_healthy_wrong_image_cannot_be_adopted) ... ok
+test_incomplete_backup_rejected (test_audit_regressions.AuditRegressions.test_incomplete_backup_rejected) ... ok
+test_local_stack_credentials_and_storage (test_audit_regressions.AuditRegressions.test_local_stack_credentials_and_storage) ... ok
+test_multi_instance_pair_recognized (test_audit_regressions.AuditRegressions.test_multi_instance_pair_recognized) ... ok
+test_non_ubuntu_never_installs (test_audit_regressions.AuditRegressions.test_non_ubuntu_never_installs) ... ok
+test_paused_not_healthy (test_audit_regressions.AuditRegressions.test_paused_not_healthy) ... ok
+test_pipeline_contains_no_placeholder_installation (test_audit_regressions.AuditRegressions.test_pipeline_contains_no_placeholder_installation) ... ok
+test_postgres18_volume_layout (test_audit_regressions.AuditRegressions.test_postgres18_volume_layout) ... ok
+test_protected_child_blocks_parent_removal (test_audit_regressions.AuditRegressions.test_protected_child_blocks_parent_removal) ... ok
+test_restore_preserves_old_files_without_merging (test_audit_regressions.AuditRegressions.test_restore_preserves_old_files_without_merging) ... ERROR
+test_restore_rejects_archive_before_docker (test_audit_regressions.AuditRegressions.test_restore_rejects_archive_before_docker) ... ok
+test_restore_requires_confirmation_before_docker (test_audit_regressions.AuditRegressions.test_restore_requires_confirmation_before_docker) ... ok
+test_restore_starts_app_only_after_files_and_permissions (test_audit_regressions.AuditRegressions.test_restore_starts_app_only_after_files_and_permissions) ... ok
+test_resume_rejects_changed_configuration (test_audit_regressions.AuditRegressions.test_resume_rejects_changed_configuration) ... ok
+test_successful_phases_do_not_replace_restore_acceptance (test_audit_regressions.AuditRegressions.test_successful_phases_do_not_replace_restore_acceptance) ... ok
+test_tar_traversal_rejected (test_audit_regressions.AuditRegressions.test_tar_traversal_rejected) ... ok
+test_transitive_block_preserves_independent_component (test_audit_regressions.AuditRegressions.test_transitive_block_preserves_independent_component) ... ok
+test_unknown_inspection_cannot_pass (test_audit_regressions.AuditRegressions.test_unknown_inspection_cannot_pass) ... ok
+test_unrelated_postgres_ignored (test_audit_regressions.AuditRegressions.test_unrelated_postgres_ignored) ... ok
+test_wrong_images_are_conflicts (test_audit_regressions.AuditRegressions.test_wrong_images_are_conflicts) ... ok
+test_add_command (test_command_notebook.TestCommandNotebook.test_add_command)
+Adding a command persists it. ... ok
+test_add_command_unknown_category_raises (test_command_notebook.TestCommandNotebook.test_add_command_unknown_category_raises)
+Adding a command with unknown category raises ValueError. ... ok
+test_backup_created_on_save (test_command_notebook.TestCommandNotebook.test_backup_created_on_save)
+A backup file is created when saving an existing library. ... ok
+test_builtin_vs_user_distinction (test_command_notebook.TestCommandNotebook.test_builtin_vs_user_distinction)
+Built-in and user commands are distinguished. ... ok
+test_default_categories_exist (test_command_notebook.TestCommandNotebook.test_default_categories_exist)
+All 18 required categories exist. ... ok
+test_delete_command (test_command_notebook.TestCommandNotebook.test_delete_command)
+Deleting a command removes it. ... ok
+test_delete_command_not_found_raises (test_command_notebook.TestCommandNotebook.test_delete_command_not_found_raises)
+Deleting a non-existent command raises KeyError. ... ok
+test_export_import (test_command_notebook.TestCommandNotebook.test_export_import)
+Export and import round-trip works. ... ok
+test_get_categories (test_command_notebook.TestCommandNotebook.test_get_categories)
+get_categories returns all categories with counts. ... ok
+test_get_commands_by_category (test_command_notebook.TestCommandNotebook.test_get_commands_by_category)
+get_commands_by_category returns commands with display numbers. ... ok
+test_load_library_creates_default (test_command_notebook.TestCommandNotebook.test_load_library_creates_default)
+Loading a missing library creates default with built-in commands. ... ok
+test_multiline_command (test_command_notebook.TestCommandNotebook.test_multiline_command)
+Multiline commands are stored correctly. ... ok
+test_no_execution_engine_reference (test_command_notebook.TestCommandNotebook.test_no_execution_engine_reference)
+Verify the module does not import execution-related modules. ... ok
+test_reset_to_builtin (test_command_notebook.TestCommandNotebook.test_reset_to_builtin)
+Reset removes all user commands. ... ok
+test_risk_levels (test_command_notebook.TestCommandNotebook.test_risk_levels)
+Risk levels are validated. ... ok
+test_save_and_reload (test_command_notebook.TestCommandNotebook.test_save_and_reload)
+Saved library can be reloaded. ... ok
+test_search_commands (test_command_notebook.TestCommandNotebook.test_search_commands)
+Search finds commands by name, command text, or category. ... ok
+test_update_command (test_command_notebook.TestCommandNotebook.test_update_command)
+Updating a command modifies its fields. ... ok
+test_update_command_not_found_raises (test_command_notebook.TestCommandNotebook.test_update_command_not_found_raises)
+Updating a non-existent command raises KeyError. ... ok
+test_upsert_generated_preserves_user_modified (test_command_notebook_generator.TestNotebookGeneratedCommandPersistence.test_upsert_generated_preserves_user_modified) ... ok
+test_compose_generator_has_required_sections (test_command_notebook_generator.TestOdooCommandGenerator.test_compose_generator_has_required_sections) ... ok
+test_config_signature_stable (test_command_notebook_generator.TestOdooCommandGenerator.test_config_signature_stable) ... ok
+test_custom_ports_and_postgres_selection (test_command_notebook_generator.TestOdooCommandGenerator.test_custom_ports_and_postgres_selection) ... ok
+test_generate_odoo17_18_19 (test_command_notebook_generator.TestOdooCommandGenerator.test_generate_odoo17_18_19) ... ok
+test_generator_has_no_execution_engine_imports (test_command_notebook_generator.TestOdooCommandGenerator.test_generator_has_no_execution_engine_imports) ... ok
+test_port_validation_and_consistency (test_command_notebook_generator.TestOdooCommandGenerator.test_port_validation_and_consistency) ... ok
+test_profile_read_only_integration (test_command_notebook_generator.TestOdooCommandGenerator.test_profile_read_only_integration) ... ok
+test_safety_requirements_in_generated_commands (test_command_notebook_generator.TestOdooCommandGenerator.test_safety_requirements_in_generated_commands) ... ok
+test_dry_run_has_no_mutations (test_compose_installer.TestComposeInstaller.test_dry_run_has_no_mutations) ... ok
+test_installed_plugin_not_reinstalled (test_compose_installer.TestComposeInstaller.test_installed_plugin_not_reinstalled) ... ok
+test_no_docker_does_not_execute (test_compose_installer.TestComposeInstaller.test_no_docker_does_not_execute) ... ok
+test_update_failure_stops_install (test_compose_installer.TestComposeInstaller.test_update_failure_stops_install) ... ok
+test_access_denied_is_not_missing (test_docker_inspector.TestDockerInspector.test_access_denied_is_not_missing) ... ok
+test_daemon_without_client_is_not_missing (test_docker_inspector.TestDockerInspector.test_daemon_without_client_is_not_missing) ... ok
+test_malformed_output_is_not_healthy (test_docker_inspector.TestDockerInspector.test_malformed_output_is_not_healthy) ... ok
+test_missing_does_not_execute_commands (test_docker_inspector.TestDockerInspector.test_missing_does_not_execute_commands) ... ok
+test_server_version_not_client_version (test_docker_inspector.TestDockerInspector.test_server_version_not_client_version) ... ok
+test_unreachable_is_not_missing (test_docker_inspector.TestDockerInspector.test_unreachable_is_not_missing) ... ok
+test_conflicts_only_installed_packages (test_docker_installer.TestDockerInstaller.test_conflicts_only_installed_packages) ... ok
+test_dry_run_only_queries_dpkg (test_docker_installer.TestDockerInstaller.test_dry_run_only_queries_dpkg) ... ok
+test_first_mutation_failure_stops (test_docker_installer.TestDockerInstaller.test_first_mutation_failure_stops) ... ok
+test_reject_invalid_values (test_docker_installer.TestDockerInstaller.test_reject_invalid_values) ... ok
+test_removal_keeps_apt_confirmation (test_docker_installer.TestDockerInstaller.test_removal_keeps_apt_confirmation) ... ok
+test_repository_content_and_no_empty_removal (test_docker_installer.TestDockerInstaller.test_repository_content_and_no_empty_removal) ... ok
+test_success_verifies_local_engine_and_optional_actions (test_docker_installer.TestDockerInstaller.test_success_verifies_local_engine_and_optional_actions) ... ok
+test_version_pins_both_packages (test_docker_installer.TestDockerInstaller.test_version_pins_both_packages) ... ok
+test_blocked_component_propagation (test_installation_pipeline.TestInstallationPipeline.test_blocked_component_propagation)
+When a component fails, its dependents are blocked. ... ok
+test_can_install_allows_independent (test_installation_pipeline.TestInstallationPipeline.test_can_install_allows_independent)
+Independent components can still be installed when dependency fails. ... ok
+test_can_install_blocks_on_failed_dependency (test_installation_pipeline.TestInstallationPipeline.test_can_install_blocks_on_failed_dependency)
+Component with failed dependency cannot be installed. ... ok
+test_component_names (test_installation_pipeline.TestInstallationPipeline.test_component_names)
+Expected component names exist. ... ok
+test_component_record_all_steps_passed (test_installation_pipeline.TestInstallationPipeline.test_component_record_all_steps_passed)
+ComponentPipelineRecord.all_steps_passed works. ... ok
+test_component_record_failed_step (test_installation_pipeline.TestInstallationPipeline.test_component_record_failed_step)
+ComponentPipelineRecord.failed_step works. ... ok
+test_default_components_count (test_installation_pipeline.TestInstallationPipeline.test_default_components_count)
+Pipeline has expected default components. ... ok
+test_dependency_order (test_installation_pipeline.TestInstallationPipeline.test_dependency_order)
+Dependencies are computed in correct topological order. ... ok
+test_generate_report_structure (test_installation_pipeline.TestInstallationPipeline.test_generate_report_structure)
+Report contains expected keys. ... ok
+test_get_progress (test_installation_pipeline.TestInstallationPipeline.test_get_progress)
+Progress tracking works. ... ok
+test_run_step_dry_run (test_installation_pipeline.TestInstallationPipeline.test_run_step_dry_run)
+Dry-run step succeeds without executing. ... ok
+test_step_result_properties (test_installation_pipeline.TestInstallationPipeline.test_step_result_properties)
+StepResult properties work correctly. ... ok
+test_odoo_versions_constant (test_installation_pipeline.TestInstallationPipelineExecution.test_odoo_versions_constant)
+ODOO_VERSIONS constant has expected versions. ... ok
+test_pipeline_dry_run_executes_all_stages (test_installation_pipeline.TestInstallationPipelineExecution.test_pipeline_dry_run_executes_all_stages)
+Dry-run pipeline completes all stages without calling subprocess. ... ok
+test_pipeline_failure_blocks_dependents (test_installation_pipeline.TestInstallationPipelineExecution.test_pipeline_failure_blocks_dependents)
+Failed component blocks its dependents. ... ok
+test_operation_record_completion (test_models.TestModels.test_operation_record_completion) ... ok
+test_profile_from_dict_defaults (test_models.TestModels.test_profile_from_dict_defaults) ... ok
+test_workflow_step_duration (test_models.TestModels.test_workflow_step_duration) ... ok
+test_custom_port (test_portainer_service.TestPortainerService.test_custom_port) ... ok
+test_daemon_error_is_not_missing (test_portainer_service.TestPortainerService.test_daemon_error_is_not_missing) ... ok
+test_existing_instance_blocks_install (test_portainer_service.TestPortainerService.test_existing_instance_blocks_install) ... ok
+test_failed_start_never_reports_success (test_portainer_service.TestPortainerService.test_failed_start_never_reports_success) ... ok
+test_https_and_named_volume_default_with_edge (test_portainer_service.TestPortainerService.test_https_and_named_volume_default_with_edge) ... ok
+test_invalid_and_conflicting_ports (test_portainer_service.TestPortainerService.test_invalid_and_conflicting_ports) ... ok
+test_name_collision (test_portainer_service.TestPortainerService.test_name_collision) ... ok
+test_no_edge_omits_8000 (test_portainer_service.TestPortainerService.test_no_edge_omits_8000) ... ok
+test_preview_never_runs_docker (test_portainer_service.TestPortainerService.test_preview_never_runs_docker) ... ok
+test_stopped_renamed_container_is_installed (test_portainer_service.TestPortainerService.test_stopped_renamed_container_is_installed) ... ok
+test_dry_run_does_not_execute (test_postgresql_installer.TestPostgresqlInstaller.test_dry_run_does_not_execute) ... ok
+test_failure_stops_before_repository_setup (test_postgresql_installer.TestPostgresqlInstaller.test_failure_stops_before_repository_setup) ... ok
+test_invalid_version (test_postgresql_installer.TestPostgresqlInstaller.test_invalid_version) ... ok
+test_non_ubuntu_cannot_install (test_postgresql_installer.TestPostgresqlInstaller.test_non_ubuntu_cannot_install) ... ok
+test_selected_version_and_optional_vector (test_postgresql_installer.TestPostgresqlInstaller.test_selected_version_and_optional_vector) ... ok
+test_apt_failure_stops_subsequent_commands (test_python_installer.TestPythonInstaller.test_apt_failure_stops_subsequent_commands) ... ok
+test_dry_run_never_executes (test_python_installer.TestPythonInstaller.test_dry_run_never_executes) ... ok
+test_unprovided_versions_and_injection_rejected (test_python_installer.TestPythonInstaller.test_unprovided_versions_and_injection_rejected) ... ok
+test_user_recipe_versions (test_python_installer.TestPythonInstaller.test_user_recipe_versions) ... ok
+test_wrong_os_never_executes (test_python_installer.TestPythonInstaller.test_wrong_os_never_executes) ... ok
+test_docker_permission_failure_is_not_reported_as_absence (test_runtime_inspector.TestRuntimeInspector.test_docker_permission_failure_is_not_reported_as_absence) ... ok
+test_missing_postgres_does_not_report_client_as_server (test_runtime_inspector.TestRuntimeInspector.test_missing_postgres_does_not_report_client_as_server) ... ok
+test_stopped_container_and_image_are_distinguished (test_runtime_inspector.TestRuntimeInspector.test_stopped_container_and_image_are_distinguished) ... ok
+test_unknown_component_rejected (test_runtime_inspector.TestRuntimeInspector.test_unknown_component_rejected) ... ok
+test_ansible_playbook_check_mode (test_services.TestServices.test_ansible_playbook_check_mode) ... ok
+test_backup_service_command (test_services.TestServices.test_backup_service_command) ... ok
+test_docker_compose_config_step (test_services.TestServices.test_docker_compose_config_step) ... ok
+test_docker_compose_down_with_volumes (test_services.TestServices.test_docker_compose_down_with_volumes) ... ok
+test_docker_network_create_step (test_services.TestServices.test_docker_network_create_step) ... ok
+test_execution_service_dry_run (test_services.TestServices.test_execution_service_dry_run) ... ok
+test_restore_service_force_flag (test_services.TestServices.test_restore_service_force_flag) ... ok
+test_inspect_docker_engine (test_smart_inspector.TestSmartInspectorService.test_inspect_docker_engine) ... ok
+test_inspect_ubuntu_returns_object (test_smart_inspector.TestSmartInspectorService.test_inspect_ubuntu_returns_object) ... ok
+test_inspect_utility_packages (test_smart_inspector.TestSmartInspectorService.test_inspect_utility_packages) ... ok
+test_run_full_inspection (test_smart_inspector.TestSmartInspectorService.test_run_full_inspection) ... ok
+test_create_and_verify_snapshot (test_smart_inspector.TestSystemBackupService.test_create_and_verify_snapshot) ... ok
+test_discover_environment_returns_valid_report (test_traefik_manager.TestTraefikDockerManager.test_discover_environment_returns_valid_report) ... ok
+test_ensure_traefik_directories_and_acme_permissions (test_traefik_manager.TestTraefikDockerManager.test_ensure_traefik_directories_and_acme_permissions) ... ok
+test_generate_compose_yaml_standard_defaults (test_traefik_manager.TestTraefikDockerManager.test_generate_compose_yaml_standard_defaults) ... ok
+test_generate_service_labels_for_jenkins_and_odoo (test_traefik_manager.TestTraefikDockerManager.test_generate_service_labels_for_jenkins_and_odoo) ... ok
+test_inspect_port_returns_object (test_traefik_manager.TestTraefikDockerManager.test_inspect_port_returns_object) ... ok
+test_traefik_backup_and_restore (test_traefik_manager.TestTraefikDockerManager.test_traefik_backup_and_restore) ... ok
+test_backup_directory_patterns (test_uninstall_service.TestBackupProtection.test_backup_directory_patterns)
+Directories with backup names are protected. ... ok
+test_backup_filename_patterns (test_uninstall_service.TestBackupProtection.test_backup_filename_patterns)
+Files matching backup patterns are detected. ... ok
+test_is_project_path (test_uninstall_service.TestBackupProtection.test_is_project_path)
+Project path detection works. ... ok
+test_non_backup_files (test_uninstall_service.TestBackupProtection.test_non_backup_files)
+Non-backup files are not flagged. ... ok
+test_should_not_protect_project_paths (test_uninstall_service.TestBackupProtection.test_should_not_protect_project_paths)
+Project paths that are not backups are NOT protected. ... ok
+test_should_protect_backups_always (test_uninstall_service.TestBackupProtection.test_should_protect_backups_always)
+Backup paths are always protected regardless of location. ... ok
+test_should_protect_non_project_paths (test_uninstall_service.TestBackupProtection.test_should_protect_non_project_paths)
+Non-project paths are protected (safety). ... ok
+test_all_backup_patterns_covered (test_uninstall_service.TestBackupProtectionIntegration.test_all_backup_patterns_covered)
+Common backup extensions are all caught. ... ok
+test_backup_in_project_path_protected (test_uninstall_service.TestBackupProtectionIntegration.test_backup_in_project_path_protected)
+A backup file inside /opt/odoo-infrastructure is protected. ... ok
+test_odoo_before_traefik (test_uninstall_service.TestPlanOrdering.test_odoo_before_traefik)
+Odoo containers should be cleaned before Traefik (reverse dependency). ... ok
+test_plan_uninstall_returns_items (test_uninstall_service.TestPlanOrdering.test_plan_uninstall_returns_items)
+plan_uninstall returns a list of CleanupItem. ... ok
+test_dry_run_no_deletion (test_uninstall_service.TestRunFullCleanupDryRun.test_dry_run_no_deletion)
+Dry-run completes without deleting files. ... ok
+test_execution_requires_confirmation (test_uninstall_service.TestRunFullCleanupExecution.test_execution_requires_confirmation)
+Execution without confirmation is aborted. ... ok
+test_execution_with_confirmation (test_uninstall_service.TestRunFullCleanupExecution.test_execution_with_confirmation)
+Execution with correct confirmation proceeds. ... ok
+test_verify_cleanup_returns_dict (test_uninstall_service.TestVerifyCleanup.test_verify_cleanup_returns_dict)
+verify_cleanup returns a dict with expected keys. ... ok
+test_dangerous_root_path_rejected (test_validators.TestConfigValidator.test_dangerous_root_path_rejected) ... ok
+test_domain_collision_detected (test_validators.TestConfigValidator.test_domain_collision_detected) ... ok
+test_invalid_email_format (test_validators.TestConfigValidator.test_invalid_email_format) ... ok
+test_invalid_profile_name (test_validators.TestConfigValidator.test_invalid_profile_name) ... ok
+test_invalid_retention_count (test_validators.TestConfigValidator.test_invalid_retention_count) ... ok
+test_port_collision_detected (test_validators.TestConfigValidator.test_port_collision_detected) ... ok
+test_valid_profile_passes (test_validators.TestConfigValidator.test_valid_profile_passes) ... ok
+test_check_disk_space_returns_valid_reading (test_validators.TestSystemValidator.test_check_disk_space_returns_valid_reading) ... ok
+test_check_port_free_returns_object (test_validators.TestSystemValidator.test_check_port_free_returns_object) ... ok
+test_database_backup_operation (test_workflows.TestWorkflows.test_database_backup_operation) ... ok
+test_deploy_odoo17_workflow_steps (test_workflows.TestWorkflows.test_deploy_odoo17_workflow_steps) ... ok
+test_deploy_odoo18_workflow_steps (test_workflows.TestWorkflows.test_deploy_odoo18_workflow_steps) ... ok
+test_deploy_odoo19_workflow_steps (test_workflows.TestWorkflows.test_deploy_odoo19_workflow_steps) ... ok
+test_deploy_traefik_workflow_steps (test_workflows.TestWorkflows.test_deploy_traefik_workflow_steps) ... ok
+test_full_deploy_chains_all_enabled_components (test_workflows.TestWorkflows.test_full_deploy_chains_all_enabled_components) ... ok
+test_server_prep_workflow_steps (test_workflows.TestWorkflows.test_server_prep_workflow_steps) ... ok
+
+======================================================================
+ERROR: test_restore_preserves_old_files_without_merging (test_audit_regressions.AuditRegressions.test_restore_preserves_old_files_without_merging)
+----------------------------------------------------------------------
+Traceback (most recent call last):
+  File "D:\Project Django Frameworks\DevOpsInfrastructureOdoo\Infrastructure-manage-T\tests\test_audit_regressions.py", line 215, in test_restore_preserves_old_files_without_merging
+    exec(compile(code, '<offline-restore-test>', 'exec'), {})
+    ~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<offline-restore-test>", line 1, in <module>
+ModuleNotFoundError: No module named 'pwd'
+
+----------------------------------------------------------------------
+Ran 168 tests in 4.664s
+
+FAILED (errors=1)

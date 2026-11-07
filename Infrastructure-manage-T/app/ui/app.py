@@ -325,9 +325,9 @@ class TerminalUI:
                 return
         print("No Portainer container detected. Proposed installation: portainer/portainer-ce (default tag latest).")
         print("The container will manage Docker via the socket and expose an HTTP web panel on the selected port. Project management remains via Terminal.")
-        print("Persistent storage: /srv/portainer on the host; existing data will be used if found.")
+        print("Persistent storage: named volume portainer_data. Existing installations are preserved; no automatic migration.")
         try:
-            port = int(input("HTTP port on server [9000]: ").strip() or '9000')
+            port = int(input("HTTPS port on server [9443]: ").strip() or '9443')
         except ValueError:
             print("Enter a valid port number.")
             return

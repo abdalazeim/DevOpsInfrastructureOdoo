@@ -1,0 +1,182 @@
+[
+  {
+    "source": "222.txt",
+    "archive": "docs/archive/2026-11-07/222.txt",
+    "sha256": "ebd65f1572b229600cca02b612b4f9604613028890fbe69673f5d9d478882f1a"
+  },
+  {
+    "source": "OPERATING_METHODS.md",
+    "archive": "docs/archive/2026-11-07/OPERATING_METHODS.md",
+    "sha256": "6050894fe1d6854fdf4234cc32d7424a2d1bfc99d324e4a6dc3af16fb7e4d3e7"
+  },
+  {
+    "source": "README.md",
+    "archive": "docs/archive/2026-11-07/README.md",
+    "sha256": "a4edc4d536a9cfcc5892c501b5ba8de28a2435f53c88dac394f24798dff3d646"
+  },
+  {
+    "source": "REPAIR_CHANGELOG.md",
+    "archive": "docs/archive/2026-11-07/REPAIR_CHANGELOG.md",
+    "sha256": "b0aeb79a1dbe6b797b8d8fc2ea20221c11371eef6f03b28ebc2d303c16525f7d"
+  },
+  {
+    "source": "TEST_RESULTS.md",
+    "archive": "docs/archive/2026-11-07/TEST_RESULTS.md",
+    "sha256": "ab0d8c8c8675251e23db0e1bcdfc72d75092b67689921bcf57e1390a4ae0d830"
+  },
+  {
+    "source": "deployment/Odoo-MultiVersion-Deployment/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/Odoo-MultiVersion-Deployment/README.md",
+    "sha256": "6a8ff2ff45909c9158a8c6c14f7de2b83d83a992ae944322167d22fbb944586d"
+  },
+  {
+    "source": "deployment/Odoo17-MultiInstance-Deployment/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/Odoo17-MultiInstance-Deployment/README.md",
+    "sha256": "91527e4030428e191040b2973edd7e27759899f916874595a4ab7ee661de6919"
+  },
+  {
+    "source": "deployment/ansible/InstallingAnsible.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/ansible/InstallingAnsible.Command.md",
+    "sha256": "82895c4863dcb8a4b46d5d4c58f080896f11c4579bac7ca1372fd4080f13423c"
+  },
+  {
+    "source": "deployment/docker/Installing Docker.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/docker/Installing Docker.Command.md",
+    "sha256": "af76c5fa89b4dea78d339b3373e6312c89b67b412c847ec8fded573378b12bfa"
+  },
+  {
+    "source": "deployment/jenkins/Installing Jenkins.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/jenkins/Installing Jenkins.Command.md",
+    "sha256": "4cff8fee8c630a891571986b83c28104a66a97266c18f0e0a84c24e90e9b6d0c"
+  },
+  {
+    "source": "deployment/odoo17/InstallingOdoo 17.0Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo17/InstallingOdoo 17.0Command.md",
+    "sha256": "ac605a9c8066cb40a55a50aeaf2560a95e2912ad20ddb073da4c70360e000883"
+  },
+  {
+    "source": "deployment/odoo17/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo17/README.md",
+    "sha256": "3d8bc689c19175e814861525b99b97931e86d3846aa95e3886f31b62fd548e29"
+  },
+  {
+    "source": "deployment/odoo17/addons/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo17/addons/README.md",
+    "sha256": "5296938a73780deb09476033151a57f23b914754543a75ed17f39047fd97e33f"
+  },
+  {
+    "source": "deployment/odoo17/screenshots/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo17/screenshots/README.md",
+    "sha256": "5bf6d560b670786262385c075a9f9cbb54d89e4bd95e582db9c7278c1a0fd78f"
+  },
+  {
+    "source": "deployment/odoo18/InstallingOdoo 18.0Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo18/InstallingOdoo 18.0Command.md",
+    "sha256": "4fbb02cc4e4b70e61afffb17ef99e9f52d53c094ff17daf441848b983703ed80"
+  },
+  {
+    "source": "deployment/odoo18/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo18/README.md",
+    "sha256": "109054e6bb27bbf61e4663f18df72c07ff6886f1ae672d11e02203472f86a7c8"
+  },
+  {
+    "source": "deployment/odoo18/addons/readme.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo18/addons/readme.md",
+    "sha256": "7505151866e8dd083e6bcc1239e64f8b0aa23f72e15c07e181818cbd449a73ff"
+  },
+  {
+    "source": "deployment/odoo19/InstallingOdoo 19.0Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo19/InstallingOdoo 19.0Command.md",
+    "sha256": "4f945be5a90be2843c096a12ed15207e189f27baf4c2e0d9fe3f9ba04e03e63d"
+  },
+  {
+    "source": "deployment/odoo19/README.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo19/README.md",
+    "sha256": "d84fb06577025840d3f0f55d1f437243df00b1bbf215c6fa18d6b85eb2200d8e"
+  },
+  {
+    "source": "deployment/odoo19/addons/readme.md",
+    "archive": "docs/archive/2026-11-07/deployment/odoo19/addons/readme.md",
+    "sha256": "1a46885a065bb91b04be9d4be6a42556183944ac8877b506a3f36a6d1b05babe"
+  },
+  {
+    "source": "deployment/pgadmin/Installing pgAdmin.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/pgadmin/Installing pgAdmin.Command.md",
+    "sha256": "fa7d2b04ce5d62829dcf9542986245a4c70426dc1e80eb50f58c197758eb404d"
+  },
+  {
+    "source": "deployment/portainer/Installing Portainer.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/portainer/Installing Portainer.Command.md",
+    "sha256": "0f70f127ed72e38d35e1a627684a84ca7d91ea2c4ee8e2973fdb84d5a1b250ae"
+  },
+  {
+    "source": "deployment/python/Installing Python.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/python/Installing Python.Command.md",
+    "sha256": "351d9232907b5258b88d4a34d6f186b8949ec49bbe6bea8716467b7c31f12432"
+  },
+  {
+    "source": "deployment/traefik/Installing Traefik.Command.md",
+    "archive": "docs/archive/2026-11-07/deployment/traefik/Installing Traefik.Command.md",
+    "sha256": "7082c9cb8056fff148d9fbce028ca50b8d6842a468c79e24be207f6d1d062f86"
+  },
+  {
+    "source": "docs/FINAL_PRODUCTION_READINESS_REPORT.md",
+    "archive": "docs/archive/2026-11-07/docs/FINAL_PRODUCTION_READINESS_REPORT.md",
+    "sha256": "63b8b0e19cddce533487dcb0f9bf163f015d0544e54c4380d3cecbf0afa97103"
+  },
+  {
+    "source": "docs/PROJECT_LANGUAGE_MIGRATION_REPORT.md",
+    "archive": "docs/archive/2026-11-07/docs/PROJECT_LANGUAGE_MIGRATION_REPORT.md",
+    "sha256": "8a19676749ae44d467a6cfad5dfba9c98b8a0b051a17f0421b6662809ef0298f"
+  },
+  {
+    "source": "docs/Professional Sequential Installation, Verification & Integration Pipeline.txt",
+    "archive": "docs/archive/2026-11-07/docs/Professional Sequential Installation, Verification & Integration Pipeline.txt",
+    "sha256": "1bd1fb050d0f480c818ba2a189f1455062dd9d563ae3c4dec8a3e25db7fb6066"
+  },
+  {
+    "source": "docs/REVIEW_RECHECK_2026-11-05.md",
+    "archive": "docs/archive/2026-11-07/docs/REVIEW_RECHECK_2026-11-05.md",
+    "sha256": "fcb6d7f20bb377565f70fdf87232af7de6ad6e4470657f88597efff822ad72da"
+  },
+  {
+    "source": "docs/REVIEW_THIRD_2026-11-05.md",
+    "archive": "docs/archive/2026-11-07/docs/REVIEW_THIRD_2026-11-05.md",
+    "sha256": "1d8db0de8acaaa39cad6a2b603ea1178169b17421c82087b521040c6c7e8af36"
+  },
+  {
+    "source": "docs/SYSTEM_AUDIT_2026-11-05.md",
+    "archive": "docs/archive/2026-11-07/docs/SYSTEM_AUDIT_2026-11-05.md",
+    "sha256": "d50377bfea02ef2c822d342020bf375a42272d5211c78821d4ecf5d9eb1fc618"
+  },
+  {
+    "source": "docs/architecture.md",
+    "archive": "docs/archive/2026-11-07/docs/architecture.md",
+    "sha256": "567af708fa281cd03077993dec550c1d84001c22b9505679f2ce459408fc94db"
+  },
+  {
+    "source": "docs/audit_report_20261102_114654.md",
+    "archive": "docs/archive/2026-11-07/docs/audit_report_20261102_114654.md",
+    "sha256": "b25fa63ababaaeec4ef9041bae1f61c2ce32876ffe163452702bf2d03334d646"
+  },
+  {
+    "source": "docs/audit_report_20261102_163437.md",
+    "archive": "docs/archive/2026-11-07/docs/audit_report_20261102_163437.md",
+    "sha256": "a419d783b4fab8ab0aad0b5344a67cf3d6cf5ef176f7de49e55ba276698be61a"
+  },
+  {
+    "source": "docs/disaster-recovery.md",
+    "archive": "docs/archive/2026-11-07/docs/disaster-recovery.md",
+    "sha256": "928ea865022cd73248a9ee64d6f16a5aa9636320e5133102e8e790dbfe23ce73"
+  },
+  {
+    "source": "docs/security.md",
+    "archive": "docs/archive/2026-11-07/docs/security.md",
+    "sha256": "dea3455403cb0c08d3b5f50c514ef6268760a2ef3e9a4085409342c6f51ff5c1"
+  },
+  {
+    "source": "شرح تشغيل النظام.txt",
+    "archive": "docs/archive/2026-11-07/شرح تشغيل النظام.txt",
+    "sha256": "4596c144dc0083da824b1e56dc45112a651b0a0fecf6f2a434abfda6e1b86936"
+  }
+]

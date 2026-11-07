@@ -48,7 +48,7 @@ def main():
     if args.odoo_version:
         for version in ('17', '18', '19'):
             getattr(tui.profile, 'odoo' + version).enabled = version == args.odoo_version
-        if args.http_port:
+        if args.http_port is not None:
             if not 1024 <= args.http_port <= 65535:
                 parser.error('--http-port must be in 1024..65535')
             getattr(tui.profile, 'odoo' + args.odoo_version).http_port = args.http_port

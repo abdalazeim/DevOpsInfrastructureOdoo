@@ -7,21 +7,22 @@ from app.services.portainer_service import build_plan, inspect_portainer, instal
 
 
 class TestPortainerService(unittest.TestCase):
-    def test_http_and_bind_mount_default_with_edge(self):
+    def test_https_and_named_volume_default_with_edge(self):
         command = build_plan()[1]
-        self.assertIn('9000:9000', command)
-        self.assertIn('/srv/portainer:/data', command)
-        self.assertNotIn('portainer_data:/data', command)
+        self.assertIn('9443:9443', command)
+        self.assertNotIn('/srv/portainer:/data', command)
+        self.assertIn('portainer_data:/data', command)
+        self.assertEqual(build_plan()[0][-3:], ['volume', 'create', 'portainer_data'])
         self.assertIn('8000:8000', command)
 
     def test_no_edge_omits_8000(self):
         command = build_plan(edge=False)[1]
-        self.assertIn('9000:9000', command)
+        self.assertIn('9443:9443', command)
         self.assertNotIn('8000:8000', command)
 
     def test_custom_port(self):
         command = build_plan(port=9001, edge=False)[1]
-        self.assertIn('9001:9000', command)
+        self.assertIn('9001:9443', command)
         self.assertNotIn('8000:8000', command)
 
     def test_invalid_and_conflicting_ports(self):

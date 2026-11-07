@@ -13,6 +13,7 @@ import sys
 import tarfile
 import tempfile
 import time
+import uuid
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -161,6 +162,10 @@ def clone(spec, name, source_app, target_app, port=None, domain=None):
         docker('volume', 'create', volume)
         args += ['-v', volume + ':' + destination]
     if name == target_app:
+        # Recovery maintenance must access addons while the app stays stopped.
+        volume = name + '-restored-addons'
+        docker('volume', 'create', volume)
+        args += ['-v', volume + ':/mnt/extra-addons']
         if port:
             if not 1024 <= int(port) <= 65535:
                 raise ValueError('Restore HTTP port must be in 1024..65535')
@@ -180,6 +185,45 @@ def clone(spec, name, source_app, target_app, port=None, domain=None):
     docker(*args)
 
 
+def validate_restore_mounts(app):
+    mounts = app.get('Mounts', [])
+    for destination in ('/var/lib/odoo', '/mnt/extra-addons'):
+        if not any(m['Destination'] == destination and m.get('RW', False) for m in mounts):
+            raise ValueError('Offline restore requires a writable mount at ' + destination)
+
+
+def offline_files(app, target, database, prepare):
+    """Maintain shared volumes without starting Odoo or exposing a half-restored DB."""
+    validate_restore_mounts(app)
+    code = '''import os,pathlib,sys
+database, token, prepare = sys.argv[1:]
+data = pathlib.Path('/var/lib/odoo/filestore')
+addons = pathlib.Path('/mnt/extra-addons')
+if prepare == 'yes':
+    data.mkdir(parents=True, exist_ok=True)
+    current = data / database
+    if current.exists():
+        current.rename(data / ('.restore-safety-' + token))
+    saved = addons / ('.restore-safety-' + token)
+    existing = list(addons.iterdir())
+    if existing:
+        saved.mkdir()
+        for child in existing:
+            child.rename(saved / child.name)
+else:
+    import pwd
+    account = pwd.getpwnam('odoo')
+    for root in (data / database, addons):
+        for folder, directories, files in os.walk(root, followlinks=False):
+            os.chown(folder, account.pw_uid, account.pw_gid, follow_symlinks=False)
+            for name in directories + files:
+                os.chown(os.path.join(folder, name), account.pw_uid, account.pw_gid, follow_symlinks=False)
+'''
+    docker('run', '--rm', '--network', 'none', '--volumes-from', target, '--user', '0',
+           '--entrypoint', 'python3', app['Config']['Image'], '-c', code,
+           database, uuid.uuid4().hex, 'yes' if prepare else 'no')
+
+
 def restore(path, root, new_instance=None, http_port=None, domain=None, confirm_replace=False):
     if not new_instance and not confirm_replace:
         raise ValueError("Existing database replacement requires --confirm-replace")
@@ -189,6 +233,16 @@ def restore(path, root, new_instance=None, http_port=None, domain=None, confirm_
     source = specs['odoo']['Name'].lstrip('/')
     target = source
     user, database = manifest['db_user'], manifest['database']
+    # Validate archive structure before creating containers or replacing a database.
+    with tempfile.TemporaryDirectory() as temporary:
+        checked = Path(temporary)
+        extract(path / 'filestore.tar.gz', checked / 'filestore')
+        extract(path / 'config.tar.gz', checked / 'configuration')
+        if not (checked / 'filestore' / database).is_dir():
+            raise ValueError('Backup has no matching database filestore directory')
+        for directory in ('etc', 'addons'):
+            if not (checked / 'configuration' / directory).is_dir():
+                raise ValueError('Backup configuration layout is incomplete')
     if new_instance:
         identifier(new_instance)
         target = manifest['version'] + '-' + new_instance
@@ -203,9 +257,16 @@ def restore(path, root, new_instance=None, http_port=None, domain=None, confirm_
             network = specs['odoo']['Config'].get('Labels', {}).get('traefik.docker.network', 'proxy')
             docker('network', 'connect', network, target)
     else:
+        target_info = inspect(target)
+        validate_restore_mounts(target_info)
+        if any(not mount.get('RW', True) and
+               (mount['Destination'] == '/etc/odoo' or mount['Destination'].startswith('/etc/odoo/'))
+               for mount in target_info.get('Mounts', [])):
+            raise ValueError('Read-only configuration mount: restore to an isolated new instance instead')
         # A verified logical backup and matching filestore are mandatory before replacement.
         backup(manifest['version'], manifest['instance'], Path(root) / 'safety', target, target + '-db')
     app = inspect(target)
+    validate_restore_mounts(app)
     was_running = bool(app['State'].get('Running'))
     if was_running:
         docker('stop', target)
@@ -223,9 +284,7 @@ def restore(path, root, new_instance=None, http_port=None, domain=None, confirm_
         with (path / 'database.sql').open('rb') as stream:
             docker('exec', '-i', target + '-db', 'psql', '-U', user, '-d', database,
                    '-v', 'ON_ERROR_STOP=1', stdin=stream)
-        docker('start', target)
-        docker('exec', '-u', '0', target, 'mkdir', '-p', '/var/lib/odoo/filestore', '/mnt/extra-addons')
-        docker('stop', target)
+        offline_files(app, target, database, prepare=True)
         with tempfile.TemporaryDirectory() as temporary:
             temp = Path(temporary)
             extract(path / 'filestore.tar.gz', temp)
@@ -236,8 +295,8 @@ def restore(path, root, new_instance=None, http_port=None, domain=None, confirm_
             docker('cp', str(temp / 'addons') + '/.', f'{target}:/mnt/extra-addons/')
             if not new_instance:
                 docker('cp', str(temp / 'etc') + '/.', f'{target}:/etc/odoo/')
+        offline_files(app, target, database, prepare=False)
         docker('start', target)
-        docker('exec', '-u', '0', target, 'chown', '-R', 'odoo:odoo', '/var/lib/odoo', '/mnt/extra-addons')
         for attempt in range(60):
             result = subprocess.run(['docker', 'exec', target, 'python3', '-c',
                 "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8069/web/login', timeout=3)"], capture_output=True)

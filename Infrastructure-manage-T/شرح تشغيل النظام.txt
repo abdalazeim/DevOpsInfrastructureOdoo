@@ -1,65 +1,10 @@
-Odoo Infrastructure Manager - System Startup Guide
-==================================================
+# شرح تشغيل النظام
 
-Document Type: Practical quick reference
-Target OS: Ubuntu Server (execution target)
+Updated: 2026-11-07 | Project 1.1.0 Beta | **NOT READY**
 
-1. Prerequisites
-----------------
-- Docker Engine and Docker Compose v2 installed and running.
-- Project files available on the Ubuntu host (recommended: /opt/odoo-infra or your chosen path).
-- .env file prepared from templates/env.template with permissions 600.
+Current operational instructions are centralized below. The previous guide is preserved for historical reference; its commands are not the current deployment contract.
 
-Verification commands:
-  docker --version
-  docker compose version
-  test -f .env && stat -c "%a %n" .env
+- [Current system and operation guide](<docs/MASTER_SYSTEM_DOCUMENTATION.md>)
+- [Preserved original](<docs/archive/2026-11-07/شرح تشغيل النظام.txt>)
 
-2. Start the Stack (Compose-based deployments)
-----------------------------------------------
-Purpose: Start containers defined by the selected docker-compose file.
-
-Commands (adjust paths and file names to your deployment variant):
-  cd <project_or_deployment_directory>
-  docker compose up -d
-
-Verification:
-  docker compose ps
-  docker ps
-
-Expected result: Required containers are in the "Up" state.
-
-3. Start via Project CLI (if using this repository's manager)
--------------------------------------------------------------
-Purpose: Use the Python manager workflows.
-
-Commands:
-  cd <Infrastructure-manage-T_directory>
-  python3 -m venv venv
-  source venv/bin/activate
-  pip install -e .
-  python3 app/main.py --action preflight
-  python3 app/main.py --action health
-
-Expected result: Preflight/health actions report status or actionable issues.
-
-4. Stop the Stack
------------------
-Commands:
-  docker compose down
-
-Verification:
-  docker compose ps
-
-Caution: Do not use "docker compose down -v" unless you intend to remove volumes and have verified backups.
-
-5. Common Checks
-----------------
-- Traefik/proxy network exists (if required): docker network ls
-- Odoo HTTP probe (example): curl -I http://localhost:8069/web/login
-- PostgreSQL readiness (inside DB container): docker exec <db_container> pg_isready -U <user> -d <db>
-
-6. Notes
---------
-- Exact container names, ports, domains, and paths depend on the deployment variant under deployment/ and your .env/profile settings.
-- Review scripts and compose files before running in production. Keep secrets out of Git.
+The supported review sequence is System Preparation → Sequential Installation → Operation Verification → Integration & Connectivity → Integration Success Report → Final Deployment Report → Documentation Synchronization. Live deployment acceptance has not been performed.

@@ -1,0 +1,7 @@
+
+usage: main.py [-h] [--profile PROFILE] [--dry-run]
+               [--action {tui,textual,preflight,prep,traefik,traefik-audit,traefik-backup,odoo17,odoo18,odoo19,full,health,validate,runtimes,sequential-install,server-setup,inspect,install-report,final-workflow}]
+               [--odoo-version {17,18,19}] [--mode {local,domain}]
+               [--http-port HTTP_PORT] [--apply] [--resume]
+               [--report-dir REPORT_DIR]
+main.py: error: --odoo-version is required; no automatic installation of every Odoo version

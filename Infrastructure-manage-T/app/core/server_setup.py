@@ -724,7 +724,7 @@ class ServerSetupWorkflow:
             if comp.name == 'postgresql':
                 continue
             if comp.name == 'docker-engine':
-                comp.check_cmd = ['bash', '-c', 'docker info >/dev/null && docker compose version']
+                comp.check_cmd = ['bash', '-c', 'docker --version && docker version && docker info >/dev/null && systemctl is-active docker']
             elif comp.name == 'docker-network':
                 comp.check_cmd = ['docker', 'network', 'inspect', self.profile.network.proxy_network_name]
                 comp.install_cmds = [['docker', 'network', 'create', '--driver', 'bridge',

@@ -1,0 +1,19 @@
+pipeline {
+    agent any
+    options { timeout(time: 2, unit: 'MINUTES'); disableConcurrentBuilds() }
+    stages {
+        stage('Read-only integration checks') {
+            steps {
+                sh '''set -eu
+git --version
+git rev-parse --is-inside-work-tree
+docker version
+docker info >/dev/null
+docker compose version
+ansible --version
+ansible localhost -i localhost, -c local -m ansible.builtin.ping
+'''
+            }
+        }
+    }
+}

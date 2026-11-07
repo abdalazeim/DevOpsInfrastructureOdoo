@@ -124,10 +124,22 @@ class SecurityConfig:
     enforce_https: bool = True
 
 @dataclass
+class IntegrationConfig:
+    ansible_inventory: str = ""
+    ansible_config: str = ""
+    jenkins_url: str = "http://127.0.0.1:8081"
+    jenkins_job: str = ""
+    jenkins_user_env: str = "JENKINS_USER"
+    jenkins_token_env: str = "JENKINS_API_TOKEN"
+    min_free_disk_gib: int = 10
+    min_memory_mib: int = 2048
+
+@dataclass
 class InfrastructureProfile:
     profile_name: str
     deployment_mode: str = "local"
     jenkins_enabled: bool = False
+    portainer_enabled: bool = False
     description: str = ""
     version: str = "1.0.0"
     server: ServerConfig = field(default_factory=ServerConfig)
@@ -154,6 +166,7 @@ class InfrastructureProfile:
     ))
     backup: BackupConfig = field(default_factory=BackupConfig)
     security: SecurityConfig = field(default_factory=SecurityConfig)
+    integration: IntegrationConfig = field(default_factory=IntegrationConfig)
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> "InfrastructureProfile":
@@ -279,6 +292,8 @@ class InfrastructureProfile:
         return cls(
             deployment_mode=data.get("deployment_mode", "local"),
             jenkins_enabled=bool(data.get("jenkins_enabled", False)),
+            portainer_enabled=bool(data.get("portainer_enabled", False)),
+            integration=IntegrationConfig(**data.get('integration', {})),
             profile_name=data.get("profile_name", "unnamed-profile"),
             description=data.get("description", ""),
             version=data.get("version", "1.0.0"),

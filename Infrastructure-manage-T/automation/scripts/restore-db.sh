@@ -47,7 +47,7 @@ FILESTORE_FILE="${DIRNAME}/filestore_${BASENAME#dump_}"
 FILESTORE_FILE="${FILESTORE_FILE%.sql.gz}.tar.gz"
 if [[ -f "${META_FILE}" ]]; then
   log_info "Verifying SHA256 checksum from metadata..."
-  EXPECTED_SHA=$(python3 -c "import json; print(json.load(open('${META_FILE}'))['sha256'])" 2>/dev/null || echo "")
+  EXPECTED_SHA=$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["sha256"])' "${META_FILE}")
   if [[ ! "${EXPECTED_SHA}" =~ ^[a-fA-F0-9]{64}$ ]]; then
     log_err "Invalid checksum metadata"
     exit 1
@@ -65,6 +65,31 @@ else
   exit 1
 fi
 
+# Reject damaged or unsafe archives before touching the database.
+if [[ -f "${FILESTORE_FILE}" ]]; then
+  python3 - "${FILESTORE_FILE}" "${META_FILE}" <<'PY'
+import hashlib, json, pathlib, sys, tarfile
+archive, metadata = map(pathlib.Path, sys.argv[1:])
+expected = json.loads(metadata.read_text()).get('filestore_sha256')
+with archive.open('rb') as stream:
+    checksum = hashlib.sha256()
+    for chunk in iter(lambda: stream.read(1024 * 1024), b''):
+        checksum.update(chunk)
+if not expected or checksum.hexdigest() != expected:
+    raise SystemExit('Filestore checksum missing/mismatched; legacy backup requires manual review')
+with tarfile.open(archive, 'r:gz') as tar:
+    roots = set()
+    for member in tar.getmembers():
+        path = pathlib.PurePosixPath(member.name)
+        if path.is_absolute() or '..' in path.parts or not (member.isfile() or member.isdir()):
+            raise SystemExit('Unsafe filestore archive')
+        if path.parts:
+            roots.add(path.parts[0])
+    if len(roots) != 1:
+        raise SystemExit('Expected a single database directory in filestore archive')
+PY
+fi
+
 DB_CONTAINER="odoo${VERSION}-db"
 ODOO_CONTAINER="odoo${VERSION}"
 DB_USER="${POSTGRES_USER:-odoo}"
@@ -77,7 +102,7 @@ if ! docker inspect --format='{{.State.Status}}' "${DB_CONTAINER}" 2>/dev/null |
 fi
 
 # Pre-restore safety check: Does target DB exist?
-EXISTS=$(docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -tAc "SELECT 1 FROM pg_database WHERE datname='${TARGET_DB}';" || true)
+EXISTS=$(docker exec "${DB_CONTAINER}" psql -U "${DB_USER}" -tAc "SELECT 1 FROM pg_database WHERE datname='${TARGET_DB}';")
 
 if [[ "${EXISTS}" == "1" ]]; then
   log_warn "Target database '${TARGET_DB}' already exists!"
@@ -130,6 +155,7 @@ if [[ -f "${FILESTORE_FILE}" ]]; then
   TARGET_FILESTORE_ROOT="${DATA_ROOT}/odoo${VERSION}/data/filestore"
   TARGET_FILESTORE="${TARGET_FILESTORE_ROOT}/${TARGET_DB}"
   mkdir -p "${TARGET_FILESTORE_ROOT}"
+  mkdir -p "${TARGET_FILESTORE}"
   # Extract archive (contains source DB dir) into target filestore root, then rename
   TMP_EXTRACT_DIR="${TARGET_FILESTORE_ROOT}/._extract_${TARGET_DB}_$$"
   mkdir -p "${TMP_EXTRACT_DIR}"
@@ -142,7 +168,8 @@ if [[ -f "${FILESTORE_FILE}" ]]; then
     log_ok "Filestore restored to target name: ${TARGET_DB}"
   else
     rm -rf "${TMP_EXTRACT_DIR}"
-    log_warn "Filestore archive structure unexpected; skipping filestore restore."
+    log_err "Filestore archive structure unexpected; restore incomplete."
+    exit 1
   fi
 else
   log_warn "No filestore archive found at ${FILESTORE_FILE}; skipping filestore restore."

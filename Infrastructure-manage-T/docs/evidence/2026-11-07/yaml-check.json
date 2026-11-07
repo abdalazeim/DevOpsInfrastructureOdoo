@@ -1,0 +1,442 @@
+[
+  {
+    "path": "automation/ansible/playbook.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "automation/ansible/roles/baseline/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "automation/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "automation/ansible/vars/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/group_vars/all.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/backup.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/install-odoo17.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/install-odoo19.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/restore.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/sequential-install.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/system-config-backup.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/playbooks/verify.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/backup/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/odoo/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/permissions/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/postgresql/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/restore/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/system-config-backup/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/system/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/ansible/roles/verify/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/backup/backup-policy.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/backup/retention.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/versions/odoo17.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/versions/odoo19.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/group_vars/all.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/playbooks/install.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/docker/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/docker/handlers/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/docker/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/odoo/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/odoo/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/odoo/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/system/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/system/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/system/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/traefik/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/traefik/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/instances/odoo17.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/jenkins/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/odoo17/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/odoo18/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/odoo19/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/postgresql/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/server-prep/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/ansible/site.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/group_vars/all.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/playbooks/backup.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/playbooks/install.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/playbooks/validate.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/docker/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/docker/handlers/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/docker/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/odoo/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/odoo/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/odoo/tasks/backup_instance.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/odoo/tasks/deploy_instance.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/odoo/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/traefik/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/traefik/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/docker-compose.traefik.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/docker-compose.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/instances/odoo17.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo17/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/playbooks/install-odoo18.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/roles/odoo/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/roles/postgresql/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/roles/system/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/docker-compose.traefik.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/docker-compose.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/group_vars/all.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo18/versions/odoo18.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/group_vars/all.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/playbooks/install.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/docker/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/docker/handlers/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/docker/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/docker/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/odoo/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/odoo/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/odoo/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/system/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/system/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/system/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/traefik/defaults/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/traefik/meta/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/ansible/roles/traefik/tasks/main.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/docker-compose.traefik.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/docker-compose.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/instances/odoo19.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/odoo19/requirements.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/pgadmin/docker-compose.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/traefik/config/traefik.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "deployment/traefik/docker-compose.yml",
+    "status": "PASS"
+  },
+  {
+    "path": "profiles/devops-odoo-prod.yaml",
+    "status": "PASS"
+  },
+  {
+    "path": "profiles/example.yaml",
+    "status": "PASS"
+  },
+  {
+    "path": "profiles/local-dev.yaml",
+    "status": "PASS"
+  }
+]

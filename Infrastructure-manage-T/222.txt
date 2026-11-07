@@ -1,12 +1,10 @@
-Next steps:
-   ./launch-odoo-infra.sh --action validate -p profiles/example.yaml
-   ./launch-odoo-infra.sh --action preflight
-   ./launch-odoo-infra.sh                     # interactive TUI
-==============================================================================
-root@odoo-com-OptiPlex-9030-AIO:/home/odoo-com/Documents/Infrastructure-manage-T# sudo bash launch-odoo-infra.sh
-: invalid option name line 15: set: pipefail
-root@odoo-com-OptiPlex-9030-AIO:/home/odoo-com/Documents/Infrastructure-manage-T# 
+# 222
 
+Updated: 2026-11-07 | Project 1.1.0 Beta | **NOT READY**
 
+Current operational instructions are centralized below. The previous guide is preserved for historical reference; its commands are not the current deployment contract.
 
+- [Current system and operation guide](<docs/MASTER_SYSTEM_DOCUMENTATION.md>)
+- [Preserved original](<docs/archive/2026-11-07/222.txt>)
 
+The supported review sequence is System Preparation → Sequential Installation → Operation Verification → Integration & Connectivity → Integration Success Report → Final Deployment Report → Documentation Synchronization. Live deployment acceptance has not been performed.

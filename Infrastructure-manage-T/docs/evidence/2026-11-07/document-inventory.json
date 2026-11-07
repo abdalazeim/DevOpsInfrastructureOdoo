@@ -1,0 +1,775 @@
+[
+  {
+    "path": "222.txt",
+    "lines": 12,
+    "headings": [],
+    "risk_lines": [
+      "   ./launch-odoo-infra.sh --action validate -p profiles/example.yaml",
+      "   ./launch-odoo-infra.sh --action preflight"
+    ]
+  },
+  {
+    "path": "OPERATING_METHODS.md",
+    "lines": 323,
+    "headings": [
+      "# Operating Methods - Odoo Multi-Version Deployment (Ubuntu Target)",
+      "## 1. Document Overview",
+      "## 2. Quick Information Table",
+      "## 3. Table of Contents",
+      "## 4. Architecture Diagram",
+      "## 5. Prerequisites Table",
+      "## 6. Required Ports Table",
+      "## 7. Installation Workflow",
+      "## 8. Step-by-Step Installation",
+      "### 8.1 Navigate to Scripts Directory",
+      "### 8.2 Run One-Command Launch",
+      "### 8.3 Run Step-by-Step Bootstrap and Launch",
+      "### 8.4 Install Specific Odoo Versions (Script Variant)",
+      "### 8.5 Run Health Checks",
+      "### 8.6 Execute Jenkins Pipelines"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "README.md",
+    "lines": 351,
+    "headings": [
+      "# Odoo Infrastructure Manager - Technical Documentation",
+      "## 1. Document Overview",
+      "## 2. Quick Information Table",
+      "## 3. Table of Contents",
+      "## 4. Architecture Diagram",
+      "## 5. Prerequisites Table",
+      "## 6. Required Ports Table",
+      "## 7. Installation Workflow",
+      "## 8. Step-by-Step Installation",
+      "### 8.1 Clone Repository and Enter Project Directory",
+      "### 8.2 Create Python Virtual Environment",
+      "### 8.3 Install Project Dependencies",
+      "### 8.4 Prepare Environment and Secrets File",
+      "# Recommended bootstrap path (installs prerequisites and can generate .env)",
+      "# Manual alternative"
+    ],
+    "risk_lines": [
+      "| Repository version marker | `1.0.0` (per prior release notes) |",
+      "python3 app/main.py --action preflight",
+      "python3 app/main.py --action validate",
+      "python3 app/main.py --action inspect",
+      "./launch-odoo-infra.sh --action textual",
+      "python3 app/main.py --action traefik",
+      "python3 app/main.py --action odoo17",
+      "python3 app/main.py --action full",
+      "python3 app/main.py --action health",
+      "| Traefik audit (CLI) | `python3 app/main.py --action traefik-audit` | Reports ports/network/dashboard status |",
+      "| Health check (CLI) | `python3 app/main.py --action health` | Exit code and output indicate component health |",
+      "> Avoid destructive commands (for example `docker compose down -v`) unless you have verified backups and explicit approval."
+    ]
+  },
+  {
+    "path": "REPAIR_CHANGELOG.md",
+    "lines": 243,
+    "headings": [
+      "# 📜 سجل الإصلاحات — Repair Changelog",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 ملخص",
+      "## 2. 🔴 P0 — حاسم (تم الإصلاح)",
+      "### N01/N15 — نقطة الدخول لا تعمل",
+      "## 3. 🟡 P1 — سلامة البيانات (تم الإصلاح)",
+      "### N03 — مسار استعادة PostgreSQL خاطئ، يترك قاعدة البيانات متوقفة",
+      "### N04 — المجموع التحققي القديم غير مؤكد، قد لا يطابق المرفق (filestore)",
+      "### N05 — alternative المرفقات يعمل على حاوية قاعدة البيانات",
+      "### N06 — backup.sh يترك Odoo متوقفة عند فشل الإ_dump",
+      "### F26 — فشل العمليات لا ينعكس دائمًا في حالة CLI",
+      "## 4. 🟢 P2 — اكتشاف الخدمة وصحة التثبيت (تم الإصلاح)",
+      "### N02 — الحاويات العاملة تُوصف بأنها متوقفة",
+      "### F22 — اكتشاف Odoo يخلط بين قاعدة بيانات مستقلة وتثبيت Odoo",
+      "### N08 — ملف سر PostgreSQL مفقود داخل الحاوية الجديدة"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "TEST_RESULTS.md",
+    "lines": 111,
+    "headings": [
+      "# 🧪 نتائج الاختبارات — Test Results",
+      "## 📋 جدول المحتويات",
+      "## 1. 🚪 بوابة الاختبار (بترتيب مطلوب)",
+      "## 2. 📊 تفاصيل الاختبارات المنفذة",
+      "### 2.1 فحص بناء Python",
+      "### 2.2 فحص الاستيراد",
+      "### 2.3 تشغيل التطبيق",
+      "### 2.4 اختبارات الوحدة (85 اختبار)",
+      "## 3. 📋 فئات الاختبارات المغطاة",
+      "## 4. ⚠️ القيود المتبقية",
+      "## 5. 📌 المتطلبات قبل الاعتماد على النظام في الإنتاج"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/Odoo-MultiVersion-Deployment/README.md",
+    "lines": 794,
+    "headings": [
+      "# 🚀 نشر Odoo متعدد الإصدارات — Odoo Multi-Version Deployment",
+      "## 📋 جدول المحتويات",
+      "## 1. 📖 نظرة عامة",
+      "### أهداف المشروع",
+      "## 2. 🌟 المميزات الرئيسية",
+      "## 3. 🏗 الهندسة المعمارية",
+      "### البنية المعمارية للنظام",
+      "### سير عمل النشر",
+      "### Jenkins + أتمتة Ansible",
+      "### الخدمات والشبكات في Docker",
+      "### سير عمل النسخ الاحتياطي والاستعادة",
+      "## 4. 🛠 مكدس التقنية",
+      "## 5. 📁 هيكل الدليل",
+      "## 6. 🔧 نسخ Odoo والتكوين",
+      "### تكوين Odoo 17"
+    ],
+    "risk_lines": [
+      "> **الحالة:** Production Ready",
+      "**حالة المشروع:** Production Ready"
+    ]
+  },
+  {
+    "path": "deployment/Odoo17-MultiInstance-Deployment/README.md",
+    "lines": 593,
+    "headings": [
+      "# 🏗 نشر موحد لـ Odoo 17 مع نسختين — Odoo 17 Multi-Instance Deployment - Unified System",
+      "## 📋 جدول المحتويات",
+      "## 1. 📖 نظرة عامة | Overview",
+      "## 2. ⚡ طريقتا التشغيل | Two Execution Methods",
+      "### الطريقة الأولى: Jenkins | Method 1: Jenkins",
+      "### الطريقة الثانية: Terminal | Method 2: Terminal",
+      "## 3. 🏗 الهندسة المعمارية | Architektur",
+      "## 4. 📁 هيكل الملفات | File Structure",
+      "## 5. 🌐 تكوين النسختين | Instance Configuration",
+      "## 6. ⚙️ متغيرات النسخ | Instance Variables",
+      "# instances/odoo17.yml",
+      "## 7. 🔒 ضوابط الأمان | Security Constraints",
+      "## 8. 📦 تنظيم الملفات على الخادم | Server Organization",
+      "## 9. 🛠 تركيب وتشغيل | Installation & Usage",
+      "### 9.1 المتطلبات الأساسية"
+    ],
+    "risk_lines": [
+      "> **الإصدار:** 1.0.0",
+      "| 3 | keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |",
+      "**الإصدار:** 1.0.0 • **آخر تحديث:** نوفمبر 2026"
+    ]
+  },
+  {
+    "path": "deployment/ansible/InstallingAnsible.Command.md",
+    "lines": 361,
+    "headings": [
+      "# ⚙️ دليل تثبيت Ansible على Ubuntu Server",
+      "## 📋 جدول المحتويات",
+      "## 1. 🎯 مقدمة عن Ansible",
+      "### ✅ ما يمكن إدارةه عبر Ansible في هذا النظام:",
+      "## 2. 🔧 المتطلبات الأساسية",
+      "## 3. 🚀 الطريقة الأولى: التثبيت اليدوي خطوة بخطوة",
+      "### الخطوة 1: تحديث النظام",
+      "### الخطوة 2: تثبيت Python و Pip والمتطلبات الأساسية",
+      "### الخطوة 3: إضافة مستودع Ansible الرسمي عبر PPA",
+      "### الخطوة 4: تثبيت Ansible",
+      "### الخطوة 5: التحقق من إصدار Ansible",
+      "### الخطوة 6: التحقق من تثبيت Ansible Core",
+      "## 4. 📁 إنشاء هيكل مشروع Ansible",
+      "# إنشاء هيكل المجلدات",
+      "# الانتقال إلى مجلد المشروع"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/docker/Installing Docker.Command.md",
+    "lines": 430,
+    "headings": [
+      "# 🐋 دليل تثبيت Docker Engine و Docker Compose على Ubuntu",
+      "## 📋 جدول المحتويات",
+      "## 1. 🔧 المتطلبات الأساسية",
+      "### ✅ اختبار أن Docker يعمل بعد التثبيت",
+      "## 2. 🚀 الطريقة الأولى: التثبيت اليدوي خطوة بخطوة",
+      "### الخطوة 1: تحديث النظام وتثبيت المتطلبات الأساسية",
+      "### الخطوة 2: إنشاء مجلد مفاتيح Docker",
+      "### الخطوة 3: إضافة مفتاح GPG الرسمي الخاص بـ Docker",
+      "### الخطوة 4: إضافة مستودع Docker الرسمي إلى النظام",
+      "### الخطوة 5: تحديث قائمة الحزم",
+      "### الخطوة 6: تثبيت Docker Engine والمكونات الأساسية",
+      "#### جدول المكونات المثبتة",
+      "### الخطوة 7: تشغيل Docker وتفعيله تلقائيًا عند إقلاع النظام",
+      "### الخطوة 8: التحقق من حالة خدمة Docker",
+      "### الخطوة 9: التحقق من إصدار Docker"
+    ],
+    "risk_lines": [
+      "sudo docker rm <اسم_الحاوية>",
+      "sudo docker rm -f <اسم_الحاوية>",
+      "sudo docker rmi <اسم_الصورة>",
+      "sudo docker rmi -f <اسم_الصورة>",
+      "sudo docker volume rm <اسم_الحجم>"
+    ]
+  },
+  {
+    "path": "deployment/jenkins/Installing Jenkins.Command.md",
+    "lines": 323,
+    "headings": [
+      "# 🔧 دليل تثبيت Jenkins على Ubuntu Server باستخدام Docker",
+      "## 📋 جدول المحتويات",
+      "## 1. 🎯 مقدمة عن Jenkins",
+      "### ✅ ما يمكن إدارةه عبر Jenkins في هذا النظام:",
+      "## 2. 🔧 المتطلبات الأساسية",
+      "## 3. 🚀 الطريقة الأولى: التثبيت اليدوي خطوة بخطوة",
+      "### الخطوة 1: إنشاء Docker Volume لحفظ بيانات Jenkins",
+      "### الخطوة 2: تحميل صورة Jenkins الرسمية (LTS - JDK 21)",
+      "### الخطوة 3: إنشاء وتشغيل حاوية Jenkins",
+      "#### جدول خيارات التشغيل (Run Options)",
+      "## 4. ✅ التحقق من تشغيل Jenkins",
+      "### الخطوة 5: عرض سجلات Jenkins",
+      "### الخطوة 6: استخراج كلمة المرور الأولية للمدير",
+      "## 3. 🌐 الوصول إلى لوحة التحكم",
+      "### 🔐 الإعداد الأول (First Login)"
+    ],
+    "risk_lines": [
+      "sudo docker rm jenkins",
+      "sudo docker rm jenkins",
+      "sudo docker rmi jenkins/jenkins:lts-jdk21",
+      "sudo docker volume rm jenkins_home"
+    ]
+  },
+  {
+    "path": "deployment/odoo17/InstallingOdoo 17.0Command.md",
+    "lines": 334,
+    "headings": [
+      "# 🐋 دليل تثبيت Odoo 17 بالطريقة التقليدية (اليدوية) على Ubuntu باستخدام Docker Compose",
+      "## 📋 جدول المحتويات",
+      "## 1. 🔧 المتطلبات الأساسية",
+      "## 2. 🚀 الطريقة الأولى: التثبيت التقليدي المحلي (بدون Git Clone)",
+      "### الخطوة 1: تحضير المجلد",
+      "# إذا قمت بتنزيل المجلد كمجلد مضغوط، فك الضغط أولاً",
+      "# أو إذا كان المجلد موجوداً بالفعل",
+      "### الخطوة 2: تعيين الصلاحيات",
+      "# منح الصلاحية للتنفيذ لملف الدخول",
+      "# تعيين صلاحيات المجلدات",
+      "### الخطوة 3: إنشاء مجلد PostgreSQL",
+      "### الخطوة 4: تشغيل الحاويات",
+      "# تشغيل في الخلفية (detached mode)",
+      "# أو chạy في واجهة المح terminal لرؤية السجلات مباشرة",
+      "### الخطوة 5: الوصول إلى Odoo"
+    ],
+    "risk_lines": [
+      "| 5 | إيقاف وحذف الحاويات والأحجام | `sudo docker compose down -v` ⚠️ (يحذف بيانات قاعدة البيانات) |",
+      "sudo chmod -R 777 addons",
+      "sudo chmod -R 777 etc",
+      "sudo chmod -R 777 postgresql",
+      "| 1 | لا تستخدم `sudo docker compose down -v` إلا إذا كنت تريد حذف جميع بيانات قاعدة البيانات permanently. |"
+    ]
+  },
+  {
+    "path": "deployment/odoo17/README.md",
+    "lines": 312,
+    "headings": [
+      "# 📦 مستودع نشر نسخ متعددة من Odoo 17 — Odoo 17 Multi-Instance Deployment Repository",
+      "## 📋 جدول المحتويات",
+      "## 1. 📖 نظرة عامة | Overview",
+      "## 2. 🏗 الهندسة المعمارية | Architektur",
+      "## 3. 📁 هيكل الملفات | File Structure",
+      "## 4. 🌐 تكوين النسختين | Instance Configuration",
+      "## 5. ⚙️ خطوط أنابيب Jenkins | Jenkins Pipeline Stages",
+      "## 6. 🔧 متغيرات النسخ | Instance Variables",
+      "# instances/odoo17.yml",
+      "## 7. 🔒 ضوابط الأمان | Security Constraints",
+      "## 8. 📦 تنظيم الملفات على الخادم | Server Organization",
+      "## 9. 🛠 تركيب وتشغيل | Installation & Usage",
+      "### 9.1 المتطلبات الأساسية",
+      "### 9.2 خطوات النشر",
+      "# 1. نسخ المستودع"
+    ],
+    "risk_lines": [
+      "> **الإصدار:** 1.0.0",
+      "| 3 | keine chmod 777 | جميع الملفات بصلاحيات محدودة (0600 للأسرار، 0755 للمجلدات) |",
+      "**الإصدار:** 1.0.0 • **آخر تحديث:** نوفمبر 2026"
+    ]
+  },
+  {
+    "path": "deployment/odoo17/addons/README.md",
+    "lines": 23,
+    "headings": [
+      "# 📁 مجلد الإضافات المخصصة لـ Odoo 17 — Custom Odoo Addons Folder",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 تعليمات الاستخدام"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/odoo17/screenshots/README.md",
+    "lines": 27,
+    "headings": [
+      "# 📸 لقطات شاشة مستودع Odoo 17 الخاص — Odoo 17 Private Repository Screenshots",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 تعليمات الاستخدام",
+      "## 2. 📁 أمثلة على الملفات"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/odoo18/InstallingOdoo 18.0Command.md",
+    "lines": 363,
+    "headings": [
+      "# 🐋 دليل تثبيت Odoo 18 بالطريقة التقليدية (اليدوية) على Ubuntu باستخدام Docker Compose",
+      "## 📋 جدول المحتويات",
+      "## 1. 🔧 المتطلبات الأساسية",
+      "## 2. 🚀 الطريقة الأولى: التثبيت التقليدي المحلي (بدون Git Clone)",
+      "### الخطوة 1: تحضير المجلد",
+      "# إذا قمت بتنزيل المجلد كمجلد مضغوط، فك الضغط أولاً",
+      "# أو إذا كان المجلد موجوداً بالفعل",
+      "### الخطوة 2: تعيين الصلاحيات",
+      "# منح الصلاحية للتنفيذ لملف الدخول",
+      "# إذا كان هناك ملف run.sh، منح الصلاحية للتنفيذ أيضاً",
+      "# تعيين صلاحيات المجلدات",
+      "### الخطوة 3: إنشاء مجلد PostgreSQL",
+      "### الخطوة 4: تشغيل الحاويات",
+      "# تشغيل في الخلفية (detached mode)",
+      "# أو chạy في واجهة المح terminal لرؤية السجلات مباشرة"
+    ],
+    "risk_lines": [
+      "| 5 | إيقاف وحذف الحاويات والأحجام | `sudo docker compose down -v` ⚠️ (يحذف بيانات قاعدة البيانات) |",
+      "sudo chmod -R 777 addons",
+      "sudo chmod -R 777 etc",
+      "sudo chmod -R 777 postgresql",
+      "| 1 | لا تستخدم `sudo docker compose down -v` إلا إذا كنت تريد حذف جميع بيانات قاعدة البيانات permanently. |"
+    ]
+  },
+  {
+    "path": "deployment/odoo18/README.md",
+    "lines": 224,
+    "headings": [
+      "# 🐋 نشر Odoo 18 باستخدام Docker و Ansible و Traefik و Jenkins — Odoo 18 Multi-Instance Deployment",
+      "## 📋 جدول المحتويات",
+      "## 1. 📖 نظرة overview",
+      "## 2. 📁 هيكل الملفات",
+      "## 3. ⚙️ الإعدادات",
+      "## 4. 🌐 النطاقات",
+      "## 5. 📂 مجلدات البيانات",
+      "## 6. 🖥️ التشغيل عبر Terminal",
+      "## 7. 🔗 التشغيل عبر Jenkins",
+      "## 8. 🔑 كلمات مرور المشرف الافتراضية (قبل الإنتاج)",
+      "## 9. 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)",
+      "### 9.1 نظرة عامة",
+      "### 9.2 ما الذي نحفظه لكل نسخة Odoo",
+      "### 9.3 أنواع النسخ الاحتياطي المدعومة",
+      "### 9.4 خيارا الاستخدام اليومي"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/odoo18/addons/readme.md",
+    "lines": 23,
+    "headings": [
+      "# 📁 مجلد الإضافات المخصصة لـ Odoo 18 — Custom Odoo Addons Folder",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 تعليمات الاستخدام"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/odoo19/InstallingOdoo 19.0Command.md",
+    "lines": 334,
+    "headings": [
+      "# 🐋 دليل تثبيت Odoo 19 بالطريقة التقليدية (اليدوية) على Ubuntu باستخدام Docker Compose",
+      "## 📋 جدول المحتويات",
+      "## 1. 🔧 المتطلبات الأساسية",
+      "## 2. 🚀 الطريقة الأولى: التثبيت التقليدي المحلي (بدون Git Clone)",
+      "### الخطوة 1: تحضير المجلد",
+      "# إذا قمت بتنزيل المجلد كمجلد مضغوط، فك الضغط أولاً",
+      "# أو إذا كان المجلد موجوداً بالفعل",
+      "### الخطوة 2: تعيين الصلاحيات",
+      "# منح الصلاحية للتنفيذ لملف التشغيل",
+      "# تعيين صلاحيات المجلدات",
+      "### الخطوة 3: إنشاء مجلد PostgreSQL",
+      "### الخطوة 4: تشغيل الحاويات",
+      "# تشغيل في الخلفية (detached mode)",
+      "# أو chạy في واجهة المح terminal لرؤية السجلات مباشرة",
+      "### الخطوة 5: الوصول إلى Odoo"
+    ],
+    "risk_lines": [
+      "| 5 | إيقاف وحذف الحاويات والأحجام | `sudo docker compose down -v` ⚠️ (يحذف بيانات قاعدة البيانات) |",
+      "sudo chmod -R 777 addons",
+      "sudo chmod -R 777 etc",
+      "sudo chmod -R 777 postgresql",
+      "| 1 | لا تستخدم `sudo docker compose down -v` إلا إذا كنت تريد حذف جميع بيانات قاعدة البيانات permanently. |"
+    ]
+  },
+  {
+    "path": "deployment/odoo19/README.md",
+    "lines": 291,
+    "headings": [
+      "# 🐋 تثبيت Odoo 19 بأمر واحد (يدعم نسخ متعددة من Odoo على خادم واحد) — Installing Odoo 19.0",
+      "## 📋 جدول المحتويات",
+      "## 1. ⚡ التثبيت السريع",
+      "### التثبيت عبر Jenkins",
+      "### التثبيت عبر Terminal",
+      "## 2. 📖 الاستخدام",
+      "## 3. 🔌 الإضافات المخصصة — Custom addons",
+      "## 4. ⚙️ تكوين Odoo والسجل",
+      "## 8. 🔑 كلمات مرور المشرف الافتراضية (before production)",
+      "## 9. 💾 النسخ الاحتياطي والاستعاشة من الكوارث (Backup & Disaster Recovery)",
+      "### 9.1 نظرة عامة",
+      "### 9.2 ما الذي نحفظه لكل نسخة Odoo",
+      "### 9.3 أنواع النسخ الاحتياطي المدعومة",
+      "### 9.4 خيارا الاستخدام اليومي",
+      "### 9.5 عملية النسخ الصحيحة"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/odoo19/addons/readme.md",
+    "lines": 23,
+    "headings": [
+      "# 📁 مجلد الإضافات المخصصة لـ Odoo 19 — Custom Odoo Addons Folder",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 تعليمات الاستخدام"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/pgadmin/Installing pgAdmin.Command.md",
+    "lines": 370,
+    "headings": [
+      "# 🐘 دليل تثبيت pgAdmin 4 على Ubuntu باستخدام Docker",
+      "## 📋 جدول المحتويات",
+      "## 1. 🎯 مقدمة عن pgAdmin 4",
+      "### ✅ ما يمكن إدارةه عبر pgAdmin في هذا النظام:",
+      "## 2. 🔧 المتطلبات الأساسية",
+      "## 3. 🚀 الطريقة الأولى: التثبيت اليدوي خطوة بخطوة",
+      "### الخطوة 1: إنشاء مجلد لحفظ بيانات pgAdmin",
+      "### الخطوة 2: ضبط صلاحيات المجلد",
+      "### الخطوة 3: تحميل صورة pgAdmin",
+      "### الخطوة 4: إنشاء وتشغيل حاوية pgAdmin",
+      "#### جدول خيارات التشغيل (Run Options)",
+      "## 4. ✅ التحقق من تشغيل pgAdmin",
+      "### الخطوة 5: عرض سجلات التشغيل",
+      "## 3. 🌐 الوصول إلى لوحة التحكم",
+      "### 🔐 تسجيل الدخول"
+    ],
+    "risk_lines": [
+      "sudo docker rm pgadmin",
+      "sudo docker rm pgadmin",
+      "sudo docker rmi dpage/pgadmin4:latest"
+    ]
+  },
+  {
+    "path": "deployment/portainer/Installing Portainer.Command.md",
+    "lines": 290,
+    "headings": [
+      "# 📦 دليل تثبيت Portainer CE على Ubuntu",
+      "## 📋 جدول المحتويات",
+      "## 1. 🔧 المتطلبات الأساسية",
+      "## 2. 🚀 الطريقة الأولى: التثبيت اليدوي خطوة بخطوة",
+      "### الخطوة 1: إنشاء Docker Volume لحفظ بيانات Portainer",
+      "### الخطوة 2: تحميل صورة Portainer CE (الإصدار طويل الأمد LTS)",
+      "### الخطوة 3: إنشاء وتشغيل حاوية Portainer",
+      "#### جدول خيارات التشغيل (Run Options)",
+      "### الخطوة 4: التحقق من تشغيل Portainer",
+      "### الخطوة 5: فحص سجلات Portainer",
+      "### الخطوة 6: التحقق من المنافذ",
+      "## 3. 🌐 الوصول إلى لوحة التحكم",
+      "### 🔐 الإعداد الأول (First Login)",
+      "## 4. ⚙️ إدارة Portainer",
+      "### إعادة تشغيل Portainer"
+    ],
+    "risk_lines": [
+      "> **المنافذ:** 8000 (Edge Agent) و 9443 (لوحة التحكم عبر HTTPS)  ",
+      "| 4 | منفذ 9443 فارغ | `ss -tulnp | grep :9443` | — |",
+      "  -p 9443:9443 \\",
+      "| `-p` | `9443:9443` | منفذ لوحة التحكم عبر HTTPS (أمين) |",
+      "sudo ss -tulnp | grep -E ':9443|:8000'",
+      "https://SERVER-IP:9443",
+      "sudo docker rm portainer",
+      "  -p 9443:9443 \\",
+      "### ❌ مشكلة: تعذر الوصول إلى لوحة التحكم (https://SERVER-IP:9443)",
+      "# التحقق من أن المنفذ 9443 مفتوح",
+      "sudo ss -tulnp | grep :9443",
+      "### ❌ مشكلة: منفذ 9443 أو 8000 مضبوط بالفعل من قبل خدمة أخرى",
+      "sudo ss -tulnp | grep -E ':9443|:8000'",
+      "# مثال: -p 9444:9443 بدلاً من -p 9443:9443",
+      "sudo docker rm portainer"
+    ]
+  },
+  {
+    "path": "deployment/python/Installing Python.Command.md",
+    "lines": 356,
+    "headings": [
+      "# 🐍 دليل تثبيت Python على Ubuntu Server",
+      "## 📋 جدول المحتويات",
+      "## 1. 🎯 مقدمة عن Python",
+      "### ✅ ما يمكن تشغيله عبر Python في هذا النظام:",
+      "## 2. 🔧 المتطلبات الأساسية",
+      "## 3. 🚀 الطريقة الأولى: التثبيت عبر مستودعات Ubuntu الرسمية",
+      "### الخطوة 1: تحديث النظام",
+      "### الخطوة 2: تثبيت Python 3 ومدير الحزم pip",
+      "### الخطوة 3: تثبيت أدوات البناء الأساسية (لحزم Python التي تتطلب تجميع)",
+      "### الخطوة 4: التحقق من إصدار Python المثبت",
+      "## 4. ⚡ الطريقة الثانية: التثبيت عبر مستودع Deadsnakes PPA (للإصدارات الأحدث)",
+      "### الخطوة 1: تثبيت أداة إضافة المستودعات",
+      "### الخطوة 2: إضافة مستودع Deadsnakes PPA",
+      "### الخطوة 3: تثبيت إصدار Python المطلوب",
+      "# لتثبيت Python 3.11"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "deployment/traefik/Installing Traefik.Command.md",
+    "lines": 461,
+    "headings": [
+      "# 🌐 دليل تثبيت Traefik v3.7 على Ubuntu باستخدام Docker Compose",
+      "## 📋 جدول المحتويات",
+      "## 1. 🎯 مقدمة عن Traefik",
+      "### ✅ ما يمكن إدارةه عبر Traefik في هذا النظام:",
+      "## 2. 🔧 المتطلبات الأساسية",
+      "## 3. 🚀 الطريقة الأولى: التثبيت باستخدام Docker Compose",
+      "## 4. 📁 إنشاء مجلدات Traefik",
+      "### الغرض من المجلدات:",
+      "## 5. 🔐 إنشاء ملف حفظ شهادات SSL",
+      "## 6. 🌐 إنشاء شبكة Docker مشتركة",
+      "## 7. 📝 إنشاء ملف Docker Compose",
+      "### محتوى الملف:",
+      "### ⚠️ استبدل `YOUR_EMAIL` ببريدك الإلكتروني الحقيقي قبل حفظ الملف.",
+      "### شرح الأوامر (Command Options):",
+      "## 8. ✅ التحقق من ملف Compose"
+    ],
+    "risk_lines": [
+      "sudo docker rmi traefik:v3.7"
+    ]
+  },
+  {
+    "path": "docs/FINAL_PRODUCTION_READINESS_REPORT.md",
+    "lines": 114,
+    "headings": [
+      "# 📊 تقرير الجاهزية للإنتاج النهائي — Final Production Readiness Report",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 الملخص التنفيذي",
+      "## 2. 🎯 الحالة النهائية",
+      "## 3. 📊 الأدلة (الفعلية)",
+      "## 4. 🧩 حالة المكونات والتكامل (بناءً على الأدلة)",
+      "## 5. 📝 التغييرات التي أجريت في هذه الجلسة (ذات الصلة)",
+      "## 6. ⚠️ المخاطر المفتوحة / العناصر المعلقة (للإنتاج)",
+      "## 7. 💡 التوصيات",
+      "## 8. 🛡️ بيان البيانات والسلامة"
+    ],
+    "risk_lines": [
+      "| 4 | `--dry-run --action validate` | PASS | مسار التحقق من الملف الشخصي تم تنفيذه |",
+      "| 5 | `--dry-run --action health` | تم تنفيذ (dry-run) | مسار سير عمل محاكي؛ لا تحقق مباشر من Docker/Traefik/PostgreSQL/Odoo |",
+      "| 6 | `--dry-run --action preflight` | PARTIAL / غير مؤكد (غير تفاعلي) | توقف عند مسار تفاعلي عند التوجيه (`EOFError`) |",
+      "| 7 | فحص chmod 777 (الرموز النشطة في app/automation/deployment/templates) | لا توجد مطابقات لأكواد نشطة غير آمنة | المتضمن يتضمن نص أمان (\"لا تستخدم chmod 777\"); لا يوجد أمر `chmod 777` تنفيذي تم إدخاله في وحدات دفتر ال",
+      "- `app/ui/command_notebook_generator.py` (جديد): مولد مرجعي ديناميكي لأوامر وملفات Docker Compose لـ Odoo 17/18/19؛ تعيين ملفي تعريف للقراءة فقط؛ التحقق (المنافذ/سياسة إعادة التشغيل/الأسماء/المسارات، تحذيرات التوافق); أو",
+      "لم يتم حذف أو تعديل أي قواعد بيانات، أحجام، حاويات، أو ملفات إنتاجية عن قصد من هذه عملية التدقيق. تم تنفيذ الاختبارات المحلية وفحوصات CLI الجافة في مساحة عمل التطوير. العمليات التدميرية (بما في ذلك الاستعادة ضد بيانات ال"
+    ]
+  },
+  {
+    "path": "docs/PROJECT_LANGUAGE_MIGRATION_REPORT.md",
+    "lines": 91,
+    "headings": [
+      "# Project Language Migration Report",
+      "## 1. Summary",
+      "## 2. Scan Results (Arabic Detection)",
+      "## 3. Files Translated / Updated in This Pass",
+      "## 4. Files Excluded / Not Modified (Safety or Scope)",
+      "## 5. Remaining Arabic Content (Known)",
+      "## 6. Validation Results",
+      "## 7. Issues Requiring Manual Review",
+      "## 8. Safety Compliance Statement",
+      "## 9. Final Status"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "docs/Professional Sequential Installation, Verification & Integration Pipeline.txt",
+    "lines": 608,
+    "headings": [
+      "# DevOpsInfrastructureOdoo",
+      "# Professional Sequential Installation, Verification & Integration Pipeline",
+      "## Project Objective",
+      "# 1. Initial Project Inspection",
+      "# 2. Sequential Installation Architecture",
+      "## Required Installation Order",
+      "### Phase 1 – Ubuntu System Preparation",
+      "### Phase 2 – Python",
+      "### Phase 3 – Git",
+      "### Phase 4 – Docker Engine",
+      "### Phase 5 – Docker Compose",
+      "### Phase 6 – Docker Network Preparation",
+      "### Phase 7 – Optional Portainer Installation",
+      "# 3. Odoo Version Selection and Installation",
+      "## Default Local Port Mapping"
+    ],
+    "risk_lines": [
+      "Never use `chmod 777`."
+    ]
+  },
+  {
+    "path": "docs/REVIEW_RECHECK_2026-11-05.md",
+    "lines": 229,
+    "headings": [
+      "# 🔄 إعادة مراجعة الإصلاحات — 2026-11-05",
+      "## 📋 جدول المحتويات",
+      "## 1. ⚖️ الحكم",
+      "## 2. ✅ التحقق المنفذ",
+      "## 3. 📊 حالة النتائج السابقة F01–F37",
+      "## 4. 🚨 أخطاء جديدة أو تراجعات مؤكدة",
+      "### N01 — حرج: نقطة الدخول لا تعمل",
+      "### N02 — عالٍ: الحاويات العاملة توصف بأنها متوقفة",
+      "### N03 — عالٍ: إصلاح الاستعادة أدخل مسار ملف خاطئ ويترك PostgreSQL متوقفاً",
+      "### N04 — عالٍ: checksum القديم لا يُفحص وfilestore قد لا يطابق dump",
+      "### N05 — عالٍ: fallback المرفقات ينفذ على حاوية قاعدة البيانات",
+      "### N06 — عالٍ: backup.sh يترك Odoo متوقفاً عند فشل dump",
+      "### N07 — عالٍ: اكتشاف dump في Ansible لا ينفذ كما كُتب",
+      "### N08 — عالٍ: ملف سر PostgreSQL غير موجود داخل الحاوية الجديدة",
+      "### N09 — عالٍ: مسار Odoo الجديد لا يضبط اتصال القاعدة أو إتاحة الخدمة"
+    ],
+    "risk_lines": [
+      "| F36 | باقٍ | Portainer التسلسلي ما زال 9000 و/srv/portainer، ولا توجد تجربة تثبيت/فحص pgAdmin مماثلة لبقية المكونات. |",
+      "1. إصلاح N01 ثم التأكد من نجاح `--help` و`--action validate` على النسخة نفسها التي ستُنشر."
+    ]
+  },
+  {
+    "path": "docs/REVIEW_THIRD_2026-11-05.md",
+    "lines": 151,
+    "headings": [
+      "# 🔍 المراجعة الثالثة — 2026-11-05",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 النتيجة",
+      "## 2. ✅ ما تحقق عملياً",
+      "## 3. 📊 حالة ملاحظات المراجعة الثانية N01–N15",
+      "## 4. 🚨 العيوب الجديدة أو المتبقية الأهم",
+      "### T01 — حرج: الإزالة قد تحذف النسخ الاحتياطية رغم تعليمها protected",
+      "### T02 — عالٍ: pipeline الجديد يعلن تثبيت Odoo دون تثبيته",
+      "### T03 — عالٍ: إصلاح اسم metadata أدخل متغيراً غير معرف",
+      "### T04 — عالٍ: إعدادات الاتصال الجديدة لا تصل إلى Odoo كما هو متوقع",
+      "### T05 — عالٍ: استعادة MultiVersion ما زالت تقرأ ملف المضيف داخل الحاوية",
+      "### T06 — متوسط: تعذر فحص كل المكونات ينتج SUCCESS",
+      "### T07 — متوسط: Paused يُفسر كخدمة تعمل",
+      "### T08 — عالٍ: اكتشاف Odoo لا يزال يقبل الصور الخاطئة",
+      "### T09 — عالٍ: fallback المرفقات لا يطابق المستعيد"
+    ],
+    "risk_lines": [
+      "- `python -B app/main.py --action validate`: نجاح للملف الافتراضي. هذا يثبت قبول الإعدادات، لا صلاحية النشر على الخادم."
+    ]
+  },
+  {
+    "path": "docs/SYSTEM_AUDIT_2026-11-05.md",
+    "lines": 174,
+    "headings": [
+      "# 🔍 دراسة النظام ومراجعة الأخطاء — 2026-11-05",
+      "## 📋 جدول المحتويات",
+      "## 1. 📝 النتيجة وحدود الفحص",
+      "## 2. ⚙️ كيف يعمل النظام",
+      "## 3. ⚠️ أخطاء النسخ والاستعادة — أولوية عالية",
+      "## 4. 🚨 أخطاء التثبيت والتشخيص — أولوية عالية",
+      "## 5. 🌐 Traefik وAnsible وقوالب النشر",
+      "## 6. 📋 فجوات المتطلبات والإعدادات",
+      "## 7. 🔢 ترتيب المعالجة والتحقق المطلوب",
+      "## 8. 📊 تحديث حالة الإصلاح — 2026-11-05",
+      "### النتائج التي تم إصلاحها (P0 – P2)",
+      "### نتائج الاختبار (الحالية)",
+      "### حد الجاهزية للإنتاج (غير متحقق)"
+    ],
+    "risk_lines": [
+      "| F36 | `app/ui/app.py`، مكون Portainer التسلسلي، وخدمات التثبيت الحالية | `app/ui/app.py` | Portainer وpgAdmin لا يطابقان تماماً الطلب السابق. المسار التسلسلي ما زال يستخدم 9000 وربط /srv/portainer بدلاً من الطلب الأخير"
+    ]
+  },
+  {
+    "path": "docs/architecture.md",
+    "lines": 237,
+    "headings": [
+      "# Architecture Guide - Odoo Infrastructure Manager",
+      "## 1. Document Overview",
+      "## 2. Quick Information Table",
+      "## 3. Table of Contents",
+      "## 4. Architecture Diagram",
+      "## 5. Prerequisites Table",
+      "## 6. Required Ports Table",
+      "## 7. Installation Workflow",
+      "## 8. Step-by-Step Installation",
+      "### 8.1 Prepare the Host",
+      "### 8.2 Configure Network and DNS",
+      "# Configure DNS A/AAAA records at your DNS provider (no local command changes DNS globally)",
+      "# Open firewall ports as required",
+      "### 8.3 Deploy Reverse Proxy and Application Stacks",
+      "# Use the deployment method for your variant (CLI, scripts, compose, or Ansible)"
+    ],
+    "risk_lines": [
+      "python3 app/main.py --action traefik",
+      "python3 app/main.py --action odoo17",
+      "python3 app/main.py --action health"
+    ]
+  },
+  {
+    "path": "docs/audit_report_20261102_114654.md",
+    "lines": 15,
+    "headings": [
+      "# Odoo Infrastructure Manager Audit Report",
+      "## Notes"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "docs/audit_report_20261102_163437.md",
+    "lines": 15,
+    "headings": [
+      "# Odoo Infrastructure Manager Audit Report",
+      "## Notes"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "docs/disaster-recovery.md",
+    "lines": 252,
+    "headings": [
+      "# Disaster Recovery and Backup Runbook",
+      "## 1. Document Overview",
+      "## 2. Quick Information Table",
+      "## 3. Table of Contents",
+      "## 4. Architecture Diagram",
+      "## 5. Prerequisites Table",
+      "## 6. Required Ports Table",
+      "## 7. Installation Workflow",
+      "## 8. Step-by-Step Installation",
+      "### 8.1 Configure Backup Storage and Permissions",
+      "### 8.2 Run a Manual Backup (Variant-Dependent)",
+      "# Automation example (adjust args to your environment)",
+      "# Deployment-variant example (adjust args/script path)",
+      "# bash deployment/<variant>/scripts/backup.sh instance1 /data/backups/odoo17",
+      "# Verify checksum/metadata files if produced by your workflow"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "docs/security.md",
+    "lines": 209,
+    "headings": [
+      "# Security and Hardening Guide",
+      "## 1. Document Overview",
+      "## 2. Quick Information Table",
+      "## 3. Table of Contents",
+      "## 4. Architecture Diagram",
+      "## 5. Prerequisites Table",
+      "## 6. Required Ports Table",
+      "## 7. Installation Workflow",
+      "## 8. Step-by-Step Installation",
+      "### 8.1 Protect Secrets",
+      "### 8.2 Restrict Network Exposure",
+      "### 8.3 Apply Container and Proxy Controls",
+      "# Review compose/security options in your deployment variant before applying",
+      "# Confirm no public DB bindings and TLS/middleware settings in rendered config",
+      "## 9. Configuration Files"
+    ],
+    "risk_lines": []
+  },
+  {
+    "path": "شرح تشغيل النظام.txt",
+    "lines": 65,
+    "headings": [],
+    "risk_lines": [
+      "  python3 app/main.py --action preflight",
+      "  python3 app/main.py --action health",
+      "Caution: Do not use \"docker compose down -v\" unless you intend to remove volumes and have verified backups."
+    ]
+  }
+]

@@ -15,8 +15,8 @@ from app.core.server_setup import ServerSetupWorkflow
 from app.models.profile import InfrastructureProfile
 from app.services import odoo_service as odoo
 from app.services import uninstall_service as cleanup
-from app.services.instance_backup import load_verified, restore, extract
-from app.services.managed_stack import stack_spec, deploy
+from app.services.instance_backup import load_verified, restore, extract, offline_files
+from app.services.managed_stack import stack_spec, deploy, verify
 from app.services.system_backup import SystemBackupService
 
 
@@ -67,7 +67,7 @@ class AuditRegressions(unittest.TestCase):
         pipeline = InstallationPipeline(profile=self.profile())
         for component in pipeline._component_defs:
             for command in component['install_cmds'] + component['verify_cmds']:
-                self.assertFalse(len(command) > 2 and command[:2] == ['bash', '-c'] and command[2].startswith('echo ') and '|' not in command[2] and '>' not in command[2]))
+                self.assertFalse(len(command) > 2 and command[:2] == ['bash', '-c'] and command[2].startswith('echo ') and '|' not in command[2] and '>' not in command[2])
         self.assertNotIn('odoo18', [c['name'] for c in pipeline._component_defs])
 
     def test_unknown_inspection_cannot_pass(self):
@@ -107,7 +107,19 @@ class AuditRegressions(unittest.TestCase):
         with patch('app.services.managed_stack.run'), patch('app.services.managed_stack.subprocess.run',
                 return_value=subprocess.CompletedProcess([], 0)), patch('app.services.managed_stack.verify') as verify:
             deploy(self.profile(), '17')
-            verify.assert_called_once_with('17')
+            verify.assert_called_once_with('17', self.profile())
+
+    def test_healthy_wrong_image_cannot_be_adopted(self):
+        container = {'Config': {'Image': 'redis:latest'},
+                     'State': {'Running': True, 'Health': {'Status': 'healthy'}}}
+        with patch('app.services.managed_stack.run', return_value=json.dumps([container])):
+            with self.assertRaisesRegex(RuntimeError, 'image differs'):
+                verify('17', self.profile())
+
+    def test_successful_phases_do_not_replace_restore_acceptance(self):
+        workflow = FinalWorkflow(self.profile(), 'unused')
+        workflow.phases = [{'name': name, 'status': 'SUCCESS'} for name in PHASES]
+        self.assertEqual(workflow.report()['status'], 'NOT READY')
 
     def test_dump_access_failure_is_fatal(self):
         with patch.object(SystemBackupService, '_run_docker_cmd', return_value=(1, '', 'denied')):
@@ -134,6 +146,77 @@ class AuditRegressions(unittest.TestCase):
                 tar.addfile(tarfile.TarInfo('../outside'))
             with self.assertRaises(ValueError):
                 extract(archive, Path(tmp) / 'destination')
+
+    def test_restore_rejects_archive_before_docker(self):
+        import tarfile
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / 'containers.json').write_text(json.dumps({'odoo': {'Name': '/odoo17'}}))
+            with tarfile.open(folder / 'filestore.tar.gz', 'w:gz') as tar:
+                tar.addfile(tarfile.TarInfo('../escape'))
+            manifest = {'database': 'odoo17_prod', 'db_user': 'odoo'}
+            with patch('app.services.instance_backup.load_verified', return_value=manifest), \
+                    patch('app.services.instance_backup.docker') as docker:
+                with self.assertRaises(ValueError):
+                    restore(folder, folder / 'safety', confirm_replace=True)
+                docker.assert_not_called()
+
+    def test_restore_starts_app_only_after_files_and_permissions(self):
+        import tarfile
+        app = {'Name': '/odoo17-instance1', 'State': {'Running': True},
+               'Config': {'Image': 'odoo:17.0'}, 'Mounts': [
+                   {'Destination': '/var/lib/odoo', 'RW': True},
+                   {'Destination': '/mnt/extra-addons', 'RW': True}]}
+        manifest = {'version': 'odoo17', 'instance': 'instance1',
+                    'database': 'odoo17_prod', 'db_user': 'odoo'}
+        with tempfile.TemporaryDirectory() as tmp:
+            folder = Path(tmp)
+            (folder / 'containers.json').write_text(json.dumps({'odoo': app}))
+            (folder / 'database.sql').write_text('SELECT 1;')
+            for filename, directories in [('filestore.tar.gz', ['odoo17_prod']),
+                                           ('config.tar.gz', ['etc', 'addons'])]:
+                with tarfile.open(folder / filename, 'w:gz') as tar:
+                    for directory in directories:
+                        info = tarfile.TarInfo(directory)
+                        info.type = tarfile.DIRTYPE
+                        tar.addfile(info)
+            with patch('app.services.instance_backup.load_verified', return_value=manifest), \
+                    patch('app.services.instance_backup.inspect', return_value=app), \
+                    patch('app.services.instance_backup.backup'), \
+                    patch('app.services.instance_backup.docker') as docker, \
+                    patch('app.services.instance_backup.subprocess.run', return_value=subprocess.CompletedProcess([], 0)):
+                restore(folder, folder / 'safety', confirm_replace=True)
+            calls = [c.args for c in docker.call_args_list]
+            starts = [i for i, c in enumerate(calls) if c == ('start', 'odoo17-instance1')]
+            self.assertEqual(len(starts), 1)
+            self.assertTrue(all(i < starts[0] for i, c in enumerate(calls) if c[0] in ('cp', 'run')))
+            helpers = [c for c in calls if c[0] == 'run']
+            self.assertEqual(len(helpers), 2)
+            self.assertIn('none', helpers[0])
+            self.assertEqual(helpers[-1][-1], 'no')
+
+    def test_restore_preserves_old_files_without_merging(self):
+        import sys
+        app = {'Config': {'Image': 'odoo:17.0'}, 'Mounts': [
+            {'Destination': '/var/lib/odoo', 'RW': True},
+            {'Destination': '/mnt/extra-addons', 'RW': True}]}
+        with patch('app.services.instance_backup.docker') as docker:
+            offline_files(app, 'test-app', 'database', prepare=True)
+        args = docker.call_args.args
+        with tempfile.TemporaryDirectory() as tmp:
+            data, addons = Path(tmp) / 'filestore', Path(tmp) / 'addons'
+            (data / 'database').mkdir(parents=True)
+            addons.mkdir()
+            (data / 'database' / 'old').write_text('original')
+            (addons / 'old-addon').write_text('original-addon')
+            code = args[-4].replace("'/var/lib/odoo/filestore'", repr(str(data)))
+            code = code.replace("'/mnt/extra-addons'", repr(str(addons)))
+            with patch.object(sys, 'argv', ['maintenance', 'database', 'test-token', 'yes']):
+                exec(compile(code, '<offline-restore-test>', 'exec'), {})
+            self.assertFalse((data / 'database').exists())
+            self.assertFalse((addons / 'old-addon').exists())
+            self.assertEqual((data / '.restore-safety-test-token' / 'old').read_text(), 'original')
+            self.assertEqual((addons / '.restore-safety-test-token' / 'old-addon').read_text(), 'original-addon')
 
     def test_full_workflow_dry_run_has_no_writes(self):
         with tempfile.TemporaryDirectory() as tmp:

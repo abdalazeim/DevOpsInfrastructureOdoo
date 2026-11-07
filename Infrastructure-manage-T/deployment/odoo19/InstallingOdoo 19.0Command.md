@@ -105,26 +105,40 @@ http://localhost:20019
 
 ---
 
-## 3. 🚀 الطريقة الثانية: استخدام ملف run.sh مع引数 مخصصة
+## 3. 🚀 الطريقة الثانية: استخدام ملف run.sh (محلي أو من المستودع)
 
-إذا كنت تفضل استخدام السكربت المرفق مع تحديد وجهة مخصصة وموانئ مخصصة:
+استخدم هذه الطريقة لتثبيت نسختين باسمين ثابتين: النسخة الأولى `odoo-live`، والنسخة الثانية `odoo-test`.
+
+### أ) التثبيت المحلي (بعد نقل/نسخ المجلد إلى الجهاز)
+
+نفّذ الأوامر من داخل مجلد النشر الذي يحتوي على `run.sh` (مثال: `deployment/odoo19`):
 
 ```bash
-# تثبيت نسخة أولى
-sudo bash run.sh --destination /opt/odoo-one --port 10019 --chat 20019
+# تثبيت النسخة الأولى (odoo-live)
+sudo bash run.sh --destination odoo-live --port 10019 --chat 20019
 
-# تثبيت نسخة ثانية على منفذ مختلف
-sudo bash run.sh --destination /opt/odoo-two --port 11019 --chat 21019
+# تثبيت النسخة الثانية (odoo-test) على منفذ مختلف
+sudo bash run.sh --destination odoo-test --port 11019 --chat 21019
 
-# مع تحديد كلمات مرور مخصصة
-sudo bash run.sh --destination /opt/odoo-one --port 10019 --chat 20019 --password admin123 --db-password dbpass123
+# مع تحديد كلمات مرور مخصصة (مثال: للنسخة الأولى)
+sudo bash run.sh --destination odoo-live --port 10019 --chat 20019 --password admin123 --db-password dbpass123
+```
+
+### ب) التثبيت بجلب السكربت من المستودع (curl)
+
+المستودع: [DevOpsInfrastructureOdoo / Infrastructure-manage-T / deployment/odoo19](https://github.com/abdalazeim/DevOpsInfrastructureOdoo/tree/main/Infrastructure-manage-T/deployment/odoo19)
+
+```bash
+curl -s https://raw.githubusercontent.com/abdalazeim/DevOpsInfrastructureOdoo/main/Infrastructure-manage-T/deployment/odoo19/run.sh | bash -s -- --destination odoo-live --port 10019 --chat 20019
+
+curl -s https://raw.githubusercontent.com/abdalazeim/DevOpsInfrastructureOdoo/main/Infrastructure-manage-T/deployment/odoo19/run.sh | bash -s -- --destination odoo-test --port 11019 --chat 21019
 ```
 
 **وسائط السكربت:**
 
 | # | الوسيط | الوصف |
 |---|--------|-------|
-| 1 | `--destination` | مسار التثبيت (مثال: `odoo-one` أو `/opt/odoo-one`) |
+| 1 | `--destination` | مسار/اسم مجلد التثبيت (مثال: `odoo-live` أو `odoo-test`) |
 | 2 | `--port` | منفذ HTTP (الافتراضي: `10019`) |
 | 3 | `--chat` | منفذ الدردشة الحية (الافتراضي: `20019`) |
 | 4 | `--password` | كلمة مرور الماستر لـ Odoo (اختياري) |
@@ -200,21 +214,21 @@ sudo docker logs -f odoo19-db
 
 ## 5. 🔄 تشغيل نسخ متعددة من Odoo 19 على نفس الجهاز
 
-يمكنك تشغيل نسخ متعددة مع تحديد مجلدات ومنافذ مختلفة لكل نسخة:
+يمكنك تشغيل نسخ متعددة مع تحديد مجلدات ومنافذ مختلفة لكل نسخة. المثال أدناه يستخدم نفس التسمية: `odoo-live` (النسخة الأولى) و`odoo-test` (النسخة الثانية):
 
 ```bash
-# النسخة الأولى
-mkdir -p /opt/odoo19-instance1
-cp -r deployment/odoo19/* /opt/odoo19-instance1/
-cd /opt/odoo19-instance1
+# النسخة الأولى (odoo-live)
+mkdir -p /opt/odoo-live
+cp -r deployment/odoo19/* /opt/odoo-live/
+cd /opt/odoo-live
 sudo sed -i 's/10019:8069/10019:8069/g' docker-compose.yml
 sudo sed -i 's/20019:8072/20019:8072/g' docker-compose.yml
 sudo docker compose up -d
 
-# النسخة الثانية (على منافذ مختلفة)
-mkdir -p /opt/odoo19-instance2
-cp -r deployment/odoo19/* /opt/odoo19-instance2/
-cd /opt/odoo19-instance2
+# النسخة الثانية (odoo-test) على منافذ مختلفة
+mkdir -p /opt/odoo-test
+cp -r deployment/odoo19/* /opt/odoo-test/
+cd /opt/odoo-test
 sudo sed -i 's/10019:8069/11019:8069/g' docker-compose.yml
 sudo sed -i 's/20019:8072/21019:8072/g' docker-compose.yml
 sudo docker compose up -d

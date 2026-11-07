@@ -1,0 +1,341 @@
+{
+  "git_head": "21a997b0d3d6150a337713373f94631bcd74c947",
+  "files": [
+    {
+      "path": "app/cli.py",
+      "sha256": "d147c1a8de4a60b329521c07b8c07cc91e13fe74924a26b4ac3f7fbf079c3df2"
+    },
+    {
+      "path": "app/main.py",
+      "sha256": "afe9bc790a3b51c3fcbf138c167ec5e6d89dc72b9def853e014ff9eaf51bdf53"
+    },
+    {
+      "path": "app/__init__.py",
+      "sha256": "247fc6394040feff9d5f469911d5ac74ac700efc8d5fac2b7a3d02e5d3d9f211"
+    },
+    {
+      "path": "app/config/hostname_config.py",
+      "sha256": "58b79f6a58c7207bca1239cbedd54983ce89db10da0c1c623e026bf5b5c6001a"
+    },
+    {
+      "path": "app/config/__init__.py",
+      "sha256": "e15b38fd3c881992e9a897344b3832e3d1cb4cf023d617f27ccc9f5cb2bc931e"
+    },
+    {
+      "path": "app/core/final_workflow.py",
+      "sha256": "213a35db4ec3fa591272e72aeb5d9c65d309c7d44b62cfde22680c55e3924741"
+    },
+    {
+      "path": "app/core/infrastructure_orchestrator.py",
+      "sha256": "2501ddd2a590a36d771784d27cde3a278948b4e902be7b7576b2d3acd42e2cba"
+    },
+    {
+      "path": "app/core/installation_pipeline.py",
+      "sha256": "301ae0175736a6e28eb0157998ab542b8cd9e5c31ca552817d064e2966f30929"
+    },
+    {
+      "path": "app/core/installation_status.py",
+      "sha256": "86448f95999220ae6f508505558f30d0ceda71d42f44525639197a818b1fb642"
+    },
+    {
+      "path": "app/core/reporting.py",
+      "sha256": "a60ef6604ce00e16eba168a3b07a4590782861b15eaaa095de819f682c7c85f3"
+    },
+    {
+      "path": "app/core/server_setup.py",
+      "sha256": "bb68ce0401a4a93ab239a6d20c5153a80261075e0c8f5580c31751fdee327ca3"
+    },
+    {
+      "path": "app/core/smart_inspector.py",
+      "sha256": "2e8153e9804100c4e44a5c99f25e65e80ce30528d21814a674224942c82e62f0"
+    },
+    {
+      "path": "app/models/health.py",
+      "sha256": "9d2216044c3aa6fd8e2f174fa497982e78346aba579c39211f6960d5ff9c03c3"
+    },
+    {
+      "path": "app/models/operation.py",
+      "sha256": "5b2ab31b37ccd2a85fc29f482b13285d74c17f9a17fe32628b2b123c4741f92e"
+    },
+    {
+      "path": "app/models/profile.py",
+      "sha256": "cb2737c8e9c2dad535f2dcd51a940fcde90d89632c39f48553e5623fb2cb26b5"
+    },
+    {
+      "path": "app/services/ansible_service.py",
+      "sha256": "d20e054b37295c1e28bc82800646634e76bd203b54cbf0fdda0f580df1bc682f"
+    },
+    {
+      "path": "app/services/archive_utils.py",
+      "sha256": "f689c88ed63b17bb87085501a3476c32374df6faf3019f6028cc2e476fa0bee0"
+    },
+    {
+      "path": "app/services/backup_service.py",
+      "sha256": "c711ba41eb9f520543d45550366d7924b879b8c3b689af4d287ce4f439b40fab"
+    },
+    {
+      "path": "app/services/compose_installer.py",
+      "sha256": "bad9a3ddacc930466e185b1d68ddda94f7cdbb7d6e0cadb566de34091236ae21"
+    },
+    {
+      "path": "app/services/docker_inspector.py",
+      "sha256": "186854b70865057c2ffe4dc64df3789b7b6703290ff0be042c4b9a9bfcf4191a"
+    },
+    {
+      "path": "app/services/docker_installer.py",
+      "sha256": "4fbfde953a6e4f5581224e78c7a1a630daa7f650dfb7453cd7760198d8b1fda2"
+    },
+    {
+      "path": "app/services/docker_service.py",
+      "sha256": "694317cf26c43424f42c4d96e51652dd9e5124fe0eb1da869feb127c3191899e"
+    },
+    {
+      "path": "app/services/execution_service.py",
+      "sha256": "ce7e3189aea71ada024036c909e58dc8391b37f89342fd5b57a323238fbee305"
+    },
+    {
+      "path": "app/services/health_service.py",
+      "sha256": "6428adfc436ff457f984fbad431247cc55f4f97cfa7720c7ee890012bef1895a"
+    },
+    {
+      "path": "app/services/instance_backup.py",
+      "sha256": "c5951d6d83d78cb6e6354b8382c0972e3b25a76a98c20b81aea7b26fd27b7074"
+    },
+    {
+      "path": "app/services/jenkins_service.py",
+      "sha256": "86cb2051f6d602d39f7496f7fb7d769e045c7fb604202f3b60556feebacaa04d"
+    },
+    {
+      "path": "app/services/managed_stack.py",
+      "sha256": "f671dce11b5510e64a4398ba99f7f5e9f3ca7297f95989e42cc0f20d08813bbe"
+    },
+    {
+      "path": "app/services/odoo_manager.py",
+      "sha256": "f1f81ab83153ed07c8d750b3ec851eb8676918b0066bf31a45fa6d803d1d4af7"
+    },
+    {
+      "path": "app/services/odoo_service.py",
+      "sha256": "b2b16c5d7b706f32b9f8eab6f683bcedeff4bde3a973df286de448fc23823ee9"
+    },
+    {
+      "path": "app/services/portainer_service.py",
+      "sha256": "4631debca7038602a527bf1d71a3d6dafcc7ac2876572c81122fb23ccd6456d0"
+    },
+    {
+      "path": "app/services/postgresql_installer.py",
+      "sha256": "3462a75ef021b6bdad092826876313080bb7a4ca7a5a8a5b66e55e8ca30fa187"
+    },
+    {
+      "path": "app/services/python_installer.py",
+      "sha256": "8b51d6e00c0847ed9284615db0df54330b5b13702aa3f4cd3d76fee8dbf34923"
+    },
+    {
+      "path": "app/services/runtime_inspector.py",
+      "sha256": "3337cfa9a1e5a885cd9d44d9b47b0ec401387a4296a0d5d25f3263831881896a"
+    },
+    {
+      "path": "app/services/sequential_installer.py",
+      "sha256": "b67265c6fbc3869fe006915cc843e0573466e07b84308f34a3ee5da4857badb1"
+    },
+    {
+      "path": "app/services/smart_inspector.py",
+      "sha256": "504c5242fb88e2726660a2f8c5d58c23871de519ba0dc267930423ae7f17ae71"
+    },
+    {
+      "path": "app/services/system_backup.py",
+      "sha256": "3cb6fa9fd558e61abcad02f745e8c942be963af198fa67090d581738d16e20d7"
+    },
+    {
+      "path": "app/services/traefik_manager.py",
+      "sha256": "f6cedac82dc1787ce0758f3e1842ec0431ba5f4e2713151515009fa02ce9d045"
+    },
+    {
+      "path": "app/services/uninstall_service.py",
+      "sha256": "500b81640593cc8515a905dcfda27fe246802833ea1820a2ab9396b5653b8705"
+    },
+    {
+      "path": "app/ui/app.py",
+      "sha256": "faf313bb59e5acf29408336fa3600eb8579a5f94e3c479c5b82755b98f40c45a"
+    },
+    {
+      "path": "app/ui/command_notebook.py",
+      "sha256": "dd3e601f549658aa6efd85f565f5cf7b2d208faca280f2cf82c3b678a51bc050"
+    },
+    {
+      "path": "app/ui/command_notebook_generator.py",
+      "sha256": "3a644aad2d9f415b67fcb759a8357e3680d263cc308509bc4315cc08f5ee4ca8"
+    },
+    {
+      "path": "app/ui/command_notebook_ui.py",
+      "sha256": "3b10a40f9fb4c6e349681f68229de16d461397960203426652c293d7f73f83ff"
+    },
+    {
+      "path": "app/ui/installation_pipeline_ui.py",
+      "sha256": "e058c68d1f1120838534040d5dd8689169cb39611e789ab2862e87baf551804c"
+    },
+    {
+      "path": "app/ui/menu_system.py",
+      "sha256": "076027146fed8459c12155cb2ff3cceec6d23bf483163800f7f7ce8f9bb83a11"
+    },
+    {
+      "path": "app/ui/textual_app.py",
+      "sha256": "f28c64f0c2bfb017f3b00b666a78502869aadcfc8254e8ca7b4f69946fe2d981"
+    },
+    {
+      "path": "app/validators/config_validator.py",
+      "sha256": "f408f0425db422b944a71a120a6fad2eb453a1c2927ce539c4a6ad0d2e0de17e"
+    },
+    {
+      "path": "app/validators/system_validator.py",
+      "sha256": "17b019f67239315a6be5779c98026ea5478a74d28777acc20d97db6405e63b46"
+    },
+    {
+      "path": "app/workflows/database_ops.py",
+      "sha256": "0dbb778e93206a937a1d5816832c1452d867efe4ea9697eaddcf900901bb1be3"
+    },
+    {
+      "path": "app/workflows/deploy_odoo17.py",
+      "sha256": "7d81db33daa7e3b7c17a697e9e8885309f255adf54d990257ee587c43825d908"
+    },
+    {
+      "path": "app/workflows/deploy_odoo18.py",
+      "sha256": "cc8fbabe9f80d045a5fc584592a3a5181879c3c8db9bbcfa32233fef0a5c47ee"
+    },
+    {
+      "path": "app/workflows/deploy_odoo19.py",
+      "sha256": "dadb7c5ce1e410116ba5128b9042a6eba04f2e133d3a42f06be50915eac5d066"
+    },
+    {
+      "path": "app/workflows/deploy_traefik.py",
+      "sha256": "1efdbc78a79ce86e8ef0fa3495b55808885b480798cfff0565b6f3f3f169d2eb"
+    },
+    {
+      "path": "app/workflows/full_deploy.py",
+      "sha256": "718f09a9d4ed07288a5093fe0011196a27e969809e442fb83f71aa5e384cf647"
+    },
+    {
+      "path": "app/workflows/server_prep.py",
+      "sha256": "ad78175d5f32346539cab7a86cba390945a57232e261a2747b0ed83e5d8e891e"
+    },
+    {
+      "path": "tests/test_archive_utils.py",
+      "sha256": "346ff4dbcb1572328c3c261237f5bfddf4bbde5e45f9dce081dc47b3ce80d982"
+    },
+    {
+      "path": "tests/test_audit_regressions.py",
+      "sha256": "7bdc882dd33cd5094816548a4ef6628267c58276f1122d0c9d1e8e2eb01f19d2"
+    },
+    {
+      "path": "tests/test_command_notebook.py",
+      "sha256": "1841d7847e85d5e1d6352617d5d29ac25d1d1384b0d4f8b115958f0820e165c1"
+    },
+    {
+      "path": "tests/test_command_notebook_generator.py",
+      "sha256": "d07cce16288b34e279a12f69ff1bce590801a522345c8ce30642e2cb14795cc1"
+    },
+    {
+      "path": "tests/test_compose_installer.py",
+      "sha256": "5dd0e3ee97390e474ff5e52f8fa6df84f83d0b02c954c04c04e9727840468366"
+    },
+    {
+      "path": "tests/test_docker_inspector.py",
+      "sha256": "006b45c6d727b2626d26b753ee9a355160bba9623ccd3837cfdc31a168a543e2"
+    },
+    {
+      "path": "tests/test_docker_installer.py",
+      "sha256": "91b963fcd191409c676c57fae6802b9eeb17865efc00eb231f65234838b985ac"
+    },
+    {
+      "path": "tests/test_installation_pipeline.py",
+      "sha256": "900081f60f5ee56e33659c347f86cd566d35d54f8e22ff58fe4f60bbf9e49d9c"
+    },
+    {
+      "path": "tests/test_models.py",
+      "sha256": "6bcfc0755ae62568c77cabb6425cd585ebda4b27e539eff0666ac7e9aaea0535"
+    },
+    {
+      "path": "tests/test_portainer_service.py",
+      "sha256": "73d857cd9e67ba0f9dccfb559a6177f667a415b7d3c3c83fdf8d7057793f5ff2"
+    },
+    {
+      "path": "tests/test_postgresql_installer.py",
+      "sha256": "2f9022cb266c8785912f93965404b592cd182508be416128d684496304e65c52"
+    },
+    {
+      "path": "tests/test_python_installer.py",
+      "sha256": "4ef5dce7c8e6aa1f8ea0398021eb06e36e172571a009b2a72534837468d2888e"
+    },
+    {
+      "path": "tests/test_runtime_inspector.py",
+      "sha256": "042710191832d3b8a009343e08ec18deb288ef3ac49b125ac4aad5f646148c9e"
+    },
+    {
+      "path": "tests/test_services.py",
+      "sha256": "5a400b2abfccca58087adf934cf10d4a07e4a93491eef020c9bac45c64076c56"
+    },
+    {
+      "path": "tests/test_smart_inspector.py",
+      "sha256": "6001d90b92be3aa73676c14ae6f4d02cc1214fec5d6f2a7880b6344bc2c9c477"
+    },
+    {
+      "path": "tests/test_traefik_manager.py",
+      "sha256": "6b606cfb1e8459c990770921e41c5206f0acda25cfbc7eb8f3f46816202f47d0"
+    },
+    {
+      "path": "tests/test_uninstall_service.py",
+      "sha256": "6c679f22ad927c3edf85349c09c4bf63b36ddafb1b469bb7bd687cfced930645"
+    },
+    {
+      "path": "tests/test_validators.py",
+      "sha256": "5756acf39f574e122bc86d4541db3e09778c97cd9434106dd79caf29011de268"
+    },
+    {
+      "path": "tests/test_workflows.py",
+      "sha256": "c72a4acc8905f91f47190a184897dc57c574f26830d71d1d14cf4dfc83dadff6"
+    },
+    {
+      "path": "tests/__init__.py",
+      "sha256": "c901f62aa33a043a650e4e174f2095ab5dedc6c20febdffd17ecadb608f51229"
+    },
+    {
+      "path": "tools/audit_documents.py",
+      "sha256": "f4bcef1233528af57901a2a4066aa5af7aea08f37a2b89209ecc6b869b84393c"
+    },
+    {
+      "path": "tools/audit_local.py",
+      "sha256": "43380f54f39540d289b4518b3c1096e5f44ee936d34fb66445a8ef68b8aa7284"
+    },
+    {
+      "path": "automation/scripts/backup-db.sh",
+      "sha256": "ea315e71cc60f40d6bacec923f9ac40a393195acff0a21d5abe81e9355898717"
+    },
+    {
+      "path": "automation/scripts/deploy-odoo.sh",
+      "sha256": "dca042d227cb2ff3389a27d5c91d8c9c5627bfb13967964171e652aad9153ee4"
+    },
+    {
+      "path": "automation/scripts/health-check.sh",
+      "sha256": "07c6655e57bcc88a200f94a953f0aaa256509cd2494571e3d664491f838b5d83"
+    },
+    {
+      "path": "automation/scripts/init-server.sh",
+      "sha256": "bca21d58d2b90c4aa800993c3db67eb59729d701b8ff0bf3c1e3c33245dca97d"
+    },
+    {
+      "path": "automation/scripts/install-odoo.sh",
+      "sha256": "a6b5e3c5ef6417affe93c8480f7becabdea04c1cb9f2f8ce3119787dffb2c265"
+    },
+    {
+      "path": "automation/scripts/manage-traefik.sh",
+      "sha256": "3544c2c1816de16d4afbc802312f6dd9ed84f72f21f9c1f0ff100829f340eba2"
+    },
+    {
+      "path": "automation/scripts/restore-db.sh",
+      "sha256": "100403dd9b24d52031544563cee892edaef67a3a020b2e25a8c4dc43e9644247"
+    },
+    {
+      "path": "automation/scripts/setup-traefik.sh",
+      "sha256": "cdfbc4de0ea32439fa4d7d2f14d93e9e131ce2b957bf2cb56ca6526cfb4ce9aa"
+    }
+  ]
+}
